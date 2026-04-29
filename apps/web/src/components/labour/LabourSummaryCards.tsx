@@ -1,6 +1,6 @@
 import { KpiCard } from '@/components/common/KpiCard';
+import { formatCurrency, formatVariance } from '@hos/shared';
 import type { LabourMetrics } from '@hos/shared';
-import { PORTFOLIO_STLY } from '@hos/shared';
 
 interface Props {
   data: LabourMetrics[];
@@ -14,37 +14,39 @@ export function LabourSummaryCards({ data }: Props) {
   const totalPayroll = data.reduce((s, l) => s + l.payrollCost, 0);
 
   return (
-    <div className="grid grid-cols-5 gap-3">
+    <div className="grid grid-cols-5 gap-4">
       <KpiCard
         label="Scheduled Hours"
         value={totalSched.toLocaleString()}
-        change={{ pct: PORTFOLIO_STLY.scheduledHours.changePct, direction: 'up' }}
-        stly={PORTFOLIO_STLY.scheduledHours.formattedStly}
+        subtext="bi-weekly period"
+        size="medium"
       />
       <KpiCard
         label="Clocked Hours"
         value={totalClocked.toLocaleString()}
-        change={{ pct: PORTFOLIO_STLY.clockedHours.changePct, direction: 'up' }}
-        stly={PORTFOLIO_STLY.clockedHours.formattedStly}
+        subtext="actual hours worked"
+        size="medium"
       />
       <KpiCard
         label="Labour Variance"
-        value={`+${totalVariance} hrs`}
-        change={{ pct: PORTFOLIO_STLY.labourVariance.changePct, direction: 'up' }}
-        stly={PORTFOLIO_STLY.labourVariance.formattedStly}
+        value={formatVariance(totalVariance) + ' hrs'}
+        subtext="clocked vs. scheduled"
+        trend={totalVariance > 0 ? 'down' : 'up'}
         alert={totalVariance > 200}
+        size="medium"
       />
       <KpiCard
         label="Overtime Hours"
         value={totalOt.toLocaleString()}
-        change={{ pct: PORTFOLIO_STLY.overtimeHours.changePct, direction: 'up' }}
-        stly={PORTFOLIO_STLY.overtimeHours.formattedStly}
+        subtext="all properties"
+        alert={totalOt > 100}
+        size="medium"
       />
       <KpiCard
         label="Total Payroll"
-        value={`$${(totalPayroll / 1000).toFixed(1)}k`}
-        change={{ pct: PORTFOLIO_STLY.payrollCost.changePct, direction: 'up' }}
-        stly={PORTFOLIO_STLY.payrollCost.formattedStly}
+        value={formatCurrency(totalPayroll, true)}
+        subtext="bi-weekly labour cost"
+        size="medium"
       />
     </div>
   );

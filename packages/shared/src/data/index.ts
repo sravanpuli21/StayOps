@@ -17,4 +17,3 @@ export * from './ai-capex';
 export * from './ai-decisions';
 export * from './ai-briefs';
 export * from './assets';
-export * from './history';

@@ -1,27 +1,29 @@
-import {
-  HOTELS,
-  REVENUE_DATA,
-  LABOUR_DATA,
-  DAILY_METRICS,
-  AI_ANOMALIES,
-  getBriefByModule,
-  PORTFOLIO_HISTORY,
-  PORTFOLIO_STLY,
-  OCCUPANCY_RINGS,
-} from '@hos/shared';
+import { HOTELS, REVENUE_DATA, LABOUR_DATA, DAILY_METRICS, AI_ANOMALIES, getBriefByModule } from '@hos/shared';
+import { formatCurrency, formatPct, formatVariance } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
 import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
 import { AIBrief } from '@/components/ai/AIBrief';
-import { DonutPair } from '@/components/common/DonutPair';
-import { SegmentedStatusBar } from '@/components/common/SegmentedStatusBar';
 
 export default function DashboardPage() {
+  // Portfolio aggregates
   const totalRooms = HOTELS.reduce((s, h) => s + h.rooms, 0);
   const totalRoomsSold = DAILY_METRICS.reduce((s, m) => s + m.roomsSold, 0);
   const totalRoomsOoo = DAILY_METRICS.reduce((s, m) => s + m.roomsOoo, 0);
+  const occupancyPct = (totalRoomsSold / totalRooms) * 100;
   const roomsNotSold = totalRooms - totalRoomsSold;
 
+  const totalRevenue = REVENUE_DATA.reduce((s, r) => s + r.totalRevenue, 0);
+  const totalRoomRevenue = REVENUE_DATA.reduce((s, r) => s + r.roomRevenue, 0);
+
+  const totalScheduled = LABOUR_DATA.reduce((s, l) => s + l.scheduledHours, 0);
+  const totalClocked = LABOUR_DATA.reduce((s, l) => s + l.clockedHours, 0);
+  const labourVariance = totalClocked - totalScheduled;
+
+  const avgRating =
+    DAILY_METRICS.reduce((s, m) => s + m.avgCustomerRating, 0) / DAILY_METRICS.length;
+
+  // Join hotel + revenue for PortfolioTable
   const portfolioRows = HOTELS.map((hotel) => {
     const revenue = REVENUE_DATA.find((r) => r.hotelId === hotel.id)!;
     return { hotel, revenue };
@@ -29,16 +31,9 @@ export default function DashboardPage() {
 
   const brief = getBriefByModule('dashboard')!;
 
-  // Health breakdown segments
-  const greenCount = REVENUE_DATA.filter((r) => r.health === 'green').length;
-  const amberCount = REVENUE_DATA.filter((r) => r.health === 'amber').length;
-  const redCount = REVENUE_DATA.filter((r) => r.health === 'red').length;
-  const greenPct = Math.round((greenCount / REVENUE_DATA.length) * 100);
-  const amberPct = Math.round((amberCount / REVENUE_DATA.length) * 100);
-  const redPct = 100 - greenPct - amberPct;
-
   return (
     <div className="flex flex-col gap-6">
+      {/* Page header */}
       <div>
         <h1 className="text-xl font-bold" style={{ color: '#222222' }}>
           Portfolio Dashboard
@@ -48,107 +43,77 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* AI Brief */}
       <AIBrief brief={brief} />
 
-      {/* Row 1 — 4 primary KPIs with sparklines + STLY */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* Row 1 — 4 large KPI cards */}
+      <div className="grid grid-cols-4 gap-4">
         <KpiCard
           label="Portfolio Occupancy"
-          value={PORTFOLIO_STLY.occupancy.formattedCurrent}
-          change={{ pct: PORTFOLIO_STLY.occupancy.changePct, direction: 'up' }}
-          stly={PORTFOLIO_STLY.occupancy.formattedStly}
-          sparkline={PORTFOLIO_HISTORY.occupancy.points}
+          value={formatPct(occupancyPct, 1)}
+          subtext={`${totalRoomsSold} of ${totalRooms} rooms sold`}
+          size="large"
         />
         <KpiCard
           label="Room Revenue"
-          value={PORTFOLIO_STLY.roomRevenue.formattedCurrent}
-          change={{ pct: PORTFOLIO_STLY.roomRevenue.changePct, direction: 'up' }}
-          stly={PORTFOLIO_STLY.roomRevenue.formattedStly}
-          sparkline={PORTFOLIO_HISTORY.roomRevenue.points}
+          value={formatCurrency(totalRoomRevenue, true)}
+          subtext="Rooms only, excl. F&B / retail"
+          size="large"
         />
         <KpiCard
           label="Total Revenue"
-          value={PORTFOLIO_STLY.totalRevenue.formattedCurrent}
-          change={{ pct: PORTFOLIO_STLY.totalRevenue.changePct, direction: 'up' }}
-          stly={PORTFOLIO_STLY.totalRevenue.formattedStly}
-          sparkline={PORTFOLIO_HISTORY.totalRevenue.points}
+          value={formatCurrency(totalRevenue, true)}
+          subtext="All revenue streams"
+          size="large"
         />
         <KpiCard
           label="Rooms Not Sold"
           value={roomsNotSold.toString()}
-          change={{ pct: PORTFOLIO_STLY.roomsNotSold.changePct, direction: 'up' }}
-          stly={PORTFOLIO_STLY.roomsNotSold.formattedStly}
+          subtext={`${totalRoomsOoo} rooms out of order`}
+          alert={roomsNotSold > 320}
+          size="large"
         />
       </div>
 
-      {/* Row 2 — 4 secondary KPIs */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* Row 2 — 4 medium KPI cards */}
+      <div className="grid grid-cols-4 gap-4">
         <KpiCard
           label="Rooms Out of Order"
           value={totalRoomsOoo.toString()}
-          stly="9"
-          change={{ pct: -11, direction: 'up' }}
+          subtext="Across all properties"
+          size="medium"
         />
         <KpiCard
-          label="Hours Clocked / Sched"
-          value="9,871 / 9,597"
-          change={{ pct: PORTFOLIO_STLY.scheduledHours.changePct, direction: 'up' }}
-          stly={`${PORTFOLIO_STLY.clockedHours.formattedStly} / ${PORTFOLIO_STLY.scheduledHours.formattedStly}`}
+          label="Hours Clocked / Scheduled"
+          value={`${totalClocked.toLocaleString()} / ${totalScheduled.toLocaleString()}`}
+          subtext="bi-weekly period"
+          size="medium"
         />
         <KpiCard
           label="Labour Variance"
-          value={PORTFOLIO_STLY.labourVariance.formattedCurrent}
-          change={{ pct: PORTFOLIO_STLY.labourVariance.changePct, direction: 'up' }}
-          stly={PORTFOLIO_STLY.labourVariance.formattedStly}
-          alert
+          value={formatVariance(labourVariance) + ' hrs'}
+          subtext="vs. scheduled hours"
+          trend={labourVariance > 0 ? 'down' : 'up'}
+          alert={labourVariance > 200}
+          size="medium"
         />
         <KpiCard
           label="Avg Customer Rating"
-          value={PORTFOLIO_STLY.avgRating.formattedCurrent}
-          change={{ pct: PORTFOLIO_STLY.avgRating.changePct, direction: 'up' }}
-          stly={PORTFOLIO_STLY.avgRating.formattedStly}
+          value={avgRating.toFixed(1)}
+          subtext="across all 16 hotels"
+          size="medium"
         />
       </div>
 
-      {/* Row 3 — Donut pair + health breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div
-          className="bg-white p-6"
-          style={{ borderRadius: 14, border: '1px solid #dddddd' }}
-        >
-          <p className="text-base font-semibold mb-4" style={{ color: '#222' }}>
-            Occupancy — OTB vs Month Forecast
-          </p>
-          <DonutPair rings={OCCUPANCY_RINGS} size={130} />
-        </div>
-
-        <div
-          className="bg-white p-6"
-          style={{ borderRadius: 14, border: '1px solid #dddddd' }}
-        >
-          <p className="text-base font-semibold mb-5" style={{ color: '#222' }}>
-            Portfolio Health Status
-          </p>
-          <SegmentedStatusBar
-            segments={[
-              { label: 'Green',  pct: greenPct, color: '#16a34a' },
-              { label: 'Amber',  pct: amberPct, color: '#d97706' },
-              { label: 'Red',    pct: redPct,   color: '#dc2626' },
-            ]}
-          />
-          <p className="text-xs mt-4" style={{ color: '#6a6a6a' }}>
-            {greenCount} healthy · {amberCount} to monitor · {redCount} at risk
-          </p>
-        </div>
-      </div>
-
+      {/* Portfolio table */}
       <div>
-        <h2 className="text-base font-bold mb-3" style={{ color: '#222' }}>
+        <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#6a6a6a' }}>
           All Properties
         </h2>
         <PortfolioTable rows={portfolioRows} />
       </div>
 
+      {/* AI findings (replaces static Red Flags) */}
       <AIFlagsPanel findings={AI_ANOMALIES.filter((a) => a.kind !== 'resolved')} />
     </div>
   );
