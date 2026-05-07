@@ -43,13 +43,13 @@ export default function PersonaSelector() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        {/* Header */}
+        {/* Header — stayops product on left, HOS tenant chip on right */}
         <View style={styles.header}>
+          <CambriaLogo size="md" />
           <View style={styles.hosLogo}>
             <View style={styles.hosDot} />
             <Text style={styles.hosText}>HOS Management</Text>
           </View>
-          <CambriaLogo size="sm" />
         </View>
 
         {/* Hero */}
@@ -107,7 +107,9 @@ export default function PersonaSelector() {
           ))}
         </View>
 
-        <Text style={styles.footer}>Apr 27, 2026 · Morning Shift</Text>
+        <Text style={styles.footer}>
+          {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </Text>
       </View>
     </SafeAreaView>
   );

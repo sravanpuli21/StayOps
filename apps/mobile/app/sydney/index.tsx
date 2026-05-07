@@ -66,7 +66,9 @@ export default function SydneyDashboard() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Good morning, Sydney 👋</Text>
-          <Text style={styles.date}>Mon, April 27 · Day Shift</Text>
+          <Text style={styles.date}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · Day Shift
+          </Text>
         </View>
         <CambriaLogo size="sm" />
       </View>

@@ -7,16 +7,18 @@ interface Props {
   name?: string;
 }
 
-// Legacy name kept for backward compat. Now acts as a generic property logo —
-// pass `name` to override the displayed text (defaults to HOME2 since every
-// mobile persona currently maps to Home2 Baton Rouge / BTRCI).
-export function CambriaLogo({ size = 'md', name = 'HOME2' }: Props) {
+/**
+ * stayops product wordmark. Lowercase wordmark + thin Rausch accent bar — the
+ * app is "stayops"; the hotel is data. Filename kept (CambriaLogo) for
+ * backward compat with older imports — will rename in a future pass.
+ */
+export function CambriaLogo({ size = 'md', name = 'stayops' }: Props) {
   const fontSize = size === 'sm' ? 13 : size === 'lg' ? 22 : 17;
-  const barH = size === 'sm' ? 2 : size === 'lg' ? 4 : 3;
+  const barH = size === 'sm' ? 2 : size === 'lg' ? 3 : 2.5;
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.text, { fontSize, letterSpacing: fontSize * 0.18 }]}>
+      <Text style={[styles.text, { fontSize }]}>
         {name}
       </Text>
       <View style={[styles.bar, { height: barH }]} />
@@ -28,12 +30,12 @@ const styles = StyleSheet.create({
   wrap: { alignItems: 'flex-start', gap: 2 },
   text: {
     fontWeight: '700',
-    color: C.hotelSlate,
-    letterSpacing: 3,
+    color: C.text,
+    letterSpacing: 0,
   },
   bar: {
-    width: '100%',
-    backgroundColor: C.gold,
+    width: '70%',
+    backgroundColor: C.brand, // #ff385c — Rausch, matches web
     borderRadius: 2,
   },
 });

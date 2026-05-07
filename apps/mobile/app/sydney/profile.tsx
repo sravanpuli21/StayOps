@@ -56,9 +56,10 @@ export default function SydneyProfile() {
     } else if (action === 'audit') {
       router.push('/amir/audit' as any);
     } else if (action === 'report') {
+      const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       Alert.alert(
         'Daily Report',
-        `April 27, 2026\n\n• ${resolvedToday} resolved\n• ${inProgress} in progress\n• ${urgentOpen} urgent open\n• ${allAudits.filter(a => a.state === 'completed').length} audits complete\n• ${staffOnShift} staff on shift\n\nReport emailed to Kris, Harshal.`,
+        `${today}\n\n• ${resolvedToday} resolved\n• ${inProgress} in progress\n• ${urgentOpen} urgent open\n• ${allAudits.filter(a => a.state === 'completed').length} audits complete\n• ${staffOnShift} staff on shift\n\nReport emailed to Kris, Harshal.`,
       );
     }
   };
