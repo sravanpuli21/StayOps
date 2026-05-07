@@ -1,18 +1,20 @@
-import {
-  HOTELS, REVENUE_DATA, LABOUR_DATA, DAILY_METRICS,
-  formatCurrency, formatPct,
-} from '@hos/shared';
+'use client';
+
+import { formatCurrency, formatPct } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
+import { usePropertyScoped } from '@/lib/use-property-scoped';
 
 const HOTEL_ID = 'BTRCI';
 
 export default function RishabRevenue() {
-  const hotel = HOTELS.find((h) => h.id === HOTEL_ID)!;
-  const rev = REVENUE_DATA.find((r) => r.hotelId === HOTEL_ID)!;
-  const lab = LABOUR_DATA.find((l) => l.hotelId === HOTEL_ID)!;
-  const dm = DAILY_METRICS.find((d) => d.hotelId === HOTEL_ID)!;
-  const payrollPct = (lab.payrollCost / rev.totalRevenue) * 100;
+  const scoped = usePropertyScoped(HOTEL_ID);
+  const hotel = scoped.hotel;
+  const rev = scoped.revenue!;
+  const lab = scoped.labour!;
+  const dm = scoped.daily!;
+  const period = scoped.period;
+  const payrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
   const adrGap = rev.adr - rev.marketAdr;
 
   return (
@@ -23,7 +25,7 @@ export default function RishabRevenue() {
           <HealthBadge health={rev.health} showLabel />
         </div>
         <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
-          {hotel.name} · yesterday
+          {hotel.name} · {period.label}
         </p>
       </div>
 

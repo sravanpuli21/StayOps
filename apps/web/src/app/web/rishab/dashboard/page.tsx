@@ -1,22 +1,27 @@
+'use client';
+
 import Link from 'next/link';
 import { AlertTriangle, ChevronRight, Users, Bed, Wrench, Clock } from 'lucide-react';
 import {
-  HOTELS, REVENUE_DATA, LABOUR_DATA, DAILY_METRICS, RED_FLAGS,
-  AI_ANOMALIES, computeHotelScore, getEmployeesForHotel, getActiveTicketsForHotel,
+  RED_FLAGS, AI_ANOMALIES, computeHotelScore,
+  getEmployeesForHotel, getActiveTicketsForHotel,
   getPropertyOpsSummary, getHotelAuditSummary,
   formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { csatTier } from '@/lib/csat';
+import { usePropertyScoped } from '@/lib/use-property-scoped';
 
 const HOTEL_ID = 'BTRCI';
 
 export default function RishabDashboard() {
-  const hotel = HOTELS.find((h) => h.id === HOTEL_ID)!;
-  const rev = REVENUE_DATA.find((r) => r.hotelId === HOTEL_ID)!;
-  const lab = LABOUR_DATA.find((l) => l.hotelId === HOTEL_ID)!;
-  const dm = DAILY_METRICS.find((d) => d.hotelId === HOTEL_ID)!;
+  const scoped = usePropertyScoped(HOTEL_ID);
+  const hotel = scoped.hotel;
+  const rev = scoped.revenue!;
+  const lab = scoped.labour!;
+  const dm = scoped.daily!;
+  const period = scoped.period;
   const score = computeHotelScore(HOTEL_ID);
   const employees = getEmployeesForHotel(HOTEL_ID);
   const activeTickets = getActiveTicketsForHotel(HOTEL_ID);
@@ -86,7 +91,7 @@ export default function RishabDashboard() {
             <HealthBadge health={rev.health} showLabel />
           </div>
           <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
-            {hotel.name} · {hotel.city}, {hotel.state} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            {hotel.name} · {hotel.city}, {hotel.state} · {period.label}
           </p>
         </div>
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: '#ffffff', border: '1px solid #dddddd' }}>
@@ -153,22 +158,13 @@ export default function RishabDashboard() {
       <div>
         <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#6a6a6a' }}>Operations — Today</h2>
         <div className="grid grid-cols-4 gap-4">
-          <div
-            className="bg-white rounded-2xl p-5"
-            style={{
-              border: roomsShort > 0 ? '1px solid #fca5a5' : '1px solid #dddddd',
-              boxShadow: roomsShort > 0 ? 'rgba(220,38,38,0.08) 0 4px 10px 0' : undefined,
-            }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#929292' }}>Rooms Ready vs Arrivals</p>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-2xl font-bold" style={{ color: roomsShort > 0 ? '#b91c1c' : '#15803d' }}>{roomsReady}</span>
-              <span className="text-sm" style={{ color: '#6a6a6a' }}>/ {arrivalsExpected}</span>
-            </div>
-            <p className="text-xs mt-1" style={{ color: '#6a6a6a' }}>
-              {roomsShort > 0 ? `${roomsShort} short · HK pace check` : 'On pace'}
-            </p>
-          </div>
+          <KpiCard
+            label="Rooms Ready vs Arrivals"
+            value={`${roomsReady} / ${arrivalsExpected}`}
+            subtext={roomsShort > 0 ? `${roomsShort} short · HK pace check` : 'On pace'}
+            alert={roomsShort > 0}
+            size="medium"
+          />
           <KpiCard label="Rooms OOO"    value={dm.roomsOoo.toString()} subtext={`${opsSummary.blockedRooms} blocked`} alert={dm.roomsOoo > 1} size="medium" />
           <KpiCard label="Open Tickets" value={opsSummary.openTickets.toString()} subtext={`${urgentTickets} urgent`} alert={urgentTickets > 0} size="medium" />
           <KpiCard label="Audit Pass"   value={`${auditSummary.compliancePct}%`} subtext={`${auditSummary.overdueRooms} overdue`} alert={auditSummary.compliancePct < 80} size="medium" />

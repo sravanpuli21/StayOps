@@ -85,7 +85,7 @@ export default function SydneyProfile() {
           </View>
           <View style={styles.shiftRow}>
             <Ionicons name="location-outline" size={13} color={C.hint} />
-            <Text style={styles.shiftText}>GA989 · Savannah, GA</Text>
+            <Text style={styles.shiftText}>BTRCI · Baton Rouge, LA</Text>
           </View>
 
           {prefs.onCallThisWeek && (

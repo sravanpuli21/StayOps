@@ -54,7 +54,7 @@ export const EMMA_NAV_ITEMS: readonly NavItem[] = [
   { label: 'Team',         href: '/web/emma/team',         icon: 'Users'           },
   { label: 'Tickets',      href: '/web/emma/tickets',      icon: 'Wrench'          },
   { label: 'Print Sheets', href: '/web/emma/print',        icon: 'Printer'         },
-  { label: 'Schedule',     href: '/web/rishab/scheduling', icon: 'Calendar'        },
+  { label: 'Staff Schedule', href: '/web/rishab/scheduling', icon: 'Calendar'      },
   { label: 'SOP',          href: '/web/emma/sop',          icon: 'BookOpen'        },
   { label: 'Settings',     href: '/web/emma/settings',     icon: 'Settings'        },
 ] as const;

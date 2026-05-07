@@ -298,16 +298,7 @@ export default function HarshalPrintCenter() {
         <div style={{ height: 32, borderBottom: '1px dashed #c1c1c1' }} />
       </div>
 
-      {/* Print-only style */}
-      <style>{`
-        @media screen {
-          .print-only { display: none; }
-        }
-        @media print {
-          .print-only { display: block !important; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
+      {/* .print-only and .no-print classes are defined globally in globals.css */}
     </div>
   );
 }

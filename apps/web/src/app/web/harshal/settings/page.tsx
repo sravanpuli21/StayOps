@@ -1,18 +1,19 @@
-import Link from 'next/link';
-import { Construction } from 'lucide-react';
+'use client';
 
-export default function Page() {
+import { SettingsPanel } from '@/components/common/SettingsPanel';
+
+export default function HarshalSettings() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center py-24">
-      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-           style={{ background: '#f7f7f7', border: '1px solid #dddddd' }}>
-        <Construction className="w-8 h-8" style={{ color: '#c1c1c1' }} />
-      </div>
-      <h1 className="text-xl font-bold mb-1" style={{ color: '#222222' }}>Settings</h1>
-      <p className="text-sm mb-6" style={{ color: '#6a6a6a' }}>Settings — coming in next phase.</p>
-      <Link href="/web/harshal/dashboard" className="text-sm font-semibold underline" style={{ color: '#ff385c' }}>
-        ← Back to Dashboard
-      </Link>
-    </div>
+    <SettingsPanel
+      profile={{
+        name: 'Harshal Patel',
+        role: 'Regional Director of Operations',
+        hotel: '8-hotel region · LA, FL, TX',
+        email: 'harshal@hosmgmt.com',
+        phone: '(225) 555-0002',
+        initials: 'HP',
+        accentColor: '#222222',
+      }}
+    />
   );
 }

@@ -75,7 +75,7 @@ export default function SydneyDashboard() {
 
         {/* Hotel KPIs */}
         <View style={styles.kpiCard}>
-          <Text style={styles.kpiHotel}>GA989 · Cambria Hotel Savannah</Text>
+          <Text style={styles.kpiHotel}>BTRCI · Home2 Suites Baton Rouge</Text>
           <View style={styles.kpiRow}>
             {ROOM_KPIS.map((k) => (
               <View key={k.label} style={styles.kpi}>

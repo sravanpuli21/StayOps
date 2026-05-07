@@ -131,7 +131,7 @@ export default function SydneyRooms() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Room Status</Text>
-          <Text style={styles.subtitle}>GA989 · Cambria Hotel Savannah</Text>
+          <Text style={styles.subtitle}>BTRCI · Home2 Suites Baton Rouge</Text>
         </View>
         <View style={styles.occBadge}>
           <Text style={styles.occPct}>88%</Text>
