@@ -70,6 +70,22 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
     blocked: '#e11d48',
   };
 
+  // Tile styles mirror Audits HotelAuditView room grid
+  const TILE_CFG: Record<string, { bg: string; border: string; dot: string; label: string }> = {
+    ready:      { bg: '#f0fdf4', border: '#86efac', dot: '#22c55e', label: 'Ready' },
+    inspecting: { bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6', label: 'Inspecting' },
+    dirty:      { bg: '#fffbeb', border: '#fcd34d', dot: '#f59e0b', label: 'Dirty' },
+    occupied:   { bg: '#ffffff', border: '#e5e7eb', dot: '#94a3b8', label: 'Occupied' },
+    ooo:        { bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444', label: 'OOO' },
+    blocked:    { bg: '#fef2f2', border: '#fca5a5', dot: '#e11d48', label: 'Blocked' },
+  };
+
+  // Per-room ticket counts so each tile can show a corner badge
+  const ticketsByRoom: Record<string, number> = {};
+  for (const t of tickets) {
+    if (t.roomNumber) ticketsByRoom[t.roomNumber] = (ticketsByRoom[t.roomNumber] ?? 0) + 1;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -107,65 +123,77 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
         })}
       </div>
 
-      {/* Room grid */}
+      {/* Room grid — Audits-style tiled layout */}
       <div>
-        <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#6a6a6a' }}>
-          Room Grid
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>
+            Room Grid
+          </h2>
+          <span className="text-xs" style={{ color: '#929292' }}>Click a room to drill in</span>
+        </div>
+
+        {/* Legend */}
         <div
-          className="rounded-2xl p-4"
-          style={{ background: '#f7f7f7', border: '1px solid #dddddd' }}
+          className="px-5 py-2.5 flex items-center gap-5 flex-wrap rounded-t-2xl"
+          style={{ background: '#fafafa', borderTop: '1px solid #dddddd', borderLeft: '1px solid #dddddd', borderRight: '1px solid #dddddd' }}
         >
-          <div className="flex flex-col gap-2">
-            {floors.map((floor) => (
-              <div key={floor} className="flex items-center gap-2">
-                <span
-                  className="text-xs font-bold w-8 text-right flex-shrink-0"
-                  style={{ color: '#929292' }}
-                >
-                  F{floor}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {floorMap[floor].sort((a, b) => a.number.localeCompare(b.number)).map((room) => (
+          <span className="text-xs font-semibold" style={{ color: '#929292' }}>Status:</span>
+          {Object.entries(TILE_CFG).map(([status, cfg]) => (
+            <span key={status} className="flex items-center gap-1.5 text-xs" style={{ color: '#6a6a6a' }}>
+              <span className="w-3 h-3 rounded-sm" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }} />
+              {cfg.label}
+            </span>
+          ))}
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: '#6a6a6a' }}>
+            <span className="w-3 h-3 rounded-full text-[8px] font-black text-white flex items-center justify-center" style={{ background: '#ff385c' }}>!</span>
+            Open ticket count
+          </span>
+        </div>
+
+        <div
+          className="px-5 py-5 rounded-b-2xl"
+          style={{ background: '#ffffff', border: '1px solid #dddddd', borderTop: 'none' }}
+        >
+          {floors.map((floor) => (
+            <div key={floor} className="mb-6 last:mb-0">
+              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#929292' }}>
+                Floor {floor}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {floorMap[floor].sort((a, b) => a.number.localeCompare(b.number)).map((room) => {
+                  const cfg = TILE_CFG[room.status] ?? TILE_CFG.occupied;
+                  const ticketCount = ticketsByRoom[room.number] ?? 0;
+                  return (
                     <button
                       key={room.id}
                       onClick={() => onRoomClick(room)}
-                      title={`Room ${room.number} – ${room.type} – ${room.status}${room.oooReason ? ` (${room.oooReason})` : ''}`}
-                      className="w-10 h-9 rounded text-xs font-bold transition-all hover:scale-110 hover:z-10 relative hover:shadow-md"
+                      title={`Room ${room.number} · ${room.type} · ${cfg.label}${room.oooReason ? ` (${room.oooReason})` : ''}${ticketCount ? ` · ${ticketCount} open ticket${ticketCount === 1 ? '' : 's'}` : ''}`}
+                      className="relative rounded-xl flex flex-col items-center justify-center transition-all hover:scale-105 hover:shadow-md"
                       style={{
-                        background: ROOM_COLORS[room.status],
-                        color: room.status === 'occupied' ? '#374151' : '#fff',
-                        outline: room.hasOpenTicket ? '2px solid #222' : undefined,
-                        outlineOffset: '1px',
+                        width: 64, height: 56,
+                        background: cfg.bg,
+                        border: `1.5px solid ${cfg.border}`,
                       }}
                     >
-                      {room.number.slice(-2)}
-                      {room.hasOpenTicket && (
+                      <span className="text-xs font-bold" style={{ color: '#222222' }}>{room.number}</span>
+                      {ticketCount > 0 && (
                         <span
-                          className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
-                          style={{ background: '#ff385c' }}
-                        />
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-xs font-black flex items-center justify-center text-white"
+                          style={{ background: '#ff385c', fontSize: '9px' }}
+                        >
+                          {ticketCount}
+                        </span>
                       )}
+                      <div
+                        className="w-1.5 h-1.5 rounded-full mt-0.5"
+                        style={{ background: cfg.dot }}
+                      />
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 mt-4 pt-3 flex-wrap" style={{ borderTop: '1px solid #dddddd' }}>
-            {Object.entries(ROOM_COLORS).map(([status, color]) => (
-              <div key={status} className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm" style={{ background: color }} />
-                <span className="text-xs capitalize" style={{ color: '#6a6a6a' }}>{status}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm border-2" style={{ background: '#94a3b8', borderColor: '#222' }} />
-              <span className="text-xs" style={{ color: '#6a6a6a' }}>Has open ticket</span>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 

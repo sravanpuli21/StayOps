@@ -1,16 +1,31 @@
 'use client';
 
 import { Search, Printer, Bell, ChevronDown } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { HotelSelector } from './HotelSelector';
 import { DateFilter } from './DateFilter';
 import { RED_FLAGS } from '@hos/shared';
 
-const criticalCount = RED_FLAGS.filter((f) => f.severity === 'critical').length;
+interface TopBarProps {
+  initials?: string;
+  firstName?: string;
+  accentColor?: string;
+  avatarUrl?: string;
+}
 
-export function TopBar() {
+export function TopBar({
+  initials = 'KP',
+  firstName = 'Kris',
+  accentColor = '#ff385c',
+  avatarUrl,
+}: TopBarProps) {
+  const criticalCount = RED_FLAGS.filter((f) => f.severity === 'critical').length;
+  const pathname = usePathname();
+  const hidePrint = pathname === '/web/kris/am-pm-report' || pathname === '/web/harshal/am-pm-report';
+
   return (
     <header
-      className="h-16 flex items-center gap-4 px-6 flex-shrink-0"
+      className="no-print h-16 flex items-center gap-4 px-6 flex-shrink-0"
       style={{ background: '#ffffff', borderBottom: '1px solid #dddddd' }}
     >
       {/* Search */}
@@ -36,18 +51,20 @@ export function TopBar() {
         <DateFilter />
 
         {/* Print */}
-        <button
-          onClick={() => window.print()}
-          className="no-print flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-colors"
-          style={{
-            background: '#f7f7f7',
-            border: '1px solid #dddddd',
-            color: '#6a6a6a',
-          }}
-        >
-          <Printer className="w-3.5 h-3.5" />
-          Print
-        </button>
+        {!hidePrint && (
+          <button
+            onClick={() => window.print()}
+            className="no-print flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-colors"
+            style={{
+              background: '#f7f7f7',
+              border: '1px solid #dddddd',
+              color: '#6a6a6a',
+            }}
+          >
+            <Printer className="w-3.5 h-3.5" />
+            Print
+          </button>
+        )}
 
         {/* Alerts bell */}
         <button
@@ -76,14 +93,22 @@ export function TopBar() {
             border: '1px solid #dddddd',
           }}
         >
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ background: '#ff385c' }}
-          >
-            KP
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={firstName}
+              className="w-7 h-7 rounded-full object-cover"
+            />
+          ) : (
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              style={{ background: accentColor }}
+            >
+              {initials}
+            </div>
+          )}
           <span className="text-xs font-medium" style={{ color: '#222222' }}>
-            Kirit
+            {firstName}
           </span>
           <ChevronDown className="w-3 h-3" style={{ color: '#929292' }} />
         </button>

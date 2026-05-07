@@ -10,6 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 interface Props {
   onHotelClick: (hotelId: string) => void;
   onTicketClick: (ticket: MaintenanceTicket) => void;
+  hotelIds?: readonly string[];
 }
 
 const TYPE_FILTERS: { label: string; value: TicketType | 'all' }[] = [
@@ -29,17 +30,21 @@ function timeAgo(iso: string): string {
   return `${Math.floor((diff % 3600000) / 60000)}m ago`;
 }
 
-export function PortfolioView({ onHotelClick, onTicketClick }: Props) {
+export function PortfolioView({ onHotelClick, onTicketClick, hotelIds }: Props) {
   const [typeFilter, setTypeFilter] = useState<TicketType | 'all'>('all');
   const [urgentOnly, setUrgentOnly] = useState(false);
 
-  const summaries = HOTELS.map((h) => getPropertyOpsSummary(h.id));
+  const scopedHotels = hotelIds ? HOTELS.filter((h) => hotelIds.includes(h.id)) : HOTELS;
+
+  const summaries = scopedHotels.map((h) => getPropertyOpsSummary(h.id));
 
   const totalReady = summaries.reduce((s, x) => s + x.readyRooms, 0);
-  const totalRooms = HOTELS.reduce((s, h) => s + h.rooms, 0);
+  const totalRooms = scopedHotels.reduce((s, h) => s + h.rooms, 0);
   const totalOoo = summaries.reduce((s, x) => s + x.oooRooms, 0);
   const totalBlocked = summaries.reduce((s, x) => s + x.blockedRooms, 0);
-  const activeTickets = MAINTENANCE_TICKETS.filter((t) => t.status !== 'resolved');
+  const activeTickets = MAINTENANCE_TICKETS.filter((t) =>
+    t.status !== 'resolved' && (!hotelIds || hotelIds.includes(t.hotelId))
+  );
   const urgentTickets = activeTickets.filter((t) => t.priority === 'urgent');
   const avgAuditRate = Math.round(summaries.reduce((s, x) => s + x.auditPassRate, 0) / summaries.length);
 
@@ -103,7 +108,7 @@ export function PortfolioView({ onHotelClick, onTicketClick }: Props) {
               </tr>
             </thead>
             <tbody>
-              {HOTELS.map((hotel, i) => {
+              {scopedHotels.map((hotel, i) => {
                 const s = summaries.find((x) => x.hotelId === hotel.id)!;
                 const readyPct = Math.round((s.readyRooms / hotel.rooms) * 100);
                 const hasIssue = s.urgentTickets > 0 || s.oooRooms > 3 || s.auditPassRate < 85;
@@ -112,7 +117,7 @@ export function PortfolioView({ onHotelClick, onTicketClick }: Props) {
                     key={hotel.id}
                     onClick={() => onHotelClick(hotel.id)}
                     className="cursor-pointer transition-colors hover:bg-[#fafafa]"
-                    style={{ borderBottom: i < HOTELS.length - 1 ? '1px solid #f0f0f0' : undefined }}
+                    style={{ borderBottom: i < scopedHotels.length - 1 ? '1px solid #f0f0f0' : undefined }}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import type { Hotel, AssetHotelSummary } from '@hos/shared';
 import { formatCurrency } from '@hos/shared';
 import { HealthBadge } from '@/components/common/HealthBadge';
@@ -17,7 +18,13 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
     : <ChevronDown className="w-3 h-3 inline ml-1" style={{ color: '#ff385c' }} />;
 }
 
-export function AssetHealthTable({ rows }: { rows: Row[] }) {
+interface AssetHealthTableProps {
+  rows: Row[];
+  /** When provided, each row gets a "View" link to `${hrefPrefix}/${hotelId}` */
+  hrefPrefix?: string;
+}
+
+export function AssetHealthTable({ rows, hrefPrefix }: AssetHealthTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('failingAssets');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
@@ -65,12 +72,14 @@ export function AssetHealthTable({ rows }: { rows: Row[] }) {
               Preventive % <SortIcon col="preventiveCompliancePct" sortKey={sortKey} sortDir={sortDir} />
             </th>
             <th className={th} style={{ color: '#6a6a6a' }}>Health</th>
+            {hrefPrefix && <th className={th} />}
           </tr>
         </thead>
         <tbody>
           {sorted.map((row, i) => (
             <tr
               key={row.hotel.id}
+              className={hrefPrefix ? 'cursor-pointer hover:bg-[#fafafa] transition-colors' : ''}
               style={{ borderBottom: i < sorted.length - 1 ? '1px solid #f0f0f0' : 'none' }}
             >
               <td className="py-3 px-4">
@@ -89,6 +98,17 @@ export function AssetHealthTable({ rows }: { rows: Row[] }) {
                 {row.summary.preventiveCompliancePct}%
               </td>
               <td className="py-3 px-4"><HealthBadge health={row.summary.health} showLabel /></td>
+              {hrefPrefix && (
+                <td className="py-3 px-4 text-right">
+                  <Link
+                    href={`${hrefPrefix}/${row.hotel.id}`}
+                    className="inline-flex items-center gap-0.5 text-xs font-semibold hover:underline"
+                    style={{ color: '#ff385c' }}
+                  >
+                    View <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

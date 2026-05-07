@@ -11,3 +11,14 @@ out/
 .env.local
 .env.*.local
 coverage/
+.vercel
+
+# Claude Code local config (permission settings, etc. — per-developer)
+.claude/
+
+# Expo build artifacts
+apps/mobile/.expo/
+
+# Exported conversation transcripts
+20??-??-??-*-*.txt
+

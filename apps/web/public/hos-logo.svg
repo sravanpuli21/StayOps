@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60">
+  <!-- Rausch brand dot -->
+  <circle cx="18" cy="30" r="7" fill="#ff385c"/>
+  <!-- HOS wordmark -->
+  <text x="34" y="30" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="22" font-weight="800" fill="#222222" letter-spacing="-0.5" dominant-baseline="middle">HOS</text>
+  <!-- "Management" tagline -->
+  <text x="85" y="31" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="14" font-weight="500" fill="#6a6a6a" letter-spacing="0" dominant-baseline="middle">Management</text>
+</svg>

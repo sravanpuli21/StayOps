@@ -16,8 +16,19 @@ type PanelFrame =
 
 // ── Portfolio KPI cards ────────────────────────────────────────────────────────
 
-function PortfolioKPIs() {
-  const stats = useMemo(() => getPortfolioAuditStats(), []);
+function PortfolioKPIs({ hotelIds }: { hotelIds?: readonly string[] }) {
+  const stats = useMemo(() => {
+    const full = getPortfolioAuditStats();
+    if (!hotelIds) return full;
+    const scoped = full.hotelSummaries.filter((h) => hotelIds.includes(h.hotelId));
+    const totalRooms    = scoped.reduce((s, h) => s + h.totalRooms, 0);
+    const totalCurrent  = scoped.reduce((s, h) => s + h.currentRooms, 0);
+    const totalOverdue  = scoped.reduce((s, h) => s + h.overdueRooms, 0);
+    const totalDueSoon  = scoped.reduce((s, h) => s + h.dueSoonRooms, 0);
+    const totalOverdueAreas = scoped.reduce((s, h) => s + h.overdueAreas, 0);
+    const compliancePct = totalRooms > 0 ? Math.round((totalCurrent / totalRooms) * 100) : 0;
+    return { ...full, hotelSummaries: scoped, totalRooms, totalCurrent, totalOverdue, totalDueSoon, totalOverdueAreas, compliancePct };
+  }, [hotelIds]);
   const kpis = [
     {
       label: 'Compliance Rate',
@@ -80,13 +91,15 @@ function ComplianceBar({ pct }: { pct: number }) {
   );
 }
 
-function HotelTable({ onHotelClick }: { onHotelClick: (hotelId: string) => void }) {
+function HotelTable({ onHotelClick, hotelIds }: { onHotelClick: (hotelId: string) => void; hotelIds?: readonly string[] }) {
   const stats = useMemo(() => getPortfolioAuditStats(), []);
 
-  const rows = stats.hotelSummaries.map((s) => ({
-    ...s,
-    hotel: HOTELS.find((h) => h.id === s.hotelId)!,
-  })).sort((a, b) => a.compliancePct - b.compliancePct); // worst first
+  const rows = stats.hotelSummaries
+    .filter((s) => !hotelIds || hotelIds.includes(s.hotelId))
+    .map((s) => ({
+      ...s,
+      hotel: HOTELS.find((h) => h.id === s.hotelId)!,
+    })).sort((a, b) => a.compliancePct - b.compliancePct); // worst first
 
   return (
     <div className="px-8 pb-6">
@@ -158,12 +171,12 @@ function HotelTable({ onHotelClick }: { onHotelClick: (hotelId: string) => void 
 
 // ── Portfolio view ─────────────────────────────────────────────────────────────
 
-function PortfolioView({ onHotelClick }: { onHotelClick: (hotelId: string) => void }) {
+function PortfolioView({ onHotelClick, hotelIds }: { onHotelClick: (hotelId: string) => void; hotelIds?: readonly string[] }) {
   return (
     <div>
-      <PortfolioKPIs />
+      <PortfolioKPIs hotelIds={hotelIds} />
       <div className="px-8 pt-5">
-        <HotelTable onHotelClick={onHotelClick} />
+        <HotelTable onHotelClick={onHotelClick} hotelIds={hotelIds} />
       </div>
     </div>
   );
@@ -173,7 +186,11 @@ function PortfolioView({ onHotelClick }: { onHotelClick: (hotelId: string) => vo
 
 type ViewLevel = { level: 'portfolio' } | { level: 'hotel'; hotelId: string };
 
-export function AuditsClient() {
+interface AuditsClientProps {
+  hotelIds?: readonly string[];
+}
+
+export function AuditsClient({ hotelIds }: AuditsClientProps = {}) {
   const [view, setView] = useState<ViewLevel>({ level: 'portfolio' });
   const [panelStack, setPanelStack] = useState<PanelFrame[]>([]);
 
@@ -205,7 +222,7 @@ export function AuditsClient() {
   return (
     <div className="relative">
       {view.level === 'portfolio'
-        ? <PortfolioView onHotelClick={handleHotelClick} />
+        ? <PortfolioView onHotelClick={handleHotelClick} hotelIds={hotelIds} />
         : (
           <HotelAuditView
             hotelId={view.hotelId}

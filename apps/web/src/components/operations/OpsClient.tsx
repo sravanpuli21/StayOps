@@ -19,7 +19,11 @@ type PanelFrame =
   | { kind: 'ticket'; ticketId: string }
   | { kind: 'item'; itemId: string };
 
-export function OpsClient() {
+interface OpsClientProps {
+  hotelIds?: readonly string[];   // When provided, filters portfolio to this subset
+}
+
+export function OpsClient({ hotelIds }: OpsClientProps = {}) {
   const [view, setView] = useState<ViewLevel>({ level: 'portfolio' });
   const [panelStack, setPanelStack] = useState<PanelFrame[]>([]);
 
@@ -76,7 +80,7 @@ export function OpsClient() {
   return (
     <div className="relative">
       {view.level === 'portfolio' ? (
-        <PortfolioView onHotelClick={handleHotelClick} onTicketClick={handleTicketClick} />
+        <PortfolioView onHotelClick={handleHotelClick} onTicketClick={handleTicketClick} hotelIds={hotelIds} />
       ) : (
         <PropertyView
           hotelId={view.hotelId}

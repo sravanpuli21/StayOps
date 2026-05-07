@@ -1,6 +1,7 @@
 import type {
   Room, RoomStatus, HkStatus, RoomType,
   MaintenanceTicket, AuditTask, RoomInventoryItem,
+  AssetStatus, AssetAttachment, SensorReading,
 } from '../types/operations';
 import { HOTELS } from './hotels';
 
@@ -22,6 +23,143 @@ function daysAgo(days: number): string {
   const d = new Date('2026-04-25');
   d.setDate(d.getDate() - days);
   return d.toISOString().split('T')[0];
+}
+
+// ─── Asset enrichment (hotelkit-style rich detail) ───────────────────────────
+
+const SUPPLIERS_BY_CATEGORY: Record<string, string[]> = {
+  appliance: ['Hengel', 'Frigoglass', 'Whirlpool Commercial', 'Samsung Hospitality', 'LG Commercial', 'Bosch'],
+  electronics: ['Samsung Hospitality', 'LG Commercial', 'Philips Healthcare'],
+  furniture: ['Sealy Hospitality', 'Simmons', 'Hampton Furnishings Inc.'],
+  fixture: ['Kohler', 'American Standard', 'Moen Commercial'],
+  linen: ['Standard Textile', 'Riegel Linen', 'Martex Hospitality'],
+};
+
+const MANUFACTURERS_BY_ITEM: Record<string, { manuf: string; modelPrefix: string }> = {
+  'AC/PTAC Unit': { manuf: 'GE Zoneline', modelPrefix: 'AZ45E' },
+  'Television': { manuf: 'Samsung', modelPrefix: 'HG43NT678UF' },
+  'Bed Frame': { manuf: 'Hampton Furnishings', modelPrefix: 'HF-BF' },
+  'Mattress': { manuf: 'Sealy Hospitality', modelPrefix: 'SH-KF' },
+  'Toilet': { manuf: 'Kohler', modelPrefix: 'K-3987-0' },
+  'Shower': { manuf: 'Moen Commercial', modelPrefix: 'MC-2170' },
+  'Mini Fridge': { manuf: 'Whirlpool Commercial', modelPrefix: 'WC-MF4' },
+};
+
+const DESCRIPTIONS: Record<string, string> = {
+  'AC/PTAC Unit': 'Packaged terminal air conditioner for guestroom climate control. Provides cooling and electric resistance heat with adjustable setpoints. Filter-equipped, side-vented, designed for 400–500 sq ft rooms.',
+  'Television': '4K UHD hospitality LED display with integrated Pro:Idiom encryption, LYNK SINC pillarbox support, and HDMI/USB. Wall-mounted, commercial-grade for 24/7 operation.',
+  'Bed Frame': 'Heavy-duty platform bed frame with reinforced steel side rails and center support. Anti-slip feet, designed for hospitality cycling.',
+  'Mattress': 'Dual-sided premium hospitality mattress. Pillow-top comfort layer over individually-wrapped coil support. 10-year durability rating under typical hotel load.',
+  'Toilet': 'ADA-compliant dual-flush commercial toilet. Pressure-assist flushing, vitreous china construction, low-consumption 1.28/1.6 GPF.',
+  'Shower': 'Commercial-grade rain showerhead with pressure-compensating flow regulator. Chrome-plated solid brass body, 2.0 GPM max flow.',
+  'Mini Fridge': 'Compact in-room refrigerator, 2.6 cu ft capacity. Thermostatic control, reversible door, absorption cooling system — silent operation for guestrooms.',
+  'Desk Phone': 'Two-line hospitality VoIP phone with speed dial, message-waiting indicator, and data port passthrough.',
+  'Desk Lamp': 'LED task desk lamp with integrated USB-A and USB-C charging ports. Dimmable, 3000K warm white, 9W.',
+  'Pillow': 'Down-alternative hypoallergenic pillow. Polyester microfiber fill, 200-thread-count cotton cover.',
+  'Linens Set': 'Queen sheet set — 200-thread-count cotton/poly blend. Fitted sheet, flat sheet, 2 pillowcases.',
+  'Curtains': 'Blackout-lined drapes, flame-retardant per NFPA 701. Grommet-top, room-darkening polyester.',
+  'Bedside Table': 'Laminated MDF bedside table with integrated USB charging and one drawer.',
+};
+
+const LOCATIONS: Record<string, string> = {
+  'AC/PTAC Unit': 'Guestroom · exterior wall',
+  'Television': 'Guestroom · wall-mounted',
+  'Bed Frame': 'Guestroom · bedroom',
+  'Mattress': 'Guestroom · bedroom',
+  'Toilet': 'Guestroom · bathroom',
+  'Shower': 'Guestroom · bathroom',
+  'Mini Fridge': 'Guestroom · kitchenette',
+  'Desk Phone': 'Guestroom · work desk',
+  'Desk Lamp': 'Guestroom · work desk',
+  'Pillow': 'Guestroom · bedroom',
+  'Linens Set': 'Guestroom · bedroom',
+  'Curtains': 'Guestroom · window',
+  'Bedside Table': 'Guestroom · bedroom',
+};
+
+const WARRANTY_YEARS_BY_CATEGORY: Record<string, number> = {
+  appliance: 5, electronics: 2, furniture: 10, fixture: 5, linen: 1,
+};
+
+const LIFE_YEARS_BY_CATEGORY: Record<string, number> = {
+  appliance: 10, electronics: 6, furniture: 12, fixture: 15, linen: 3,
+};
+
+const SENSOR_BY_ITEM: Record<string, { type: string; unit: string; min: number; max: number }> = {
+  'AC/PTAC Unit': { type: 'Temperature', unit: 'Celsius', min: 19, max: 24 },
+  'Mini Fridge': { type: 'Temperature', unit: 'Celsius', min: 2, max: 6 },
+};
+
+function conditionToStatus(condition: string): AssetStatus {
+  if (condition === 'condemned') return 'out of service';
+  if (condition === 'poor') return 'repair needed';
+  return 'operational';
+}
+
+function addYears(iso: string, years: number): string {
+  const d = new Date(iso);
+  d.setFullYear(d.getFullYear() + years);
+  return d.toISOString().split('T')[0];
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function enrichAsset(item: RoomInventoryItem): RoomInventoryItem {
+  const s = hash(item.id);
+  const category = item.category;
+  const suppliers = SUPPLIERS_BY_CATEGORY[category] ?? ['Generic Supply Co.'];
+  const supplier = suppliers[s % suppliers.length];
+  const manufInfo = MANUFACTURERS_BY_ITEM[item.name] ?? { manuf: supplier, modelPrefix: 'GEN' };
+
+  const purchaseCostFactor = 0.68 + ((s % 18) / 100); // 0.68 – 0.85
+  const purchaseCost = Math.round(item.replacementCost * purchaseCostFactor);
+  const purchaseDate = addDays(item.installedDate, -(14 + (s % 42))); // 2–8 weeks before install
+  const firstUseDate = item.installedDate;
+
+  const warrYears = WARRANTY_YEARS_BY_CATEGORY[category] ?? 2;
+  const warrantyEnd = addYears(purchaseDate, warrYears);
+
+  const lifeYears = LIFE_YEARS_BY_CATEGORY[category] ?? 8;
+  const endOfLifeDate = addYears(item.installedDate, lifeYears);
+
+  const sensor = SENSOR_BY_ITEM[item.name];
+  const readings: SensorReading[] | undefined = sensor
+    ? Array.from({ length: 30 }).map((_, i) => {
+        const seed = hash(`${item.id}-${i}`);
+        const pct = (seed % 100) / 100;
+        return { date: addDays(item.installedDate, -i), value: Number((sensor.min + pct * (sensor.max - sensor.min)).toFixed(1)) };
+      })
+    : undefined;
+
+  const attachments: AssetAttachment[] = [
+    { id: `${item.id}-att-invoice`, name: `Invoice ${purchaseDate}.pdf`, type: 'pdf', sizeKb: 120 + (s % 180) },
+    { id: `${item.id}-att-manual`, name: `${manufInfo.modelPrefix} user manual.pdf`, type: 'pdf', sizeKb: 1400 + (s % 600) },
+    { id: `${item.id}-att-warranty`, name: `Warranty certificate.pdf`, type: 'pdf', sizeKb: 80 + (s % 90) },
+  ];
+
+  return {
+    ...item,
+    description: DESCRIPTIONS[item.name] ?? 'Standard commercial hospitality equipment.',
+    location: LOCATIONS[item.name] ?? 'Guestroom',
+    status: conditionToStatus(item.condition),
+    manufacturer: manufInfo.manuf,
+    model: `${manufInfo.modelPrefix}-${(1000 + (s % 9000)).toString()}`,
+    serialNumber: `${manufInfo.modelPrefix.replace(/[^A-Z]/g, '')}${(10000000 + (s % 89999999)).toString()}`,
+    firstUseDate,
+    endOfLifeDate,
+    supplier,
+    purchaseCost,
+    purchaseDate,
+    warrantyEnd,
+    counterType: sensor?.type,
+    counterUnit: sensor?.unit,
+    readings,
+    attachments,
+  };
 }
 
 export function generateRoomInventory(hotelId: string, roomNumber: string): RoomInventoryItem[] {
@@ -90,7 +228,7 @@ export function generateRoomInventory(hotelId: string, roomNumber: string): Room
     { date: isoDate(showerYear, 4, 1), type: 'replacement', description: 'Original installation', cost: 380, technician: 'Plumbing Vendor' },
   ];
 
-  return [
+  const items: RoomInventoryItem[] = [
     {
       id: `INV-${hotelId}-${roomNumber}-AC`,
       hotelId, roomNumber,
@@ -280,6 +418,7 @@ export function generateRoomInventory(hotelId: string, roomNumber: string): Room
       ],
     },
   ];
+  return items.map(enrichAsset);
 }
 
 export function generateRoomAuditHistory(hotelId: string, roomNumber: string): AuditTask[] {
@@ -482,7 +621,7 @@ export const MAINTENANCE_TICKETS: MaintenanceTicket[] = [
     revenueLost: 0,
     activity: [
       { timestamp: '2026-04-25T14:30:00', actor: 'GM (Courtyard)', action: 'Updated', note: 'KONE tech on site – motor relay failed, part being sourced, ETA 6pm' },
-      { timestamp: '2026-04-25T13:45:00', actor: 'Gautham Shetty', action: 'Escalated', note: 'Escalated to regional – liability risk with mobility-impaired guest' },
+      { timestamp: '2026-04-25T13:45:00', actor: 'Harshal Patel', action: 'Escalated', note: 'Escalated to regional – liability risk with mobility-impaired guest' },
       { timestamp: '2026-04-25T13:15:00', actor: 'Maintenance Sup', action: 'Updated', note: 'Called KONE – parts needed, 4-6 hr window' },
       { timestamp: '2026-04-25T12:40:00', actor: 'Front Desk', action: 'Ticket created', note: 'Elevator stopped between floors, reset failed' },
     ],
@@ -497,13 +636,13 @@ export const MAINTENANCE_TICKETS: MaintenanceTicket[] = [
     title: 'Recurring HVAC failure – 3rd breakdown in 90 days',
     description: 'HVAC unit in room 234 has failed again. This is the 3rd breakdown since Jan 18. Compressor appears to be failing. Total repair spend now $2,200 vs $3,400 replacement cost. Capital approval requested.',
     reportedBy: 'GM (Fairfield/TPS)',
-    assignedTo: 'Gautham Shetty',
+    assignedTo: 'Harshal Patel',
     createdAt: '2026-04-25T08:45:00',
     updatedAt: '2026-04-25T10:00:00',
     estimatedCost: 850,
     revenueLost: 185,
     activity: [
-      { timestamp: '2026-04-25T10:00:00', actor: 'Gautham Shetty', action: 'Escalated to MD', note: 'Third failure in 90 days – requesting capital approval for unit replacement ($3,400)' },
+      { timestamp: '2026-04-25T10:00:00', actor: 'Harshal Patel', action: 'Escalated to MD', note: 'Third failure in 90 days – requesting capital approval for unit replacement ($3,400)' },
       { timestamp: '2026-04-25T09:30:00', actor: 'GM (Fairfield)', action: 'Updated', note: 'Tech confirmed compressor failing again – same root cause as March ticket' },
       { timestamp: '2026-04-25T08:45:00', actor: 'Front Desk', action: 'Ticket created', note: 'Room 234 – HVAC not working again' },
     ],

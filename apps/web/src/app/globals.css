@@ -44,7 +44,7 @@
   --color-popover:        var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  --font-sans: var(--font-inter);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
   --radius-sm:  calc(var(--radius) * 0.5);
   --radius-md:  var(--radius);
   --radius-lg:  calc(var(--radius) * 1.75);
@@ -80,14 +80,37 @@
   }
   body {
     @apply bg-canvas text-ink;
-    font-family: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+    font-family: ui-sans-serif, system-ui, sans-serif;
     font-weight: 500;
     -webkit-font-smoothing: antialiased;
   }
 }
 
 /* Print styles */
+.print-only { display: none; }
 @media print {
   .no-print { display: none !important; }
-  body { background: white !important; }
+  .print-only { display: block !important; }
+  html, body {
+    background: white !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  /* Let the app chrome containers collapse so <main> prints full-bleed
+     across pages — no fixed heights, no scroll containers, no padding. */
+  body * {
+    overflow: visible !important;
+  }
+  main {
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  /* Avoid splitting a printable "sheet" across pages whenever possible. */
+  .print-sheet {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
+
+@page { margin: 0.4in; }

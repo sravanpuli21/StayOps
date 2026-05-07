@@ -10,10 +10,10 @@ const PERSONAS = [
     initials: 'AL',
     name: 'Amir Lopez',
     role: 'Maintenance Tech',
-    shift: 'Day · 7:00 AM – 3:30 PM',
+    shift: 'Evening · 4:00 PM – 10:00 PM',
     icon: 'construct-outline' as const,
     stats: [
-      { label: 'Tickets', value: '4' },
+      { label: 'Tickets', value: '6' },
       { label: 'Urgent', value: '1' },
       { label: 'Audits Due', value: '3' },
     ],
@@ -55,7 +55,7 @@ export default function PersonaSelector() {
         {/* Hero */}
         <View style={styles.hero}>
           <Text style={styles.heroTitle}>Who's working today?</Text>
-          <Text style={styles.heroSub}>GA989 · Cambria Hotel · Savannah, GA</Text>
+          <Text style={styles.heroSub}>BTRCI · Home2 Suites by Hilton · Baton Rouge, LA</Text>
         </View>
 
         {/* Persona cards */}

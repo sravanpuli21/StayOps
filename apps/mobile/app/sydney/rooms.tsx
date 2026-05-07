@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { C, F, R, S } from '../../src/theme';
+import { useTickets } from '../../src/store/ticketsContext';
 
 type RoomStatus = 'ready' | 'occupied' | 'dirty' | 'inspect' | 'ooo' | 'blocked';
 
@@ -97,11 +99,31 @@ const FLOORS = [5, 4, 3, 2, 1];
 export default function SydneyRooms() {
   const [filter, setFilter] = useState<RoomStatus | 'all'>('all');
   const [selected, setSelected] = useState<Room | null>(null);
+  const router = useRouter();
+  const { allTickets } = useTickets();
 
   const counts = LEGEND.reduce<Record<RoomStatus, number>>((acc, s) => {
     acc[s] = ROOMS.filter(r => r.status === s).length;
     return acc;
   }, {} as Record<RoomStatus, number>);
+
+  const handleRoomAction = (room: Room) => {
+    const roomTicket = allTickets.find((t) => t.room === room.number && t.status !== 'resolved');
+    const buttons: Array<{ text: string; onPress?: () => void; style?: 'cancel' | 'destructive' | 'default' }> = [];
+    if (roomTicket) {
+      buttons.push({
+        text: `View ticket ${roomTicket.id}`,
+        onPress: () => router.push(`/sydney/ticket/${roomTicket.id}` as any),
+      });
+    }
+    buttons.push({ text: 'Create ticket', onPress: () => Alert.alert('Create ticket', 'Ticket form would open here.') });
+    buttons.push({ text: 'View history', onPress: () => Alert.alert(`Room ${room.number} history`, 'Past tickets, audits, and inspections would show here.') });
+    if (room.status !== 'ooo') {
+      buttons.push({ text: 'Mark OOO', style: 'destructive', onPress: () => Alert.alert('Room marked OOO', `Room ${room.number} placed out of order.`) });
+    }
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(`Room ${room.number}`, `${room.type} · ${STATUS_CFG[room.status].label}${room.note ? ` · ${room.note}` : ''}`, buttons);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -194,6 +216,10 @@ export default function SydneyRooms() {
               <Ionicons name="information-circle-outline" size={13} color={C.sub} /> {selected.note}
             </Text>
           )}
+          <TouchableOpacity style={styles.actionsBtn} onPress={() => handleRoomAction(selected)} activeOpacity={0.85}>
+            <Ionicons name="ellipsis-horizontal-circle-outline" size={16} color={C.blue} />
+            <Text style={styles.actionsBtnText}>Actions</Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
@@ -256,4 +282,13 @@ const styles = StyleSheet.create({
   detailBadgeText: { fontSize: F.xs, fontWeight: '700' },
   closeDetail: { padding: 4 },
   detailNote: { fontSize: F.sm, color: C.sub, marginTop: S.xs, paddingLeft: S.md },
+  actionsBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4,
+    marginTop: S.sm,
+    paddingVertical: S.sm,
+    borderRadius: R.md,
+    backgroundColor: C.blueBg,
+  },
+  actionsBtnText: { fontSize: F.sm, fontWeight: '700', color: C.blue },
 });

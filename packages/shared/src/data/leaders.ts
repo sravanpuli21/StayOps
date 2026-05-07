@@ -6,7 +6,7 @@ import { getRoomsForHotel } from './operations';
 // ─── GM Assignments ────────────────────────────────────────────────────────────
 
 export const GM_ROSTER: { name: string; hotelId: string; initials: string }[] = [
-  { name: 'Rishab Patel',    hotelId: 'SAVGW',   initials: 'RP' },
+  { name: 'Rishab Patel',    hotelId: 'BTRCI',   initials: 'RP' },
   { name: 'Monica Davis',    hotelId: 'SAVVY',   initials: 'MD' },
   { name: 'Derek Thompson',  hotelId: 'GA989',   initials: 'DT' },
   { name: 'Jennifer Walsh',  hotelId: 'SAVMT',   initials: 'JW' },
@@ -20,7 +20,7 @@ export const GM_ROSTER: { name: string; hotelId: string; initials: string }[] = 
   { name: 'Rachel Torres',   hotelId: 'SGJES',   initials: 'RT' },
   { name: 'Nathan Pierce',   hotelId: 'JAXTX',   initials: 'NP' },
   { name: 'Lisa Nakamura',   hotelId: 'DFWFW',   initials: 'LN' },
-  { name: 'Kevin Jamison',   hotelId: 'BTRCI',   initials: 'KJ' },
+  { name: 'Kevin Jamison',   hotelId: 'SAVGW',   initials: 'KJ' },
   { name: 'Diana Patel',     hotelId: '58090LA', initials: 'DP' },
 ];
 

@@ -303,28 +303,36 @@ function InitiativeCard({ item }: { item: StrategicInitiative }) {
   );
 }
 
-function Initiatives() {
+function Initiatives({ hotelIds }: { hotelIds?: readonly string[] }) {
   const [catFilter, setCatFilter] = useState<InitiativeCategory | 'All'>('All');
   const [statusFilter, setStatusFilter] = useState<InitiativeStatus | 'All'>('All');
 
-  const filtered = useMemo(() =>
+  const scoped = useMemo(() =>
     STRATEGIC_INITIATIVES.filter((i) =>
+      !hotelIds
+      || i.hotelIds === 'all'
+      || (Array.isArray(i.hotelIds) && i.hotelIds.some((id) => hotelIds.includes(id)))
+    ),
+    [hotelIds]);
+
+  const filtered = useMemo(() =>
+    scoped.filter((i) =>
       (catFilter === 'All' || i.category === catFilter) &&
       (statusFilter === 'All' || i.status === statusFilter)
-    ), [catFilter, statusFilter]);
+    ), [catFilter, statusFilter, scoped]);
 
   const cats: Array<InitiativeCategory | 'All'> = ['All', 'Revenue', 'Cost', 'Asset', 'People'];
   const statuses: Array<InitiativeStatus | 'All'> = ['All', 'on_track', 'at_risk', 'behind', 'completed'];
   const statusLabels: Record<string, string> = { All: 'All', on_track: 'On Track', at_risk: 'At Risk', behind: 'Behind', completed: 'Done' };
 
   const summaryStats = useMemo(() => {
-    const total = STRATEGIC_INITIATIVES.length;
-    const onTrack = STRATEGIC_INITIATIVES.filter((i) => i.status === 'on_track').length;
-    const atRisk = STRATEGIC_INITIATIVES.filter((i) => i.status === 'at_risk').length;
-    const behind = STRATEGIC_INITIATIVES.filter((i) => i.status === 'behind').length;
-    const done = STRATEGIC_INITIATIVES.filter((i) => i.status === 'completed').length;
+    const total = scoped.length;
+    const onTrack = scoped.filter((i) => i.status === 'on_track').length;
+    const atRisk = scoped.filter((i) => i.status === 'at_risk').length;
+    const behind = scoped.filter((i) => i.status === 'behind').length;
+    const done = scoped.filter((i) => i.status === 'completed').length;
     return { total, onTrack, atRisk, behind, done };
-  }, []);
+  }, [scoped]);
 
   return (
     <div>
@@ -398,16 +406,20 @@ const CAPEX_STATUS_CONFIG: Record<string, { label: string; color: string; bg: st
   on_hold:     { label: 'On Hold',     color: '#7c3aed', bg: 'rgba(124,58,237,0.10)' },
 };
 
-function CapExPipeline() {
-  const totalBudget = CAPEX_PIPELINE.reduce((s, c) => s + c.budget, 0);
-  const totalSpent = CAPEX_PIPELINE.reduce((s, c) => s + c.spent, 0);
-  const active = CAPEX_PIPELINE.filter((c) => c.status === 'in_progress' || c.status === 'approved').length;
+function CapExPipeline({ hotelIds }: { hotelIds?: readonly string[] }) {
+  const scoped = useMemo(
+    () => CAPEX_PIPELINE.filter((c) => !hotelIds || hotelIds.includes(c.hotelId)),
+    [hotelIds]
+  );
+  const totalBudget = scoped.reduce((s, c) => s + c.budget, 0);
+  const totalSpent = scoped.reduce((s, c) => s + c.spent, 0);
+  const active = scoped.filter((c) => c.status === 'in_progress' || c.status === 'approved').length;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#929292' }}>
-          CapEx Pipeline · {CAPEX_PIPELINE.length} projects
+          CapEx Pipeline · {scoped.length} projects
         </p>
         <div className="flex items-center gap-4 text-xs">
           <span style={{ color: '#6a6a6a' }}>{active} active</span>
@@ -449,7 +461,7 @@ function CapExPipeline() {
             </tr>
           </thead>
           <tbody>
-            {CAPEX_PIPELINE.map((item, idx) => {
+            {scoped.map((item, idx) => {
               const hotel = HOTELS.find((h) => h.id === item.hotelId);
               const st = CAPEX_STATUS_CONFIG[item.status];
               const spentPct = item.budget > 0 ? Math.round((item.spent / item.budget) * 100) : 0;
@@ -457,7 +469,7 @@ function CapExPipeline() {
               return (
                 <tr
                   key={item.id}
-                  style={{ borderBottom: idx < CAPEX_PIPELINE.length - 1 ? '1px solid #f0f0f0' : undefined }}
+                  style={{ borderBottom: idx < scoped.length - 1 ? '1px solid #f0f0f0' : undefined }}
                   className="hover:bg-[#fafafa] transition-colors"
                 >
                   <td className="px-4 py-3">
@@ -516,7 +528,11 @@ const SECTIONS: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: 'capex',       label: 'CapEx Pipeline',   icon: Wrench },
 ];
 
-export function StrategyClient() {
+interface StrategyClientProps {
+  hotelIds?: readonly string[];
+}
+
+export function StrategyClient({ hotelIds }: StrategyClientProps = {}) {
   const [section, setSection] = useState<Section>('scorecard');
 
   return (
@@ -547,8 +563,8 @@ export function StrategyClient() {
 
       {section === 'scorecard'   && <AnnualScorecard />}
       {section === 'market'      && <MarketPosition />}
-      {section === 'initiatives' && <Initiatives />}
-      {section === 'capex'       && <CapExPipeline />}
+      {section === 'initiatives' && <Initiatives hotelIds={hotelIds} />}
+      {section === 'capex'       && <CapExPipeline hotelIds={hotelIds} />}
     </div>
   );
 }

@@ -3,15 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { C, F, R, S } from '../../src/theme';
-
-const ALL_TICKETS = [
-  { id: 'T003', room: '315', floor: 3, type: 'reactive',   priority: 'urgent', title: 'OOO – HVAC not cooling',           age: '2h',  status: 'open',        description: 'Guest reports room is hot. HVAC runs but no cold air.' },
-  { id: 'T001', room: '109', floor: 1, type: 'reactive',   priority: 'high',   title: 'AC making loud vibration noise',   age: '18h', status: 'in_progress', description: 'Guests in adjacent rooms are complaining. Unit fan may be loose.' },
-  { id: 'T012', room: '204', floor: 2, type: 'reactive',   priority: 'normal', title: 'Bathroom exhaust fan not working', age: '1d',  status: 'open',        description: 'Fan motor not responding. Possible blown fuse.' },
-  { id: 'T007', room: '412', floor: 4, type: 'preventive', priority: 'normal', title: 'Quarterly HVAC filter replacement', age: '3d', status: 'scheduled',   description: 'Scheduled quarterly maintenance. Replace filter, check coolant.' },
-  { id: 'T019', room: '508', floor: 5, type: 'reactive',   priority: 'high',   title: 'Shower drain slow / backing up',   age: '4d', status: 'in_progress', description: 'Shower drain almost completely blocked. Chemical treatment attempted.' },
-  { id: 'T022', room: '301', floor: 3, type: 'audit',      priority: 'normal', title: 'Quarterly room audit – passed',    age: '5d', status: 'resolved',    description: 'Full room inspection completed. Score 91/100.' },
-];
+import { useTickets, type Ticket, type TicketStatus } from '../../src/store/ticketsContext';
 
 const FILTERS = ['All', 'Open', 'In Progress', 'Done'];
 
@@ -21,22 +13,30 @@ const PRIORITY_CFG: Record<string, { color: string; bg: string }> = {
   normal: { color: C.blue,  bg: C.blueBg },
 };
 
-const STATUS_CFG: Record<string, { color: string; label: string }> = {
-  open:        { color: C.red,   label: 'Open' },
-  in_progress: { color: C.amber, label: 'In Progress' },
-  scheduled:   { color: C.blue,  label: 'Scheduled' },
-  resolved:    { color: C.green, label: 'Resolved' },
+const STATUS_CFG: Record<TicketStatus, { color: string; label: string }> = {
+  open:         { color: C.red,    label: 'Open' },
+  en_route:     { color: C.blue,   label: 'En route' },
+  in_progress:  { color: C.amber,  label: 'In Progress' },
+  pending_part: { color: C.purple, label: 'Waiting on part' },
+  scheduled:    { color: C.blue,   label: 'Scheduled' },
+  resolved:     { color: C.green,  label: 'Resolved' },
+  escalated:    { color: C.red,    label: 'Escalated' },
 };
+
+function isActive(t: Ticket): boolean {
+  return t.status !== 'resolved';
+}
 
 export default function AmirTickets() {
   const [filter, setFilter] = useState('All');
   const router = useRouter();
+  const { allTickets } = useTickets();
 
-  const filtered = ALL_TICKETS.filter((t) => {
-    if (filter === 'All') return true;
-    if (filter === 'Open') return t.status === 'open';
+  const filtered = allTickets.filter((t) => {
+    if (filter === 'All')         return true;
+    if (filter === 'Open')        return t.status === 'open' || t.status === 'en_route' || t.status === 'pending_part' || t.status === 'escalated';
     if (filter === 'In Progress') return t.status === 'in_progress' || t.status === 'scheduled';
-    if (filter === 'Done') return t.status === 'resolved';
+    if (filter === 'Done')        return t.status === 'resolved';
     return true;
   });
 
@@ -45,7 +45,7 @@ export default function AmirTickets() {
       <View style={styles.header}>
         <Text style={styles.title}>My Tickets</Text>
         <View style={styles.countBadge}>
-          <Text style={styles.countText}>{ALL_TICKETS.filter(t => t.status !== 'resolved').length}</Text>
+          <Text style={styles.countText}>{allTickets.filter(isActive).length}</Text>
         </View>
       </View>
 
@@ -83,7 +83,7 @@ export default function AmirTickets() {
                   <View style={[styles.badge, { backgroundColor: '#f0f0f0' }]}>
                     <Text style={[styles.badgeText, { color: st.color }]}>{st.label}</Text>
                   </View>
-                  <Text style={styles.age}>{t.age} ago</Text>
+                  <Text style={styles.age}>{t.updatedAt}</Text>
                 </View>
                 <Text style={styles.ticketTitle}>{t.title}</Text>
                 <Text style={styles.ticketDesc} numberOfLines={1}>{t.description}</Text>

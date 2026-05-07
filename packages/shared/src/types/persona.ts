@@ -5,7 +5,8 @@ export type PersonaRole =
   | 'general-manager'
   | 'agm'
   | 'housekeeping-supervisor'
-  | 'maintenance-supervisor';
+  | 'maintenance-supervisor'
+  | 'front-desk';
 
 export type PersonaScope = 'portfolio' | 'regional' | 'property';
 
@@ -17,5 +18,6 @@ export interface Persona {
   scope: PersonaScope;
   initials: string;
   avatarColor: string;
+  avatarUrl?: string;
   route: string;
 }

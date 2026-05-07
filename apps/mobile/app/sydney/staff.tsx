@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { C, F, R, S } from '../../src/theme';
 
@@ -109,6 +109,19 @@ export default function SydneyStaff() {
 
   const onShift = STAFF.filter(s => s.status !== 'off').length;
 
+  const handleContact = (member: StaffMember) => {
+    const cleanPhone = member.phone.replace(/[^\d]/g, '');
+    Alert.alert(
+      member.name,
+      `${member.role} · ${member.activeTask}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Text', onPress: () => Linking.openURL(`sms:${cleanPhone}`).catch(() => {}) },
+        { text: 'Call', style: 'default', onPress: () => Linking.openURL(`tel:${cleanPhone}`).catch(() => {}) },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -172,7 +185,7 @@ export default function SydneyStaff() {
                     )}
 
                     {/* Call button */}
-                    <TouchableOpacity style={styles.callBtn} activeOpacity={0.8}>
+                    <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={() => handleContact(s)}>
                       <Ionicons name="call-outline" size={14} color={C.blue} />
                       <Text style={styles.callText}>{s.phone}</Text>
                     </TouchableOpacity>

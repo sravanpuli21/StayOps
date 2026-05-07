@@ -14,9 +14,17 @@ import {
   Settings,
   ClipboardList,
   Sparkles,
+  Printer,
+  Calendar,
+  CalendarCheck,
+  BookOpen,
+  Clock,
+  Timer,
+  UserCircle,
+  Bed,
   LucideIcon,
 } from 'lucide-react';
-import { NAV_ITEMS } from '@/lib/constants';
+import { NAV_ITEMS, type NavItem } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -31,14 +39,32 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Settings,
   ClipboardList,
   Sparkles,
+  Printer,
+  Calendar,
+  CalendarCheck,
+  BookOpen,
+  Clock,
+  Timer,
+  UserCircle,
+  Bed,
 };
 
-export function LeftNav() {
+interface LeftNavProps {
+  navItems?: readonly NavItem[];
+  footerName?: string;
+  footerTitle?: string;
+}
+
+export function LeftNav({
+  navItems = NAV_ITEMS,
+  footerName = 'Kris Patel',
+  footerTitle = 'Managing Director',
+}: LeftNavProps) {
   const pathname = usePathname();
 
   return (
     <aside
-      className="w-64 h-full flex flex-col flex-shrink-0"
+      className="no-print w-64 h-full flex flex-col flex-shrink-0"
       style={{ background: '#ffffff', borderRight: '1px solid #dddddd' }}
     >
       {/* Logo */}
@@ -55,7 +81,7 @@ export function LeftNav() {
 
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto py-3">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = ICON_MAP[item.icon];
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -85,9 +111,8 @@ export function LeftNav() {
         className="px-6 py-4 flex-shrink-0"
         style={{ borderTop: '1px solid #dddddd' }}
       >
-        <p className="text-xs" style={{ color: '#c1c1c1' }}>
-          Kirit Patel · Managing Director
-        </p>
+        <p className="text-xs font-medium" style={{ color: '#6a6a6a' }}>{footerName}</p>
+        <p className="text-xs" style={{ color: '#c1c1c1' }}>{footerTitle}</p>
       </div>
     </aside>
   );

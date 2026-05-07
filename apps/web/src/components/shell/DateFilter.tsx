@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { DATE_RANGE_OPTIONS } from '@/lib/constants';
 import {
   Select,
@@ -9,11 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useDateFilter, type DateRange } from '@/lib/date-filter-context';
 
 export function DateFilter() {
-  const [value, setValue] = useState('yesterday');
+  const { range, setRange } = useDateFilter();
   return (
-    <Select value={value} onValueChange={(v) => { if (v) setValue(v); }}>
+    <Select value={range} onValueChange={(v) => { if (v) setRange(v as DateRange); }}>
       <SelectTrigger className="w-36 h-9 text-xs" style={{ borderColor: '#dddddd' }}>
         <SelectValue />
       </SelectTrigger>

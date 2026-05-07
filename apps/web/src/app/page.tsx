@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Monitor, Smartphone } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 export default function EntryPage() {
   return (
@@ -56,36 +55,40 @@ export default function EntryPage() {
           </div>
         </Link>
 
-        {/* Mobile — placeholder */}
-        <div
-          className="flex-1 rounded-2xl p-8 flex flex-col items-center gap-4 opacity-50 cursor-not-allowed"
+        {/* Mobile */}
+        <Link
+          href="/mobile"
+          className="group flex-1 rounded-2xl p-8 flex flex-col items-center gap-4
+                     transition-all duration-200 hover:shadow-[0_10px_25px_rgba(255,56,92,0.15)]
+                     hover:border-[#ff385c]"
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: '#ffffff',
+            border: '1px solid #dddddd',
           }}
         >
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.1)' }}
+            style={{ background: '#f7f7f7' }}
           >
-            <Smartphone className="w-7 h-7" style={{ color: '#c1c1c1' }} />
+            <Smartphone className="w-7 h-7" style={{ color: '#6a6a6a' }} />
           </div>
           <div className="text-center">
-            <p className="font-semibold text-lg text-white">Mobile App</p>
-            <p className="text-sm mt-1" style={{ color: '#929292' }}>
-              Expo + React Native
+            <p className="font-semibold text-lg" style={{ color: '#222222' }}>
+              Mobile App
+            </p>
+            <p className="text-sm mt-1" style={{ color: '#6a6a6a' }}>
+              Expo preview in-browser
             </p>
           </div>
           <div className="mt-auto">
-            <Badge
-              variant="outline"
-              className="text-xs"
-              style={{ color: '#929292', borderColor: 'rgba(146,146,146,0.4)' }}
+            <span
+              className="inline-block text-white text-xs font-semibold px-4 py-1.5 rounded-full"
+              style={{ background: '#ff385c' }}
             >
-              Preview Only
-            </Badge>
+              Enter →
+            </span>
           </div>
-        </div>
+        </Link>
       </div>
 
       <p className="mt-10 text-xs" style={{ color: 'rgba(146,146,146,0.5)' }}>

@@ -4,16 +4,20 @@ import { C } from '../theme';
 
 interface Props {
   size?: 'sm' | 'md' | 'lg';
+  name?: string;
 }
 
-export function CambriaLogo({ size = 'md' }: Props) {
+// Legacy name kept for backward compat. Now acts as a generic property logo —
+// pass `name` to override the displayed text (defaults to HOME2 since every
+// mobile persona currently maps to Home2 Baton Rouge / BTRCI).
+export function CambriaLogo({ size = 'md', name = 'HOME2' }: Props) {
   const fontSize = size === 'sm' ? 13 : size === 'lg' ? 22 : 17;
   const barH = size === 'sm' ? 2 : size === 'lg' ? 4 : 3;
 
   return (
     <View style={styles.wrap}>
       <Text style={[styles.text, { fontSize, letterSpacing: fontSize * 0.18 }]}>
-        CAMBRIA
+        {name}
       </Text>
       <View style={[styles.bar, { height: barH }]} />
     </View>

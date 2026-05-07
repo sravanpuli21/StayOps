@@ -9,7 +9,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'labour',
     action: 'approved',
     summary: 'Cut 12 HK hours + 6 FD hours at Home2 Baton Rouge after OT hit 18',
-    actor: 'Kirit Patel',
+    actor: 'Kris Patel',
     notes: 'Approved as proposed — worked. OT now at 9.',
   },
   {
@@ -20,7 +20,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'revenue',
     action: 'rejected',
     summary: 'Raise Fairfield Pooler ADR +$12 — declined due to group contract floor',
-    actor: 'Kirit Patel',
+    actor: 'Kris Patel',
     notes: 'AI did not know about the 2026 Georgia Southern football contract. Flag for retraining.',
   },
   {
@@ -31,7 +31,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'revenue',
     action: 'overridden',
     summary: 'B2B outreach proposed — overrode with direct comp-set rate match first',
-    actor: 'Gautham Shetty',
+    actor: 'Harshal Patel',
     notes: 'Wanted to test pricing lever before adding sales effort. Approved to add B2B if 14-day test fails.',
   },
   {
@@ -42,7 +42,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'maintenance',
     action: 'approved',
     summary: 'Emergency PTAC replacement rooms 218–224 at Hilton Garden Midtown',
-    actor: 'Kirit Patel',
+    actor: 'Kris Patel',
   },
   {
     id: 'dl-005',
@@ -52,7 +52,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'labour',
     action: 'approved',
     summary: 'Home2 TX schedule template rewrite for Mon-Tue kitchen coverage',
-    actor: 'Kirit Patel',
+    actor: 'Kris Patel',
     notes: 'Held for 1 period, creep came back. This is why rec-001 is now needed.',
   },
   {
@@ -63,7 +63,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'operations',
     action: 'approved',
     summary: 'Add Sunday 10am-2pm HK coverage for group weekends at Cambria Savannah',
-    actor: 'Gautham Shetty',
+    actor: 'Harshal Patel',
   },
   {
     id: 'dl-007',
@@ -73,7 +73,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'revenue',
     action: 'approved',
     summary: 'Spring menu launch + brunch hour extension at Cotton Sail',
-    actor: 'Kirit Patel',
+    actor: 'Kris Patel',
     notes: 'F&B up 18% since launch. Transferable — see pattern pat-005.',
   },
   {
@@ -84,7 +84,7 @@ export const AI_DECISIONS: DecisionLogEntry[] = [
     module: 'revenue',
     action: 'rejected',
     summary: 'La Quinta $8 rate cut — rejected to preserve brand positioning',
-    actor: 'Kirit Patel',
+    actor: 'Kris Patel',
     notes: 'Going with CRM / direct channel instead. See rec-007.',
   },
 ];

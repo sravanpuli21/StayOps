@@ -36,8 +36,8 @@ export default function PersonaPickerPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {PERSONAS.map((persona) => {
-            const isKirit = persona.id === 'kirit';
-            const isBuilt = persona.id === 'kirit';
+            const isHighlight = persona.id === 'kris';
+            const isBuilt = persona.id === 'kris' || persona.id === 'harshal' || persona.id === 'rishab' || persona.id === 'sravan' || persona.id === 'emma' || persona.id === 'sydney';
 
             return (
               <Link
@@ -46,19 +46,28 @@ export default function PersonaPickerPage() {
                 className="group bg-white rounded-2xl p-6 flex flex-col items-center gap-3
                            transition-all duration-200 relative overflow-hidden"
                 style={{
-                  border: isKirit ? '2px solid #ff385c' : '1px solid #dddddd',
-                  boxShadow: isKirit ? '0 4px 16px rgba(255,56,92,0.12)' : 'none',
+                  border: isHighlight ? '2px solid #ff385c' : '1px solid #dddddd',
+                  boxShadow: isHighlight ? '0 4px 16px rgba(255,56,92,0.12)' : 'none',
                   opacity: isBuilt ? 1 : 0.6,
                   pointerEvents: isBuilt ? 'auto' : 'none',
                 }}
               >
                 {/* Avatar */}
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                  style={{ background: persona.avatarColor }}
-                >
-                  {persona.initials}
-                </div>
+                {persona.avatarUrl ? (
+                  <img
+                    src={persona.avatarUrl}
+                    alt={persona.name}
+                    className="w-14 h-14 rounded-full object-cover"
+                    style={{ border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}
+                  />
+                ) : (
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                    style={{ background: persona.avatarColor }}
+                  >
+                    {persona.initials}
+                  </div>
+                )}
 
                 {/* Info */}
                 <div className="text-center">

@@ -73,6 +73,20 @@ export interface ItemHistoryEntry {
   technician?: string;
 }
 
+export type AssetStatus = 'operational' | 'repair needed' | 'out of service' | 'retired';
+
+export interface AssetAttachment {
+  id: string;
+  name: string;
+  type: string;
+  sizeKb: number;
+}
+
+export interface SensorReading {
+  date: string;
+  value: number;
+}
+
 export interface RoomInventoryItem {
   id: string;
   hotelId: string;
@@ -86,4 +100,26 @@ export interface RoomInventoryItem {
   totalRepairCost: number;
   replacementCost: number;
   history: ItemHistoryEntry[];
+
+  // Rich asset details (reference design)
+  description?: string;
+  location?: string;
+  status?: AssetStatus;
+
+  manufacturer?: string;
+  model?: string;
+  serialNumber?: string;
+  firstUseDate?: string;
+  endOfLifeDate?: string;
+
+  supplier?: string;
+  purchaseCost?: number;
+  purchaseDate?: string;
+  warrantyEnd?: string;
+
+  counterType?: string;
+  counterUnit?: string;
+  readings?: SensorReading[];
+
+  attachments?: AssetAttachment[];
 }
