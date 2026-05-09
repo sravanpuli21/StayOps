@@ -10,11 +10,30 @@ const HOTEL_ID = 'BTRCI';
 export default function RishabRevenue() {
   const scoped = usePropertyScoped(HOTEL_ID);
   const hotel = scoped.hotel;
-  const rev = scoped.revenue!;
-  const lab = scoped.labour!;
-  const dm = scoped.daily!;
+  const rev = scoped.revenue;
+  const lab = scoped.labour;
+  const dm = scoped.daily;
   const period = scoped.period;
-  const payrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
+
+  if (!rev || !dm) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>Revenue</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
+            {hotel?.name ?? 'Loading…'} · {period.label}
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #dddddd' }}>
+          <p className="text-sm" style={{ color: '#929292' }}>
+            {scoped.loading ? 'Loading revenue data…' : scoped.error ? `Error: ${scoped.error}` : 'No data yet. Upload a PMS report or wait for the next ingest.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const payrollPct = rev.totalRevenue > 0 && lab ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
   const adrGap = rev.adr - rev.marketAdr;
 
   return (
@@ -41,7 +60,7 @@ export default function RishabRevenue() {
       <div className="grid grid-cols-3 gap-4">
         <KpiCard label="Room Revenue"    value={formatCurrency(rev.roomRevenue, true)}    subtext={formatPct((rev.roomRevenue / rev.totalRevenue) * 100, 0) + ' of total'} size="medium" />
         <KpiCard label="Non-Room"        value={formatCurrency(rev.nonRoomRevenue, true)} subtext="F&B, retail, events" size="medium" />
-        <KpiCard label="Payroll %"       value={formatPct(payrollPct, 1)} subtext={formatCurrency(lab.payrollCost, true) + ' payroll'} alert={payrollPct > 28} size="medium" />
+        <KpiCard label="Payroll %"       value={formatPct(payrollPct, 1)} subtext={lab ? formatCurrency(lab.payrollCost, true) + ' payroll' : '(pending Module 4)'} alert={payrollPct > 28} size="medium" />
       </div>
 
       {/* Revenue mix breakdown */}
