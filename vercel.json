@@ -2,11 +2,5 @@
   "buildCommand": "pnpm --filter @hos/web build",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
-  "outputDirectory": "apps/web/.next",
-  "crons": [
-    {
-      "path": "/api/inbox/cron",
-      "schedule": "*/1 * * * *"
-    }
-  ]
+  "outputDirectory": "apps/web/.next"
 }
