@@ -22,6 +22,7 @@ import {
   Timer,
   UserCircle,
   Bed,
+  TrendingDown,
   LucideIcon,
 } from 'lucide-react';
 import { NAV_ITEMS, type NavItem } from '@/lib/constants';
@@ -47,6 +48,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Timer,
   UserCircle,
   Bed,
+  TrendingDown,
 };
 
 interface LeftNavProps {

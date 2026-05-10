@@ -20,3 +20,4 @@ export * from './assets';
 export * from './employees';
 export * from './am-pm-report';
 export * from './sravan';
+export * from './ota-leakage';

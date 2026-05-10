@@ -35,6 +35,7 @@ export const HARSHAL_NAV_ITEMS: readonly NavItem[] = [
   { label: 'AM-PM Report', href: '/web/harshal/am-pm-report', icon: 'Calendar'        },
   { label: 'Intelligence', href: '/web/harshal/intelligence', icon: 'Sparkles'        },
   { label: 'Revenue',      href: '/web/harshal/revenue',      icon: 'DollarSign'      },
+  { label: 'OTA Leakage',  href: '/web/harshal/ota-leakage',  icon: 'TrendingDown'    },
   { label: 'Labour',       href: '/web/harshal/labour',       icon: 'Users'           },
   { label: 'Operations',   href: '/web/harshal/operations',   icon: 'Wrench'          },
   { label: 'Audits',       href: '/web/harshal/audits',       icon: 'ClipboardList'   },
