@@ -18,24 +18,10 @@ const HOTEL_ID = 'BTRCI';
 export default function RishabDashboard() {
   const scoped = usePropertyScoped(HOTEL_ID);
   const hotel = scoped.hotel;
-  const rev = scoped.revenue;
-  const lab = scoped.labour;
-  const dm = scoped.daily;
+  const rev = scoped.revenue!;
+  const lab = scoped.labour!;
+  const dm = scoped.daily!;
   const period = scoped.period;
-
-  if (!rev || !dm || !lab) {
-    return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-bold" style={{ color: '#222' }}>Dashboard</h1>
-        <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #dddddd' }}>
-          <p className="text-sm" style={{ color: '#929292' }}>
-            {scoped.loading ? 'Loading…' : scoped.error ? `Error: ${scoped.error}` : 'No data yet.'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const score = computeHotelScore(HOTEL_ID);
   const employees = getEmployeesForHotel(HOTEL_ID);
   const activeTickets = getActiveTicketsForHotel(HOTEL_ID);
@@ -44,7 +30,7 @@ export default function RishabDashboard() {
   const flags = RED_FLAGS.filter((f) => f.hotelId === HOTEL_ID);
   const anomalies = AI_ANOMALIES.filter((a) => a.hotelId === HOTEL_ID);
 
-  const payrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
+  const payrollPct = (lab.payrollCost / rev.totalRevenue) * 100;
   const callouts = employees.filter((e) => e.status === 'callout').length;
   const onShift = employees.filter((e) => e.status === 'active').length;
   const urgentTickets = activeTickets.filter((t) => t.priority === 'urgent').length;
