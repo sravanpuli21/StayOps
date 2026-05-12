@@ -2,15 +2,42 @@
 
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { GM_ROSTER, formatCurrency, formatPct } from '@hos/shared';
+import {
+  GM_ROSTER, AI_ANOMALIES, AI_FORECASTS,
+  getZeroRateRoomsForHotel,
+  formatCurrency, formatPct,
+} from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
+import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
+import { ForecastWidget } from '@/components/ai/ForecastWidget';
+import { HotelRevenueTable } from '@/components/revenue/HotelRevenueTable';
+import { RevenueMixTable } from '@/components/revenue/RevenueMixTable';
+import { OpportunityLeakageTable } from '@/components/revenue/OpportunityLeakageTable';
+import { RevLabourEfficiencyTable } from '@/components/revenue/RevLabourEfficiencyTable';
+import { PricingPowerTable } from '@/components/revenue/PricingPowerTable';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { RevenueMixBreakdown } from '../_components/RevenueMixBreakdown';
+
+function SectionTitle({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
+  return (
+    <div className="flex items-baseline justify-between mb-3">
+      <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>
+        {children}
+      </h2>
+      {subtitle && <p className="text-xs" style={{ color: '#929292' }}>{subtitle}</p>}
+    </div>
+  );
+}
 
 export default function HarshalRevenue() {
-  const { hotels, scopeLabel, scopeSub, revenueRows, labourRows, period } = useScopedData();
+  const {
+    hotels, hotelIdSet, scopeLabel, scopeSub, period,
+    revenueRows, labourRows, dailyRows,
+  } = useScopedData();
 
-  const rows = hotels.map((hotel) => {
+  // GM-annotated rows for the ranking table at the bottom
+  const rankingRows = hotels.map((hotel) => {
     const rev = revenueRows.find((r) => r.hotelId === hotel.id)!;
     const lab = labourRows.find((l) => l.hotelId === hotel.id)!;
     const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id);
@@ -21,30 +48,109 @@ export default function HarshalRevenue() {
     };
   }).sort((a, b) => b.rev.revPar - a.rev.revPar);
 
-  const totalRevenue = rows.reduce((s, r) => s + r.rev.totalRevenue, 0);
-  const avgOcc = rows.length > 0 ? rows.reduce((s, r) => s + r.rev.occupancyPct, 0) / rows.length : 0;
-  const avgAdr = rows.length > 0 ? rows.reduce((s, r) => s + r.rev.adr, 0) / rows.length : 0;
-  const avgRevPar = rows.length > 0 ? rows.reduce((s, r) => s + r.rev.revPar, 0) / rows.length : 0;
+  // Row shapes expected by the shared Kris-flavored tables
+  const revRows = hotels.map((hotel) => ({
+    hotel,
+    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
+  }));
+  const efficiencyRows = hotels.map((hotel) => ({
+    hotel,
+    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
+    labour: labourRows.find((l) => l.hotelId === hotel.id)!,
+  }));
+  const leakageRows = hotels.map((hotel) => ({
+    hotel,
+    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
+    daily: dailyRows.find((d) => d.hotelId === hotel.id)!,
+  }));
+
+  // Portfolio KPIs
+  const totalRevenue = rankingRows.reduce((s, r) => s + r.rev.totalRevenue, 0);
+  const avgOcc = rankingRows.length > 0 ? rankingRows.reduce((s, r) => s + r.rev.occupancyPct, 0) / rankingRows.length : 0;
+  const avgAdr = rankingRows.length > 0 ? rankingRows.reduce((s, r) => s + r.rev.adr, 0) / rankingRows.length : 0;
+  const avgRevPar = rankingRows.length > 0 ? rankingRows.reduce((s, r) => s + r.rev.revPar, 0) / rankingRows.length : 0;
+  const zeroRateTotal = hotels.reduce((s, h) => s + getZeroRateRoomsForHotel(h.id), 0);
+
+  // AI
+  const revenueAnomalies = AI_ANOMALIES.filter(
+    (a) => a.module === 'revenue' && hotelIdSet.has(a.hotelId),
+  );
+  const revenueForecast = AI_FORECASTS.find((f) => f.id === 'fc-001');
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-xl font-bold" style={{ color: '#222' }}>Revenue — {scopeLabel}</h1>
         <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      {/* Portfolio KPIs */}
+      <div className="grid grid-cols-5 gap-4">
         <KpiCard label="Total Revenue" value={formatCurrency(totalRevenue, true)} subtext={`All revenue · ${period.label}`} size="large" />
         <KpiCard label="Avg Occupancy" value={formatPct(avgOcc, 1)} subtext={hotels.length > 1 ? `Across ${hotels.length} hotels` : 'This property'} size="large" />
-        <KpiCard label="Avg ADR" value={formatCurrency(avgAdr)} subtext="Daily rate" size="large" />
-        <KpiCard label="Avg RevPAR" value={formatCurrency(avgRevPar)} subtext="Per available room" size="large" />
+        <KpiCard label="Avg ADR"       value={formatCurrency(avgAdr)} subtext="Daily rate" size="large" />
+        <KpiCard label="Avg RevPAR"    value={formatCurrency(avgRevPar)} subtext="Per available room" size="large" />
+        <KpiCard
+          label="Zero Rate Rooms"
+          value={zeroRateTotal.toString()}
+          subtext={hotels.length > 1
+            ? `${hotels.length} hotels · comp, house use, employee stays`
+            : 'comp, house use, employee stays'}
+          size="large"
+        />
       </div>
 
-      {rows.length > 1 && (
+      {/* Forecast — from Kris's view */}
+      {revenueForecast && <ForecastWidget forecast={revenueForecast} />}
+
+      {/* Hotel Revenue Breakdown — Kris's table */}
+      <div>
+        <SectionTitle>Hotel Revenue Breakdown</SectionTitle>
+        <HotelRevenueTable rows={revRows} />
+      </div>
+
+      {/* Revenue Mix — Portfolio Totals (bucket drill-down) */}
+      <div>
+        <SectionTitle subtitle="Tap any bucket to see the individual charge lines">
+          Revenue Mix by Source — Portfolio
+        </SectionTitle>
+        <RevenueMixBreakdown
+          hotelIds={hotels.map((h) => h.id)}
+          initialOpen={null}
+          multiplier={period.multiplier}
+        />
+      </div>
+
+      {/* Revenue Mix — Per Hotel table (Kris's table, different representation) */}
+      <div>
+        <SectionTitle>Revenue Mix by Source — Per Hotel</SectionTitle>
+        <RevenueMixTable rows={revRows} />
+      </div>
+
+      {/* Opportunity Leakage — unsold rooms */}
+      <div>
+        <SectionTitle>Opportunity Leakage — Unsold Rooms</SectionTitle>
+        <OpportunityLeakageTable rows={leakageRows} />
+      </div>
+
+      {/* Revenue / Labour Efficiency */}
+      <div>
+        <SectionTitle>Revenue / Labour Efficiency</SectionTitle>
+        <RevLabourEfficiencyTable rows={efficiencyRows} />
+      </div>
+
+      {/* Pricing Power vs. Market */}
+      <div>
+        <SectionTitle>Pricing Power vs. Market</SectionTitle>
+        <PricingPowerTable rows={revRows} />
+      </div>
+
+      {/* Harshal's GM-annotated ranking — kept for regional director view */}
+      {rankingRows.length > 1 && (
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#6a6a6a' }}>
-            Revenue Ranking — Best to Worst
-          </h2>
+          <SectionTitle subtitle="Sorted by RevPAR · click a row to drill into the hotel">
+            Revenue Ranking — GM View
+          </SectionTitle>
           <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid #dddddd', background: '#ffffff' }}>
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -57,8 +163,13 @@ export default function HarshalRevenue() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
-                  <tr key={row.hotel.id} className="cursor-pointer hover:bg-[#fafafa] transition-colors" style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                {rankingRows.map((row, i) => (
+                  <tr
+                    key={row.hotel.id}
+                    className="cursor-pointer hover:bg-[#fafafa] transition-colors"
+                    style={{ borderBottom: i < rankingRows.length - 1 ? '1px solid #f0f0f0' : 'none' }}
+                    onClick={() => { window.location.href = `/web/harshal/hotel/${row.hotel.id}`; }}
+                  >
                     <td className="py-3 px-4">
                       <p className="font-medium text-sm" style={{ color: '#222' }}>{row.hotel.shortName}</p>
                       {row.gm && <p className="text-xs mt-0.5" style={{ color: '#929292' }}>GM · {row.gm.name}</p>}
@@ -86,6 +197,11 @@ export default function HarshalRevenue() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Revenue AI Findings */}
+      {revenueAnomalies.length > 0 && (
+        <AIFlagsPanel findings={revenueAnomalies} title="Revenue AI Findings" />
       )}
     </div>
   );

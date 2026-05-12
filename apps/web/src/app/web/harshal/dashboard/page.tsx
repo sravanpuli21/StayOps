@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import {
   RED_FLAGS, GM_ROSTER, computeHotelScore, computeRegionalScore, REGIONAL_ROSTER,
+  getStaleDirtyRoomsForHotel,
   formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
@@ -11,6 +13,16 @@ import { RedFlagsPanel } from '@/components/common/RedFlagsPanel';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { csatTier } from '@/lib/csat';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { KpiDrawer } from './_components/KpiDrawer';
+import {
+  OccupancyDetail, RevenueDetail, RoomsOooDetail, StaleDirtyDetail,
+  RegionalScoreDetail, HoursDetail, PayrollDetail, CsatDetail,
+} from './_components/KpiDetails';
+
+type KpiKey =
+  | 'occupancy' | 'revenue' | 'ooo' | 'stale' | 'score'
+  | 'hours' | 'variance' | 'payroll-pct' | 'payroll-total' | 'csat'
+  | null;
 
 export default function HarshalDashboard() {
   const {
@@ -18,11 +30,18 @@ export default function HarshalDashboard() {
     revenueRows, labourRows, dailyRows, isSingleHotel, selection,
   } = useScopedData();
 
+  const [openKpi, setOpenKpi] = useState<KpiKey>(null);
+  const scoped = {
+    hotels, revenueRows, labourRows, dailyRows,
+    periodMultiplier: period.multiplier,
+  };
+
   // Aggregates
   const totalRooms = hotels.reduce((s, h) => s + h.rooms, 0);
   const totalRoomCapacity = totalRooms * period.days;
   const roomsSold = dailyRows.reduce((s, d) => s + d.roomsSold, 0);
   const roomsOoo = Math.max(0, Math.round(dailyRows.reduce((s, d) => s + d.roomsOoo, 0) * Math.min(period.multiplier, 2)));
+  const staleDirty = hotels.reduce((s, h) => s + getStaleDirtyRoomsForHotel(h.id).length, 0);
   const occupancyPct = totalRoomCapacity > 0 ? (roomsSold / totalRoomCapacity) * 100 : 0;
   const totalRevenue = revenueRows.reduce((s, r) => s + r.totalRevenue, 0);
   const totalScheduled = labourRows.reduce((s, l) => s + l.scheduledHours, 0);
@@ -73,76 +92,115 @@ export default function HarshalDashboard() {
         <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
       </div>
 
-      {/* Row 1 — 4 large KPIs */}
-      <div className="grid grid-cols-4 gap-4">
-        <KpiCard
-          label="Occupancy"
-          value={formatPct(occupancyPct, 1)}
-          subtext={`${roomsSold.toLocaleString()} of ${totalRoomCapacity.toLocaleString()} room-nights sold`}
-          size="large"
-        />
-        <KpiCard
-          label="Total Revenue"
-          value={formatCurrency(totalRevenue, true)}
-          subtext={isSingleHotel ? 'this property' : `Across ${hotels.length} hotels`}
-          size="large"
-        />
-        <KpiCard
-          label="Rooms Out of Order"
-          value={roomsOoo.toString()}
-          subtext={totalRooms > 0 ? `${formatPct((roomsOoo / Math.max(totalRooms, 1)) * 100, 1)} of portfolio` : '—'}
-          alert={roomsOoo > 3}
-          size="large"
-        />
-        <KpiCard
-          label="Regional Score"
-          value={`${regionalScore.composite}`}
-          subtext={`${regionalScore.trendDirection === 'up' ? '↗' : regionalScore.trendDirection === 'down' ? '↘' : '→'} ${formatVariance(regionalScore.trendDelta)} vs last period`}
-          size="large"
-        />
+      {/* Row 1 — 5 large KPIs — all clickable */}
+      <div className="grid grid-cols-5 gap-4">
+        <KpiButton onClick={() => setOpenKpi('occupancy')}>
+          <KpiCard
+            className="h-full"
+            label="Occupancy"
+            value={formatPct(occupancyPct, 1)}
+            subtext={`${roomsSold.toLocaleString()} of ${totalRoomCapacity.toLocaleString()} room-nights sold`}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('revenue')}>
+          <KpiCard
+            className="h-full"
+            label="Total Revenue"
+            value={formatCurrency(totalRevenue, true)}
+            subtext={isSingleHotel ? 'this property' : `Across ${hotels.length} hotels`}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('ooo')}>
+          <KpiCard
+            className="h-full"
+            label="Rooms Out of Order"
+            value={roomsOoo.toString()}
+            subtext={totalRooms > 0 ? `${formatPct((roomsOoo / Math.max(totalRooms, 1)) * 100, 1)} of portfolio` : '—'}
+            alert={roomsOoo > 3}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('stale')}>
+          <KpiCard
+            className="h-full"
+            label="Stale Dirty"
+            value={staleDirty.toString()}
+            subtext={hotels.length > 1
+              ? `${hotels.length} hotel${hotels.length === 1 ? '' : 's'} · dirty 2+ days, no open ticket`
+              : 'dirty 2+ days · no open ticket'}
+            alert={staleDirty > hotels.length * 3}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('score')}>
+          <KpiCard
+            className="h-full"
+            label="Regional Score"
+            value={`${regionalScore.composite}`}
+            subtext={`${regionalScore.trendDirection === 'up' ? '↗' : regionalScore.trendDirection === 'down' ? '↘' : '→'} ${formatVariance(regionalScore.trendDelta)} vs last period`}
+            size="medium"
+          />
+        </KpiButton>
       </div>
 
-      {/* Row 2 — 5 medium KPIs */}
+      {/* Row 2 — 5 medium KPIs — all clickable */}
       <div className="grid grid-cols-5 gap-4">
-        <KpiCard
-          label="Hours Clocked / Sched"
-          value={`${totalClocked.toLocaleString()} / ${totalScheduled.toLocaleString()}`}
-          subtext={period.label}
-          size="medium"
-        />
-        <KpiCard
-          label="Labour Variance"
-          value={formatVariance(labourVariance) + ' hrs'}
-          subtext="vs scheduled"
-          trend={labourVariance > 0 ? 'down' : 'up'}
-          alert={labourVariance > Math.max(50, totalScheduled * 0.04)}
-          size="medium"
-        />
-        <KpiCard
-          label="Payroll %"
-          value={formatPct(payrollPct, 1)}
-          subtext="of revenue"
-          alert={payrollPct > 28}
-          size="medium"
-        />
-        <KpiCard
-          label="Total Payroll"
-          value={formatCurrency(totalPayroll, true)}
-          subtext={`${period.label} labour cost`}
-          size="medium"
-        />
-        {(() => {
-          const t = csatTier(avgCsat);
-          return (
-            <KpiCard
-              label="Customer Satisfaction"
-              value={`${avgCsat.toFixed(1)} / 5.0`}
-              subtext={`${t.label} · ${isSingleHotel ? 'this property' : `across ${hotels.length} hotels`}`}
-              alert={t.alert}
-              size="medium"
-            />
-          );
-        })()}
+        <KpiButton onClick={() => setOpenKpi('hours')}>
+          <KpiCard
+            className="h-full"
+            label="Hours Clocked / Sched"
+            value={`${totalClocked.toLocaleString()} / ${totalScheduled.toLocaleString()}`}
+            subtext={period.label}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('variance')}>
+          <KpiCard
+            className="h-full"
+            label="Labour Variance"
+            value={formatVariance(labourVariance) + ' hrs'}
+            subtext="vs scheduled"
+            trend={labourVariance > 0 ? 'down' : 'up'}
+            alert={labourVariance > Math.max(50, totalScheduled * 0.04)}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('payroll-pct')}>
+          <KpiCard
+            className="h-full"
+            label="Payroll %"
+            value={formatPct(payrollPct, 1)}
+            subtext="of revenue"
+            alert={payrollPct > 28}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('payroll-total')}>
+          <KpiCard
+            className="h-full"
+            label="Total Payroll"
+            value={formatCurrency(totalPayroll, true)}
+            subtext={`${period.label} labour cost`}
+            size="medium"
+          />
+        </KpiButton>
+        <KpiButton onClick={() => setOpenKpi('csat')}>
+          {(() => {
+            const t = csatTier(avgCsat);
+            return (
+              <KpiCard
+                className="h-full"
+                label="Customer Satisfaction"
+                value={`${avgCsat.toFixed(1)} / 5.0`}
+                subtext={`${t.label} · ${isSingleHotel ? 'this property' : `across ${hotels.length} hotels`}`}
+                alert={t.alert}
+                size="medium"
+              />
+            );
+          })()}
+        </KpiButton>
       </div>
 
       {/* Weakest hotels call-out — hidden for single-hotel scope */}
@@ -222,7 +280,12 @@ export default function HarshalDashboard() {
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={row.hotel.id} className="cursor-pointer hover:bg-[#fafafa] transition-colors" style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                  <tr
+                    key={row.hotel.id}
+                    className="cursor-pointer hover:bg-[#fafafa] transition-colors"
+                    style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }}
+                    onClick={() => { window.location.href = `/web/harshal/hotel/${row.hotel.id}`; }}
+                  >
                     <td className="py-3 px-4">
                       <p className="font-medium text-sm" style={{ color: '#222222' }}>{row.hotel.shortName}</p>
                       {row.gm && <p className="text-xs mt-0.5" style={{ color: '#929292' }}>GM · {row.gm.name}</p>}
@@ -258,6 +321,55 @@ export default function HarshalDashboard() {
 
       {/* Red Flags — pushed to the end so numbers lead the page */}
       {regionalFlags.length > 0 && <RedFlagsPanel flags={regionalFlags} title={`Red Flags — ${scopeLabel}`} />}
+
+      {/* KPI Drawer */}
+      <KpiDrawer
+        open={openKpi !== null}
+        onClose={() => setOpenKpi(null)}
+        title={KPI_META[openKpi ?? 'revenue']?.title ?? ''}
+        subtitle={`${scopeLabel} · ${period.label}`}
+      >
+        {openKpi === 'occupancy'     && <OccupancyDetail     {...scoped} />}
+        {openKpi === 'revenue'       && <RevenueDetail       {...scoped} />}
+        {openKpi === 'ooo'           && <RoomsOooDetail      {...scoped} />}
+        {openKpi === 'stale'         && <StaleDirtyDetail    {...scoped} />}
+        {openKpi === 'score'         && <RegionalScoreDetail {...scoped} />}
+        {openKpi === 'hours'         && <HoursDetail         {...scoped} />}
+        {openKpi === 'variance'      && <HoursDetail         {...scoped} />}
+        {openKpi === 'payroll-pct'   && <PayrollDetail       {...scoped} />}
+        {openKpi === 'payroll-total' && <PayrollDetail       {...scoped} />}
+        {openKpi === 'csat'          && <CsatDetail          {...scoped} />}
+      </KpiDrawer>
     </div>
+  );
+}
+
+const KPI_META: Record<Exclude<KpiKey, null>, { title: string }> = {
+  'occupancy':     { title: 'Occupancy — by hotel' },
+  'revenue':       { title: 'Total Revenue — mix by source' },
+  'ooo':           { title: 'Rooms Out of Order — by hotel' },
+  'stale':         { title: 'Stale Dirty — rooms sitting too long' },
+  'score':         { title: 'Regional Score — by hotel' },
+  'hours':         { title: 'Hours Clocked vs. Scheduled' },
+  'variance':      { title: 'Labour Variance — by hotel' },
+  'payroll-pct':   { title: 'Payroll % — by hotel' },
+  'payroll-total': { title: 'Total Payroll — by hotel' },
+  'csat':          { title: 'Customer Satisfaction — by hotel' },
+};
+
+/**
+ * Reset-styled button wrapper so a whole KpiCard can be clicked without
+ * breaking the card's internal layout or hover styling.
+ */
+function KpiButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-left w-full h-full rounded-2xl transition-shadow hover:shadow-[0_0_0_1px_#6a6a6a] focus:outline-none focus-visible:shadow-[0_0_0_2px_#222]"
+      style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'pointer' }}
+    >
+      {children}
+    </button>
   );
 }

@@ -1367,9 +1367,39 @@ export function getPropertyOpsSummary(hotelId: string) {
     oooRooms: rooms.filter((r) => r.status === 'ooo').length,
     blockedRooms: rooms.filter((r) => r.status === 'blocked').length,
     occupiedRooms: rooms.filter((r) => r.status === 'occupied').length,
+    staleDirtyRooms: getStaleDirtyRoomsForHotel(hotelId).length,
     openTickets: tickets.length,
     urgentTickets: tickets.filter((t) => t.priority === 'urgent').length,
     auditPassRate,
     lastAuditDate: lastAudit?.completedDate ?? '2026-04-15',
   };
+}
+
+/**
+ * "Stale Dirty" rooms — sitting in `dirty` status with no open maintenance
+ * ticket, implying they've been skipped for turnover past a normal window.
+ * This is the edge-case every property has 1–3 of, where a room is effectively
+ * out of service but hasn't been flagged as OOO on paper.
+ *
+ * Heuristic (mock-data variant): dirty + no open ticket + seeded 1-in-7 subset
+ * of those candidates so the count lands in the realistic 1–3 per property
+ * range. Real-data variant would use `lastCleaned` / `lastOccupied` age.
+ */
+export function getStaleDirtyRoomsForHotel(hotelId: string): Room[] {
+  const rooms = getRoomsForHotel(hotelId);
+  return rooms.filter((r) => {
+    if (r.status !== 'dirty') return false;
+    if (r.hasOpenTicket) return false;
+    return hash(`stale-${r.hotelId}-${r.number}`) % 7 === 0;
+  });
+}
+
+/**
+ * "Zero Rate" rooms — rooms occupied but billed at $0 today: comp rooms, house
+ * use, employee stays, brand-standard make-goods. Matches the OnQ Final Audit
+ * "Zero Rate Rooms" row. Typical property has 2–3 on any given day.
+ */
+export function getZeroRateRoomsForHotel(hotelId: string): number {
+  // Deterministic 2–3 per property based on hotelId seed.
+  return 2 + (hash(`zero-rate-${hotelId}`) % 2);
 }
