@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import {
-  GM_ROSTER, AI_ANOMALIES, AI_FORECASTS,
+  GM_ROSTER,
   getZeroRateRoomsForHotel,
   formatCurrency, formatPct,
 } from '@hos/shared';
+import { useAnomalies, useAiForecasts } from '@/lib/ai-data';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
@@ -72,10 +73,10 @@ export default function HarshalRevenue() {
   const zeroRateTotal = hotels.reduce((s, h) => s + getZeroRateRoomsForHotel(h.id), 0);
 
   // AI
-  const revenueAnomalies = AI_ANOMALIES.filter(
+  const revenueAnomalies = useAnomalies().filter(
     (a) => a.module === 'revenue' && hotelIdSet.has(a.hotelId),
   );
-  const revenueForecast = AI_FORECASTS.find((f) => f.id === 'fc-001');
+  const revenueForecast = useAiForecasts().find((f) => f.id === 'fc-001');
 
   return (
     <div className="flex flex-col gap-8">
@@ -117,7 +118,7 @@ export default function HarshalRevenue() {
         <RevenueMixBreakdown
           hotelIds={hotels.map((h) => h.id)}
           initialOpen={null}
-          multiplier={period.multiplier}
+          days={period.days}
         />
       </div>
 

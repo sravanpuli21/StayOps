@@ -1,6 +1,6 @@
 'use client';
 
-import { AI_ANOMALIES, AI_FORECASTS } from '@hos/shared';
+import { useAnomalies, useAiForecasts } from '@/lib/ai-data';
 import { RevenueSummaryCards } from '@/components/revenue/RevenueSummaryCards';
 import { HotelRevenueTable } from '@/components/revenue/HotelRevenueTable';
 import { RevenueMixTable } from '@/components/revenue/RevenueMixTable';
@@ -37,10 +37,10 @@ export default function RevenuePage() {
     daily: dailyRows.find((d) => d.hotelId === hotel.id)!,
   }));
 
-  const revenueAnomalies = AI_ANOMALIES.filter(
+  const revenueAnomalies = useAnomalies().filter(
     (a) => a.module === 'revenue' && hotelIdSet.has(a.hotelId),
   );
-  const revenueForecast = AI_FORECASTS.find((f) => f.id === 'fc-001')!;
+  const revenueForecast = useAiForecasts().find((f) => f.id === 'fc-001');
 
   return (
     <div className="flex flex-col gap-8">
@@ -51,7 +51,7 @@ export default function RevenuePage() {
 
       <RevenueSummaryCards data={revenueRows} periodLabel={period.label} />
 
-      <ForecastWidget forecast={revenueForecast} />
+      {revenueForecast && <ForecastWidget forecast={revenueForecast} />}
 
       <div>
         <SectionTitle>Hotel Revenue Breakdown</SectionTitle>

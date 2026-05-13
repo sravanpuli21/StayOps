@@ -1,11 +1,11 @@
 'use client';
 
-import { AI_PATTERNS, AI_FORECASTS, AI_DECISIONS, getBriefByModule } from '@hos/shared';
 import { AIBrief } from '@/components/ai/AIBrief';
 import { PatternCard } from '@/components/ai/PatternCard';
 import { ForecastWidget } from '@/components/ai/ForecastWidget';
 import { DecisionsLedger } from '@/components/ai/DecisionsLedger';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { useAiPatterns, useAiForecasts, useAiDecisions, useBriefByModule } from '@/lib/ai-data';
 
 function SectionTitle({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
   return (
@@ -20,11 +20,13 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 
 export default function IntelligencePage() {
   const { hotels, hotelIdSet, scopeSub } = useScopedData();
-  const brief = getBriefByModule('intelligence')!;
+  const brief = useBriefByModule('intelligence');
 
-  const patterns = AI_PATTERNS.filter((p) => p.affectedHotelIds.some((id) => hotelIdSet.has(id)));
-  const forecasts = AI_FORECASTS.filter((f) => !f.hotelId || hotelIdSet.has(f.hotelId));
-  const decisions = AI_DECISIONS.filter((d) => hotelIdSet.has(d.hotelId));
+  const patterns = useAiPatterns().filter((p) => p.affectedHotelIds.some((id: string) => hotelIdSet.has(id)));
+  const forecasts = useAiForecasts().filter((f) => !f.hotelId || hotelIdSet.has(f.hotelId));
+  const decisions = useAiDecisions().filter((d) => hotelIdSet.has(d.hotelId));
+
+  if (!brief) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
 
   return (
     <div className="flex flex-col gap-8">

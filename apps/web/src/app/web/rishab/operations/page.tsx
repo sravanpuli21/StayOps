@@ -1,11 +1,13 @@
+'use client';
+
 import { OpsClient } from '@/components/operations/OpsClient';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
-import { AI_ANOMALIES } from '@hos/shared';
+import { useAnomalies } from '@/lib/ai-data';
 
 const HOTEL_ID = 'BTRCI';
 
 export default function OperationsPage() {
-  const opsAnomalies = AI_ANOMALIES.filter(
+  const opsAnomalies = useAnomalies().filter(
     (a) => a.module === 'operations' && a.hotelId === HOTEL_ID
   );
 

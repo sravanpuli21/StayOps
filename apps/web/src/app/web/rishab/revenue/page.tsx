@@ -4,16 +4,18 @@ import { formatCurrency, formatPct } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { usePropertyScoped } from '@/lib/use-property-scoped';
+import { DashboardSkeleton } from '@/components/common/Skeleton';
 
 const HOTEL_ID = 'BTRCI';
 
 export default function RishabRevenue() {
   const scoped = usePropertyScoped(HOTEL_ID);
   const hotel = scoped.hotel;
-  const rev = scoped.revenue!;
-  const lab = scoped.labour!;
-  const dm = scoped.daily!;
+  const rev = scoped.revenue;
+  const lab = scoped.labour;
+  const dm = scoped.daily;
   const period = scoped.period;
+  if (!rev || !lab || !dm) return <DashboardSkeleton kpiCount={4} large />;
   const payrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
   const adrGap = rev.adr - rev.marketAdr;
 

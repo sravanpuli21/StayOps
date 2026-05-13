@@ -1,0 +1,24 @@
+[
+  {
+    "id": "sw-001",
+    "myShiftDate": "2026-05-01",
+    "myShiftLabel": "Fri, May 1",
+    "myShiftTime": "3:00 PM – 11:00 PM",
+    "targetColleague": "Marcus Lee",
+    "targetShiftDate": "2026-05-03",
+    "targetShiftTime": "11:00 PM – 7:00 AM",
+    "kind": "swap",
+    "status": "pending",
+    "submittedAt": "2026-04-28T11:42:00-04:00"
+  },
+  {
+    "id": "sw-002",
+    "myShiftDate": "2026-04-30",
+    "myShiftLabel": "Thu, Apr 30",
+    "myShiftTime": "3:00 PM – 11:00 PM",
+    "targetColleague": "Any teammate",
+    "kind": "cover",
+    "status": "accepted",
+    "submittedAt": "2026-04-24T18:10:00-04:00"
+  }
+]

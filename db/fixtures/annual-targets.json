@@ -1,0 +1,44 @@
+[
+  {
+    "metric": "Portfolio Revenue",
+    "unit": "currency",
+    "target": 4800000,
+    "actual": 3840000,
+    "priorYear": 4210000
+  },
+  {
+    "metric": "Avg Occupancy",
+    "unit": "percent",
+    "target": 86,
+    "actual": 82.4,
+    "priorYear": 79.8
+  },
+  {
+    "metric": "Avg ADR",
+    "unit": "currency",
+    "target": 168,
+    "actual": 158,
+    "priorYear": 149
+  },
+  {
+    "metric": "Portfolio RevPAR",
+    "unit": "currency",
+    "target": 144,
+    "actual": 130,
+    "priorYear": 119
+  },
+  {
+    "metric": "Payroll % of Rev",
+    "unit": "percent",
+    "target": 28,
+    "actual": 29.4,
+    "priorYear": 31.2
+  },
+  {
+    "metric": "Guest Satisfaction",
+    "unit": "number",
+    "target": 4.6,
+    "actual": 4.3,
+    "priorYear": 4.1
+  }
+]

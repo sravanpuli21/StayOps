@@ -1,11 +1,11 @@
 'use client';
 
-import { AI_PATTERNS, AI_FORECASTS, AI_DECISIONS, getBriefByModule } from '@hos/shared';
 import { AIBrief } from '@/components/ai/AIBrief';
 import { PatternCard } from '@/components/ai/PatternCard';
 import { ForecastWidget } from '@/components/ai/ForecastWidget';
 import { DecisionsLedger } from '@/components/ai/DecisionsLedger';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { useAiPatterns, useAiForecasts, useAiDecisions, useBriefByModule } from '@/lib/ai-data';
 
 function SectionTitle({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
   return (
@@ -20,8 +20,11 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 
 export default function IntelligencePage() {
   const { hotelIdSet, scopeSub, isPortfolio } = useScopedData();
-  const brief = getBriefByModule('intelligence')!;
-  const scopedDecisions = AI_DECISIONS.filter((d) => hotelIdSet.has(d.hotelId));
+  const brief = useBriefByModule('intelligence');
+  const patterns = useAiPatterns();
+  const forecasts = useAiForecasts();
+  const scopedDecisions = useAiDecisions().filter((d) => hotelIdSet.has(d.hotelId));
+  if (!brief) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
 
   return (
     <div className="flex flex-col gap-8">
@@ -37,7 +40,7 @@ export default function IntelligencePage() {
           Cross-Portfolio Patterns
         </SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {AI_PATTERNS.map((p) => <PatternCard key={p.id} pattern={p} />)}
+          {patterns.map((p) => <PatternCard key={p.id} pattern={p} />)}
         </div>
       </div>
 
@@ -46,7 +49,7 @@ export default function IntelligencePage() {
           Forecasts & Counterfactuals
         </SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {AI_FORECASTS.map((f) => <ForecastWidget key={f.id} forecast={f} />)}
+          {forecasts.map((f) => <ForecastWidget key={f.id} forecast={f} />)}
         </div>
       </div>
 

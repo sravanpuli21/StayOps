@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ps-current",
+    "period": "Apr 21 – May 4",
+    "regularHours": 32,
+    "overtimeHours": 0,
+    "grossPay": 592,
+    "netPay": 471.28,
+    "tips": 22,
+    "bonus": 40,
+    "payDate": "2026-05-08",
+    "status": "pending"
+  },
+  {
+    "id": "ps-2026-04b",
+    "period": "Apr 7 – Apr 20",
+    "regularHours": 78,
+    "overtimeHours": 2.5,
+    "grossPay": 1503.88,
+    "netPay": 1186.42,
+    "tips": 58,
+    "bonus": 75,
+    "payDate": "2026-04-24",
+    "status": "paid"
+  },
+  {
+    "id": "ps-2026-04a",
+    "period": "Mar 24 – Apr 6",
+    "regularHours": 80,
+    "overtimeHours": 0,
+    "grossPay": 1480,
+    "netPay": 1169.14,
+    "tips": 41,
+    "bonus": 50,
+    "payDate": "2026-04-10",
+    "status": "paid"
+  },
+  {
+    "id": "ps-2026-03b",
+    "period": "Mar 10 – Mar 23",
+    "regularHours": 76.5,
+    "overtimeHours": 4.5,
+    "grossPay": 1539,
+    "netPay": 1218.88,
+    "tips": 38,
+    "bonus": 100,
+    "payDate": "2026-03-27",
+    "status": "paid"
+  },
+  {
+    "id": "ps-2026-03a",
+    "period": "Feb 24 – Mar 9",
+    "regularHours": 80,
+    "overtimeHours": 0,
+    "grossPay": 1480,
+    "netPay": 1166.92,
+    "tips": 44,
+    "bonus": 25,
+    "payDate": "2026-03-13",
+    "status": "paid"
+  }
+]

@@ -2,20 +2,24 @@
 
 import { useMemo, useState } from 'react';
 import type { Room } from '@hos/shared';
-import { EMMA_HOTEL, getHkStaff, getAllHotelRooms, seedAssignments, ROOM_TILE } from '@/lib/emma-data';
+import { EMMA_HOTEL, useHkStaff, useAllHotelRooms, useQueueRooms, seedAssignments, ROOM_TILE } from '@/lib/emma-data';
 import { Printer, Globe } from 'lucide-react';
 
 export default function EmmaPrintPage() {
   const hotel = EMMA_HOTEL;
-  const hkStaff = useMemo(() => getHkStaff(), []);
-  const rooms = useMemo(() => getAllHotelRooms(), []);
+  const hkStaff = useHkStaff();
+  const rooms = useAllHotelRooms();
+  const queueRooms = useQueueRooms();
   const roomMap = useMemo(() => {
     const m = new Map<string, Room>();
     for (const r of rooms) m.set(r.number, r);
     return m;
   }, [rooms]);
 
-  const assignments = useMemo(() => seedAssignments(), []);
+  const assignments = useMemo(
+    () => (hkStaff.length > 0 && queueRooms.length > 0 ? seedAssignments(hkStaff, queueRooms) : []),
+    [hkStaff, queueRooms],
+  );
   const [bilingual, setBilingual] = useState(true);
 
   const perStaff = useMemo(() => {

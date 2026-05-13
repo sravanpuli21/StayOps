@@ -1,6 +1,8 @@
-import { RED_FLAGS, AI_ANOMALIES } from '@hos/shared';
+'use client';
+
 import { RedFlagsPanel } from '@/components/common/RedFlagsPanel';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
+import { useRedFlags, useAnomalies } from '@/lib/ai-data';
 
 const HOTEL_ID = 'BTRCI';
 
@@ -16,17 +18,17 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 }
 
 export default function AlertsPage() {
-  const flags = RED_FLAGS.filter((f) => f.hotelId === HOTEL_ID);
-  const anomalies = AI_ANOMALIES.filter((a) => a.hotelId === HOTEL_ID);
+  const flags = useRedFlags().filter((f) => f.hotelId === HOTEL_ID);
+  const anomalies = useAnomalies().filter((a) => a.hotelId === HOTEL_ID);
 
   const critical = flags.filter((f) => f.severity === 'critical').length;
   const warning = flags.filter((f) => f.severity === 'warning').length;
   const info = flags.filter((f) => f.severity === 'info').length;
 
-  const byModule = flags.reduce((acc, f) => {
-    (acc[f.module] ??= []).push(f);
+  const byModule = flags.reduce<Record<string, typeof flags>>((acc, f) => {
+    (acc[f.module] ??= [] as typeof flags).push(f);
     return acc;
-  }, {} as Record<string, typeof flags>);
+  }, {});
 
   return (
     <div className="flex flex-col gap-8">

@@ -1,0 +1,48 @@
+[
+  {
+    "id": "os-001",
+    "date": "2026-05-02",
+    "label": "Sat, May 2",
+    "start": "15:00",
+    "end": "23:00",
+    "role": "Front Desk · PM",
+    "hotelCode": "BTRCI",
+    "postedBy": "Lashwanda (AGM)",
+    "reason": "Callout — Jamie sick",
+    "payBoost": "+$2/hr incentive"
+  },
+  {
+    "id": "os-002",
+    "date": "2026-05-04",
+    "label": "Mon, May 4",
+    "start": "07:00",
+    "end": "15:00",
+    "role": "Front Desk · AM",
+    "hotelCode": "BTRCI",
+    "postedBy": "Lashwanda (AGM)",
+    "reason": "Open shift"
+  },
+  {
+    "id": "os-003",
+    "date": "2026-05-06",
+    "label": "Wed, May 6",
+    "start": "23:00",
+    "end": "07:00",
+    "role": "Night Audit",
+    "hotelCode": "BTRCI",
+    "postedBy": "Lashwanda (AGM)",
+    "reason": "Coverage needed",
+    "payBoost": "+$3/hr night differential"
+  },
+  {
+    "id": "os-004",
+    "date": "2026-05-09",
+    "label": "Sat, May 9",
+    "start": "15:00",
+    "end": "23:00",
+    "role": "Front Desk · PM",
+    "hotelCode": "BTRCI",
+    "postedBy": "Lashwanda (AGM)",
+    "reason": "PTO — Marcus"
+  }
+]

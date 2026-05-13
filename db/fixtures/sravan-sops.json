@@ -1,0 +1,82 @@
+[
+  {
+    "id": "sop-001",
+    "title": "Guest Check-In Procedure",
+    "category": "Check-in",
+    "updatedAt": "2026-03-12",
+    "minutesToRead": 5,
+    "required": true
+  },
+  {
+    "id": "sop-002",
+    "title": "Guest Check-Out & Folio Review",
+    "category": "Check-out",
+    "updatedAt": "2026-02-28",
+    "minutesToRead": 4,
+    "required": true
+  },
+  {
+    "id": "sop-003",
+    "title": "Cash Drawer Opening / Closing",
+    "category": "Cash",
+    "updatedAt": "2026-01-18",
+    "minutesToRead": 6,
+    "required": true
+  },
+  {
+    "id": "sop-004",
+    "title": "Credit Card Chargeback Handling",
+    "category": "Cash",
+    "updatedAt": "2026-04-02",
+    "minutesToRead": 8,
+    "required": false
+  },
+  {
+    "id": "sop-005",
+    "title": "Room Upgrade Offer Script",
+    "category": "Guest Service",
+    "updatedAt": "2026-03-30",
+    "minutesToRead": 3,
+    "required": true
+  },
+  {
+    "id": "sop-006",
+    "title": "Handling Guest Complaints (LEAP)",
+    "category": "Guest Service",
+    "updatedAt": "2026-04-20",
+    "minutesToRead": 7,
+    "required": true
+  },
+  {
+    "id": "sop-007",
+    "title": "Fire Alarm / Evacuation",
+    "category": "Safety",
+    "updatedAt": "2026-03-05",
+    "minutesToRead": 10,
+    "required": true
+  },
+  {
+    "id": "sop-008",
+    "title": "Medical Emergency Response",
+    "category": "Safety",
+    "updatedAt": "2026-01-22",
+    "minutesToRead": 6,
+    "required": true
+  },
+  {
+    "id": "sop-009",
+    "title": "PMS — OnQ Basics (night audit)",
+    "category": "Systems",
+    "updatedAt": "2026-02-11",
+    "minutesToRead": 12,
+    "required": false
+  },
+  {
+    "id": "sop-010",
+    "title": "Lost & Found Logging",
+    "category": "Guest Service",
+    "updatedAt": "2026-03-19",
+    "minutesToRead": 3,
+    "required": false
+  }
+]

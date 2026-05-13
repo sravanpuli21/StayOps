@@ -1,7 +1,11 @@
+'use client';
+
 import { Sparkles, Check, Lock } from 'lucide-react';
-import { SRAVAN_BONUSES, formatCurrency } from '@hos/shared';
+import { formatCurrency } from '@hos/shared';
+import { useSravanBonuses } from '@/lib/sravan-data';
 
 export default function SravanBonusPage() {
+  const SRAVAN_BONUSES = useSravanBonuses();
   const earned = SRAVAN_BONUSES.reduce((s, b) => s + b.earnedThisPeriod, 0);
 
   return (

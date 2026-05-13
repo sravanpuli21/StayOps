@@ -15,7 +15,7 @@ interface ScopedData {
   revenueRows: RevenueSummary[];
   labourRows: LabourMetrics[];
   dailyRows: DailyMetrics[];
-  periodMultiplier?: number;
+  periodDays?: number;
 }
 
 /* ---------------- Shared helpers ---------------- */
@@ -95,7 +95,7 @@ export function OccupancyDetail({ hotels, revenueRows, dailyRows }: ScopedData) 
 }
 
 /* ---------------- 2. Total Revenue — the full mix drill-down ---------------- */
-export function RevenueDetail({ hotels, revenueRows, periodMultiplier = 1 }: ScopedData) {
+export function RevenueDetail({ hotels, revenueRows, periodDays = 1 }: ScopedData) {
   const total = revenueRows.reduce((s, r) => s + r.totalRevenue, 0);
 
   return (
@@ -119,7 +119,7 @@ export function RevenueDetail({ hotels, revenueRows, periodMultiplier = 1 }: Sco
         <RevenueMixBreakdown
           hotelIds={hotels.map((h) => h.id)}
           compact
-          multiplier={periodMultiplier}
+          days={periodDays}
         />
       </div>
     </div>

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "SI-001",
+    "title": "Dynamic Pricing Roll-out",
+    "description": "Deploy revenue management software across all 16 properties to optimize ADR based on demand signals and competitive rates.",
+    "category": "Revenue",
+    "status": "on_track",
+    "owner": "Harshal Patel",
+    "dueDate": "2026-06-30",
+    "impactLabel": "+$68K/yr",
+    "impactValue": 68000,
+    "progressPct": 62,
+    "hotelIds": "all"
+  },
+  {
+    "id": "SI-002",
+    "title": "Housekeeping Efficiency Program",
+    "description": "Reduce clocked-vs-scheduled variance in HK dept by 40% through scheduling software and cross-training.",
+    "category": "Cost",
+    "status": "at_risk",
+    "owner": "Harshal Patel",
+    "dueDate": "2026-05-15",
+    "impactLabel": "$28K/yr savings",
+    "impactValue": 28000,
+    "progressPct": 38,
+    "hotelIds": [
+      "SAVGW",
+      "SAVMT",
+      "SAVMD",
+      "SAVFP",
+      "BQKCY"
+    ]
+  },
+  {
+    "id": "SI-003",
+    "title": "SAVFP Pool Deck Renovation",
+    "description": "Full pool deck resurface, new furniture, and pergola install to drive summer F&B and event revenue.",
+    "category": "Asset",
+    "status": "on_track",
+    "owner": "Michael Chen",
+    "dueDate": "2026-07-01",
+    "impactLabel": "$180K capex",
+    "impactValue": 180000,
+    "progressPct": 25,
+    "hotelIds": [
+      "SAVFP"
+    ]
+  },
+  {
+    "id": "SI-004",
+    "title": "F&B Revenue Expansion",
+    "description": "Launch breakfast buffet upsell and happy-hour program at full-service properties to grow F&B mix from 16% to 20%.",
+    "category": "Revenue",
+    "status": "behind",
+    "owner": "Harshal Patel",
+    "dueDate": "2026-04-30",
+    "impactLabel": "+$62K/yr",
+    "impactValue": 62000,
+    "progressPct": 15,
+    "hotelIds": [
+      "SAVVY",
+      "GA989",
+      "SAVMT",
+      "BQKCY",
+      "BQKFP"
+    ]
+  },
+  {
+    "id": "SI-005",
+    "title": "GM Retention & Incentive Revamp",
+    "description": "Restructure GM bonus program to tie 50% of variable comp to composite leadership score. Reduces turnover risk.",
+    "category": "People",
+    "status": "on_track",
+    "owner": "Kris Patel",
+    "dueDate": "2026-05-01",
+    "impactLabel": "Retention risk ↓",
+    "impactValue": 0,
+    "progressPct": 80,
+    "hotelIds": "all"
+  },
+  {
+    "id": "SI-006",
+    "title": "SAVMT HVAC System Upgrade",
+    "description": "Replace aging HVAC units (14 rooms affected) to eliminate recurring OOO status and reduce maintenance cost.",
+    "category": "Asset",
+    "status": "on_track",
+    "owner": "Jennifer Walsh",
+    "dueDate": "2026-09-30",
+    "impactLabel": "$95K capex",
+    "impactValue": 95000,
+    "progressPct": 10,
+    "hotelIds": [
+      "SAVMT"
+    ]
+  },
+  {
+    "id": "SI-007",
+    "title": "Online Reputation Recovery – GAA84",
+    "description": "Address sub-4.0 review scores at Brunswick property through staff coaching, room refresh, and response SLA.",
+    "category": "Revenue",
+    "status": "at_risk",
+    "owner": "Sandra Kim",
+    "dueDate": "2026-06-01",
+    "impactLabel": "ADR +$8/night",
+    "impactValue": 24000,
+    "progressPct": 44,
+    "hotelIds": [
+      "GAA84"
+    ]
+  },
+  {
+    "id": "SI-008",
+    "title": "Payroll Compliance Audit",
+    "description": "Full audit of OT authorization workflow across portfolio following elevated OT at SAVFP and SAVMT.",
+    "category": "Cost",
+    "status": "completed",
+    "owner": "Harshal Patel",
+    "dueDate": "2026-03-31",
+    "impactLabel": "$19K OT recovered",
+    "impactValue": 19000,
+    "progressPct": 100,
+    "hotelIds": [
+      "SAVFP",
+      "SAVMT",
+      "GA989"
+    ]
+  }
+]

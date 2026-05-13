@@ -2,31 +2,29 @@
 
 import { useMemo } from 'react';
 import {
-  HOTELS, REVENUE_DATA, LABOUR_DATA, DAILY_METRICS, AI_ANOMALIES, REGIONAL_ROSTER,
+  HOTELS, REGIONAL_ROSTER, resolveDateRange,
+  type DateRangeKind,
+  type ApiRevenueSummary, type ApiLabourMetrics, type ApiDailyMetrics, type ApiAnomalyFinding,
 } from '@hos/shared';
 import { useHotelFilter } from './hotel-filter-context';
 import { useDateFilter, DATE_RANGE_META } from './date-filter-context';
+import { useApi } from './use-api';
+import { apiKeys } from './swr-keys';
 
 /**
  * Shared scope state for pages inside Kris's (MD) app.
- * Combines global hotel selection + date range. All numeric arrays it exposes
- * are pre-scaled by the period multiplier (except ratios/averages), so pages
- * and their children can just sum/display values.
  *
- * Scaled fields:
- *  - revenueRows: totalRevenue, roomRevenue, nonRoomRevenue (NOT occupancyPct/adr/revPar — ratios)
- *  - labourRows:  scheduledHours, clockedHours, variance, overtimeHours, payrollCost; departments.* same
- *  - dailyRows:   roomsSold (NOT avgCustomerRating/occupancyPct — ratios)
- *  - AI_ANOMALIES not scaled (they're individual findings, not accumulators)
+ * Backend-ready: revenue / labour / daily rows come from /api/* handlers
+ * that server-aggregate the seeded series over the real date window. The
+ * historical `period.multiplier` is kept on the return shape for back-compat
+ * but set to 1 — consumers shouldn't re-multiply.
  */
 export function useScopedData() {
   const { selection, viewerRegionalId } = useHotelFilter();
   const { range } = useDateFilter();
-  const period = DATE_RANGE_META[range];
-  const mult = period.multiplier;
+  const meta = DATE_RANGE_META[range];
 
-  const hotels = useMemo(() => {
-    // Resolve my-territory based on viewer (regional directors)
+  const selectedHotels = useMemo(() => {
     if (selection.kind === 'my-territory' && viewerRegionalId) {
       const reg = REGIONAL_ROSTER.find((r) => r.id === viewerRegionalId);
       if (reg) return HOTELS.filter((h) => reg.hotelIds.includes(h.id));
@@ -42,7 +40,42 @@ export function useScopedData() {
     return HOTELS;
   }, [selection, viewerRegionalId]);
 
+  // Sorted alphabetically so identical selections produce identical SWR cache
+  // keys regardless of the order the user picked hotels in.
+  const hotelIds = useMemo(
+    () => [...selectedHotels.map((h) => h.id)].sort(),
+    [selectedHotels],
+  );
+
+  // Resolve the ISO window for API calls. Reads NEXT_PUBLIC_STAYOPS_FROZEN_TODAY
+  // (matches the server's STAYOPS_FROZEN_TODAY). When unset, defaults to live
+  // Date.now() so production picks up the real clock.
+  const { from, to } = useMemo(() => {
+    const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+    const today = frozen ? new Date(`${frozen}T00:00:00Z`) : new Date();
+    const kind: DateRangeKind = range;
+    return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
+  }, [range]);
+
+  const rev = useApi(apiKeys.revenueScoped(hotelIds, from, to));
+  const lab = useApi(apiKeys.labourScoped(hotelIds, from, to));
+  const day = useApi(apiKeys.dailyScoped(hotelIds, from, to));
+  const an  = useApi(apiKeys.anomalies());
+
+  const revenueRows: ApiRevenueSummary[] = rev.data?.rows ?? [];
+  const labourRows:  ApiLabourMetrics[]  = lab.data?.rows ?? [];
+  const dailyRows:   ApiDailyMetrics[]   = day.data?.rows ?? [];
+
+  // Keep hotels aligned with the rows we actually have. During initial load,
+  // hotels is empty → pages render no rows instead of `find()→undefined` crashes.
+  const ready = !!rev.data && !!lab.data && !!day.data;
+  const hotels = ready ? selectedHotels : [];
   const hotelIdSet = useMemo(() => new Set(hotels.map((h) => h.id)), [hotels]);
+
+  const openAnomalies: ApiAnomalyFinding[] = useMemo(
+    () => (an.data?.anomalies ?? []).filter((a: ApiAnomalyFinding) => hotelIdSet.has(a.hotelId) && a.kind !== 'resolved'),
+    [an.data, hotelIdSet],
+  );
 
   const scopeLabel = useMemo(() => {
     if (selection.kind === 'my-territory' && viewerRegionalId) {
@@ -53,62 +86,26 @@ export function useScopedData() {
       const reg = REGIONAL_ROSTER.find((r) => r.id === selection.regionalId);
       if (reg) return `${reg.name.split(' ')[0]}'s Region`;
     }
-    if (selection.kind === 'single' && hotels[0]) return hotels[0].shortName;
+    if (selection.kind === 'single' && selectedHotels[0]) return selectedHotels[0].shortName;
     return 'Portfolio';
-  }, [selection, viewerRegionalId, hotels]);
+  }, [selection, viewerRegionalId, selectedHotels]);
 
   const scopeSub = useMemo(() => {
-    if (selection.kind === 'single' && hotels[0]) {
-      return `${period.label} · ${hotels[0].city}, ${hotels[0].state} · ${hotels[0].brand}`;
+    if (selection.kind === 'single' && selectedHotels[0]) {
+      return `${meta.label} · ${selectedHotels[0].city}, ${selectedHotels[0].state} · ${selectedHotels[0].brand}`;
     }
-    return `${period.label} · ${hotels.length === HOTELS.length ? `All ${HOTELS.length} Hotels` : `${hotels.length} Hotels`}`;
-  }, [selection, hotels, period.label]);
+    return `${meta.label} · ${selectedHotels.length === HOTELS.length ? `All ${HOTELS.length} Hotels` : `${selectedHotels.length} Hotels`}`;
+  }, [selection, selectedHotels, meta.label]);
 
-  const revenueRows = useMemo(() =>
-    REVENUE_DATA
-      .filter((r) => hotelIdSet.has(r.hotelId))
-      .map((r) => ({
-        ...r,
-        totalRevenue: r.totalRevenue * mult,
-        roomRevenue: r.roomRevenue * mult,
-        nonRoomRevenue: r.nonRoomRevenue * mult,
-      })),
-  [hotelIdSet, mult]);
+  const loading = rev.isLoading || lab.isLoading || day.isLoading;
+  const error   = rev.error ?? lab.error ?? day.error ?? an.error ?? null;
 
-  const labourRows = useMemo(() =>
-    LABOUR_DATA
-      .filter((l) => hotelIdSet.has(l.hotelId))
-      .map((l) => ({
-        ...l,
-        scheduledHours: Math.round(l.scheduledHours * mult),
-        clockedHours: Math.round(l.clockedHours * mult),
-        variance: Math.round(l.variance * mult),
-        overtimeHours: Math.round(l.overtimeHours * mult),
-        payrollCost: l.payrollCost * mult,
-        departments: l.departments.map((d) => ({
-          ...d,
-          scheduledHours: Math.round(d.scheduledHours * mult),
-          clockedHours: Math.round(d.clockedHours * mult),
-          variance: Math.round(d.variance * mult),
-          overtimeHours: Math.round(d.overtimeHours * mult),
-          payrollCost: d.payrollCost * mult,
-        })),
-      })),
-  [hotelIdSet, mult]);
-
-  const dailyRows = useMemo(() =>
-    DAILY_METRICS
-      .filter((m) => hotelIdSet.has(m.hotelId))
-      .map((m) => ({
-        ...m,
-        roomsSold: Math.round(m.roomsSold * mult),
-      })),
-  [hotelIdSet, mult]);
-
-  const openAnomalies = useMemo(
-    () => AI_ANOMALIES.filter((a) => hotelIdSet.has(a.hotelId) && a.kind !== 'resolved'),
-    [hotelIdSet],
-  );
+  // Server returns real-day aggregates, so the legacy `multiplier` is shimmed
+  // to 1. Pages doing `value * period.multiplier` keep working (no-op).
+  // Pages that previously used multiplier as a "days-equivalent factor" for
+  // client-side scaling (OTA leakage, RevenueMixBreakdown) should switch to
+  // `period.days`.
+  const period = { ...meta, multiplier: 1 };
 
   return {
     selection,
@@ -122,6 +119,8 @@ export function useScopedData() {
     labourRows,
     dailyRows,
     openAnomalies,
+    loading,
+    error,
     filterByHotel: <T extends { hotelId: string }>(arr: readonly T[]): T[] =>
       arr.filter((x) => hotelIdSet.has(x.hotelId)),
     isSingleHotel: selection.kind === 'single',

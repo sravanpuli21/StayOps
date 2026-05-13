@@ -2,21 +2,27 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { getEmployeesForHotel } from '@hos/shared';
-import { EMMA_HOTEL, EMMA_HOTEL_ID, getHkStaff, getHkCallouts, seedAssignments } from '@/lib/emma-data';
+import { EMMA_HOTEL, EMMA_HOTEL_ID, useHkStaff, useHkCallouts, useAllHotelRooms, useQueueRooms, seedAssignments } from '@/lib/emma-data';
+import { useApi } from '@/lib/use-api';
+import { apiKeys } from '@/lib/swr-keys';
 import { AlertTriangle, Phone, Mail, Star, Calendar, TrendingUp, ChevronRight } from 'lucide-react';
 
 export default function EmmaTeamPage() {
-  const hkStaff = useMemo(() => getHkStaff(), []);
-  const callouts = useMemo(() => getHkCallouts(), []);
+  const hkStaff = useHkStaff();
+  const callouts = useHkCallouts();
+  const queueRooms = useQueueRooms();
   // Include all HK staff regardless of status so Emma sees the callouts
+  const { data: empData } = useApi(apiKeys.employees(EMMA_HOTEL_ID));
   const allHk = useMemo(
-    () => getEmployeesForHotel(EMMA_HOTEL_ID).filter((e) => e.team === 'Housekeeping'),
-    [],
+    () => ((empData?.employees ?? []) as any[]).filter((e) => e.team === 'Housekeeping'),
+    [empData],
   );
 
   // Seed assignments to show today's room counts
-  const seeded = useMemo(() => seedAssignments(), []);
+  const seeded = useMemo(
+    () => (hkStaff.length > 0 && queueRooms.length > 0 ? seedAssignments(hkStaff, queueRooms) : []),
+    [hkStaff, queueRooms],
+  );
   const roomsPerStaff = useMemo(() => {
     const m = new Map<string, number>();
     for (const a of seeded) {
@@ -25,7 +31,7 @@ export default function EmmaTeamPage() {
     return m;
   }, [seeded]);
 
-  const avgPerf = hkStaff.reduce((s, e) => s + e.performanceScore, 0) / (hkStaff.length || 1);
+  const avgPerf = hkStaff.reduce((s, e: any) => s + (e.performanceScore ?? 0), 0) / (hkStaff.length || 1);
   const totalAssigned = seeded.length;
 
   return (

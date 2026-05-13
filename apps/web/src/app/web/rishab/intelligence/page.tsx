@@ -1,9 +1,13 @@
-import { AI_PATTERNS, AI_FORECASTS, AI_DECISIONS, AI_ANOMALIES, getBriefByModule } from '@hos/shared';
+'use client';
+
 import { AIBrief } from '@/components/ai/AIBrief';
 import { PatternCard } from '@/components/ai/PatternCard';
 import { ForecastWidget } from '@/components/ai/ForecastWidget';
 import { DecisionsLedger } from '@/components/ai/DecisionsLedger';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
+import {
+  useAiPatterns, useAiForecasts, useAiDecisions, useAnomalies, useBriefByModule,
+} from '@/lib/ai-data';
 
 const HOTEL_ID = 'BTRCI';
 
@@ -19,12 +23,13 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 }
 
 export default function IntelligencePage() {
-  const brief = getBriefByModule('intelligence')!;
+  const brief = useBriefByModule('intelligence');
 
-  const patterns = AI_PATTERNS.filter((p) => p.affectedHotelIds.includes(HOTEL_ID));
-  const forecasts = AI_FORECASTS.filter((f) => !f.hotelId || f.hotelId === HOTEL_ID);
-  const decisions = AI_DECISIONS.filter((d) => d.hotelId === HOTEL_ID);
-  const anomalies = AI_ANOMALIES.filter((a) => a.hotelId === HOTEL_ID);
+  const patterns = useAiPatterns().filter((p) => p.affectedHotelIds.includes(HOTEL_ID));
+  const forecasts = useAiForecasts().filter((f) => !f.hotelId || f.hotelId === HOTEL_ID);
+  const decisions = useAiDecisions().filter((d) => d.hotelId === HOTEL_ID);
+  const anomalies = useAnomalies().filter((a) => a.hotelId === HOTEL_ID);
+  if (!brief) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
 
   return (
     <div className="flex flex-col gap-8">

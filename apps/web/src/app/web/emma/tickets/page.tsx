@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { TicketType, TicketPriority, TicketStatus } from '@hos/shared';
-import { EMMA_HOTEL, getHotelTickets } from '@/lib/emma-data';
+import { EMMA_HOTEL, useHotelTickets } from '@/lib/emma-data';
 import { Wrench, AlertTriangle, Clock, Filter, Search, ChevronRight } from 'lucide-react';
 
 const PRIORITY_META: Record<TicketPriority, { label: string; bg: string; color: string }> = {
@@ -33,7 +33,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function EmmaTicketsPage() {
-  const tickets = useMemo(() => getHotelTickets(), []);
+  const tickets = useHotelTickets();
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [q, setQ] = useState('');
@@ -101,8 +101,8 @@ export default function EmmaTicketsPage() {
       {/* Ticket list */}
       <div className="flex flex-col gap-2">
         {filtered.map((t) => {
-          const pmeta = PRIORITY_META[t.priority];
-          const smeta = STATUS_META[t.status];
+          const pmeta = PRIORITY_META[t.priority as TicketPriority];
+          const smeta = STATUS_META[t.status as TicketStatus];
           return (
             <div
               key={t.id}

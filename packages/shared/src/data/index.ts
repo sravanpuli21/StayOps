@@ -22,3 +22,5 @@ export * from './am-pm-report';
 export * from './sravan';
 export * from './ota-leakage';
 export * from './revenue-mix';
+export * from './daily-series';
+export * from './labour-series';

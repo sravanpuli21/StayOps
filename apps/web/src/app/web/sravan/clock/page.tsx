@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Clock, Play, Square, Coffee } from 'lucide-react';
-import { SRAVAN_CLOCK_LOG, SRAVAN_EMPLOYEE, SRAVAN_SCHEDULE } from '@hos/shared';
+import { useSravanProfile, useSravanSchedule, useSravanClock } from '@/lib/sravan-data';
 
 function fmtDuration(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -28,6 +28,9 @@ function sessionHours(s: { clockIn: string; clockOut?: string; breakMinutes: num
 }
 
 export default function SravanClockPage() {
+  const SRAVAN_EMPLOYEE = useSravanProfile() as any;
+  const SRAVAN_SCHEDULE = useSravanSchedule() as any[];
+  const SRAVAN_CLOCK_LOG = useSravanClock() as any[];
   const [clockedInAt, setClockedInAt] = useState<Date | null>(null);
   const [onBreak, setOnBreak] = useState(false);
   const [tick, setTick] = useState(0);
@@ -39,6 +42,9 @@ export default function SravanClockPage() {
   }, [clockedInAt]);
 
   const elapsed = clockedInAt ? Date.now() - clockedInAt.getTime() : 0;
+  if (!SRAVAN_EMPLOYEE || SRAVAN_SCHEDULE.length === 0) {
+    return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
+  }
   const nextShift = SRAVAN_SCHEDULE.find((s) => s.date >= '2026-05-01') ?? SRAVAN_SCHEDULE[0];
 
   return (

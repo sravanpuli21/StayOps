@@ -1,9 +1,9 @@
 'use client';
 
 import {
-  ASSETS, ASSET_HOTEL_SUMMARIES, VENDOR_SPENDS, AI_CAPEX_PREDICTIONS,
-  RED_FLAGS, AI_ANOMALIES,
+  ASSETS, ASSET_HOTEL_SUMMARIES, VENDOR_SPENDS,
 } from '@hos/shared';
+import { useRedFlags, useAnomalies, useAiCapexPredictions } from '@/lib/ai-data';
 import { AssetSummaryCards } from '@/components/assets/AssetSummaryCards';
 import { AssetHealthTable } from '@/components/assets/AssetHealthTable';
 import { CapExPlanningSection } from '@/components/assets/CapExPlanningSection';
@@ -25,16 +25,16 @@ export default function AssetsPage() {
   const { hotels, hotelIdSet, scopeSub } = useScopedData();
   const summaries = ASSET_HOTEL_SUMMARIES.filter((s) => hotelIdSet.has(s.hotelId));
   const assets = ASSETS.filter((a) => hotelIdSet.has(a.hotelId));
-  const capexPredictions = AI_CAPEX_PREDICTIONS.filter(
-    (p) => p.affectedHotelIds.some((id) => hotelIdSet.has(id)),
+  const capexPredictions = useAiCapexPredictions().filter(
+    (p) => p.affectedHotelIds.some((id: string) => hotelIdSet.has(id)),
   );
   const vendors = VENDOR_SPENDS
     .map((v) => ({ ...v, hotelIds: v.hotelIds.filter((id) => hotelIdSet.has(id)) }))
     .filter((v) => v.hotelIds.length > 0);
-  const maintenanceAnomalies = AI_ANOMALIES.filter(
+  const maintenanceAnomalies = useAnomalies().filter(
     (a) => a.module === 'maintenance' && hotelIdSet.has(a.hotelId),
   );
-  const maintenanceFlags = RED_FLAGS.filter(
+  const maintenanceFlags = useRedFlags().filter(
     (f) => f.module === 'maintenance' && hotelIdSet.has(f.hotelId),
   );
 

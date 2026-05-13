@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, RefreshCw, Check, Star, Minus, Clock } from 'lucide-react';
-import { SRAVAN_AVAILABILITY, type AvailabilityDay, type AvailabilityLevel } from '@hos/shared';
+import { type AvailabilityDay, type AvailabilityLevel } from '@hos/shared';
+import { useSravanAvailability } from '@/lib/sravan-data';
 
 // Target hours the employee is looking for this week. Multiples of 8 since
 // shifts are 8 hours — 40 = full time, 24 = part-time, 0 = not this week.
@@ -36,10 +37,17 @@ const LEVEL_META: Record<AvailabilityLevel, { bg: string; fg: string; icon: type
 const LEVELS: AvailabilityLevel[] = ['unavailable', 'available', 'preferred'];
 
 export default function SravanAvailabilityPage() {
-  const [weeks, setWeeks] = useState<Record<WeekId, AvailabilityDay[]>>({
-    w1: SRAVAN_AVAILABILITY.map((d) => ({ ...d })),
-    w2: SRAVAN_AVAILABILITY.map((d) => ({ ...d })),
-  });
+  const SRAVAN_AVAILABILITY = useSravanAvailability() as AvailabilityDay[];
+  const [weeks, setWeeks] = useState<Record<WeekId, AvailabilityDay[]>>({ w1: [], w2: [] });
+  useEffect(() => {
+    if (SRAVAN_AVAILABILITY.length > 0 && weeks.w1.length === 0) {
+      setWeeks({
+        w1: SRAVAN_AVAILABILITY.map((d) => ({ ...d })),
+        w2: SRAVAN_AVAILABILITY.map((d) => ({ ...d })),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [SRAVAN_AVAILABILITY]);
   const [targetHours, setTargetHours] = useState<Record<WeekId, number>>({
     w1: DEFAULT_TARGET,
     w2: DEFAULT_TARGET,
@@ -67,8 +75,8 @@ export default function SravanAvailabilityPage() {
 
   const onReset = () => {
     setWeeks({
-      w1: SRAVAN_AVAILABILITY.map((d) => ({ ...d })),
-      w2: SRAVAN_AVAILABILITY.map((d) => ({ ...d })),
+      w1: SRAVAN_AVAILABILITY.map((d: AvailabilityDay) => ({ ...d })),
+      w2: SRAVAN_AVAILABILITY.map((d: AvailabilityDay) => ({ ...d })),
     });
     setTargetHours({ w1: DEFAULT_TARGET, w2: DEFAULT_TARGET });
     setSaved(false);

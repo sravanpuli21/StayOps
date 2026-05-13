@@ -1,37 +1,46 @@
-import {
-  getEmployeesForHotel, getRoomsForHotel, getActiveTicketsForHotel,
-  getPropertyOpsSummary, HOTELS,
-} from '@hos/shared';
+'use client';
+
+import { HOTELS, type Room } from '@hos/shared';
+import { useApi } from './use-api';
+import { apiKeys } from './swr-keys';
 
 export const EMMA_HOTEL_ID = 'BTRCI';
-
 export const EMMA_HOTEL = HOTELS.find((h) => h.id === EMMA_HOTEL_ID)!;
 
-export function getHkStaff() {
-  return getEmployeesForHotel(EMMA_HOTEL_ID)
-    .filter((e) => e.team === 'Housekeeping' && e.status === 'active');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
+
+export function useHkStaff(): Any[] {
+  // Server filters by team=Housekeeping; we narrow to status=active client-side.
+  const { data } = useApi(apiKeys.employees(EMMA_HOTEL_ID, 'Housekeeping'));
+  const employees = (data?.employees ?? []) as Any[];
+  return employees.filter((e) => e.status === 'active');
 }
 
-export function getHkCallouts() {
-  return getEmployeesForHotel(EMMA_HOTEL_ID)
-    .filter((e) => e.team === 'Housekeeping' && e.status === 'callout');
+export function useHkCallouts(): Any[] {
+  const { data } = useApi(apiKeys.employees(EMMA_HOTEL_ID, 'Housekeeping'));
+  const employees = (data?.employees ?? []) as Any[];
+  return employees.filter((e) => e.status === 'callout');
 }
 
-export function getAllHotelRooms() {
-  return getRoomsForHotel(EMMA_HOTEL_ID);
+export function useAllHotelRooms(): Room[] {
+  const { data } = useApi(apiKeys.opsRooms(EMMA_HOTEL_ID));
+  return (data?.rooms ?? []) as Room[];
 }
 
-export function getQueueRooms() {
-  return getRoomsForHotel(EMMA_HOTEL_ID)
-    .filter((r) => r.status === 'dirty' || r.status === 'inspecting');
+export function useQueueRooms(): Room[] {
+  const rooms = useAllHotelRooms();
+  return rooms.filter((r) => r.status === 'dirty' || r.status === 'inspecting');
 }
 
-export function getHotelTickets() {
-  return getActiveTicketsForHotel(EMMA_HOTEL_ID);
+export function useHotelTickets(): Any[] {
+  const { data } = useApi(apiKeys.opsTickets(EMMA_HOTEL_ID));
+  return (data?.tickets ?? []) as Any[];
 }
 
-export function getHotelOpsSummary() {
-  return getPropertyOpsSummary(EMMA_HOTEL_ID);
+export function useHotelOpsSummary() {
+  const { data } = useApi(apiKeys.opsSummary(EMMA_HOTEL_ID));
+  return data?.summary ?? null;
 }
 
 export interface SeededAssignment {
@@ -39,35 +48,21 @@ export interface SeededAssignment {
   assignees: string[];
 }
 
-export function seedAssignments(): SeededAssignment[] {
-  // Seeds the first ~60% of the queue using the same floor-optimized algorithm
-  // so the UI feels pre-solved on first load.
-  const queue = getQueueRooms();
-  const preset = queue.slice(0, Math.floor(queue.length * 0.6));
-  return autoAssignRooms([], preset.map((r) => r.number));
-}
-
 /**
- * Floor-optimized round-robin. Assigns rooms so each housekeeper covers at
- * most 2 distinct floors, with a strong preference to stay on one floor.
- *
- * Heuristic per room (in priority order):
- *  1. Prefer staff who already have a room on this exact floor (minimize walking).
- *  2. Otherwise prefer staff who can take a 2nd floor (haven't hit the 2-floor cap).
- *  3. Break ties by lowest current load (balance hours).
+ * Floor-optimized round-robin. Pure function — pages call it after they have
+ * `staff` + `queue` from the hooks above.
  */
 export function autoAssignRooms(
   existing: SeededAssignment[],
   roomNumbersToAssign: string[],
+  staff: Any[],
+  queueRooms: Room[],
 ): SeededAssignment[] {
-  const rooms = getQueueRooms();
   const roomByNumber = new Map<string, { floor: number }>();
-  for (const r of rooms) roomByNumber.set(r.number, { floor: r.floor });
+  for (const r of queueRooms) roomByNumber.set(r.number, { floor: r.floor });
 
-  const staff = getHkStaff();
   if (staff.length === 0) return existing;
 
-  // Track each staff member's floors + load
   const loads: Record<string, number> = {};
   const floors: Record<string, Set<number>> = {};
   for (const s of staff) { loads[s.id] = 0; floors[s.id] = new Set(); }
@@ -82,7 +77,6 @@ export function autoAssignRooms(
   const result = [...existing];
   const taken = new Set(existing.map((a) => a.roomNumber));
 
-  // Sort rooms to assign by floor so nearby ones group naturally
   const sorted = [...roomNumbersToAssign]
     .map((n) => ({ n, floor: roomByNumber.get(n)?.floor ?? 0 }))
     .sort((a, b) => a.floor - b.floor || a.n.localeCompare(b.n));
@@ -91,29 +85,27 @@ export function autoAssignRooms(
     if (taken.has(roomNumber)) continue;
 
     const scored = staff.map((s) => {
-      const f = floors[s.id];
+      const id = s.id as string;
+      const f = floors[id];
       const alreadyOnFloor = f.has(floor);
       const distinctFloors = f.size;
       const canAdd = alreadyOnFloor || distinctFloors < 2;
       let score = 0;
-      if (alreadyOnFloor) score += 1000;         // huge bonus for same floor
-      else if (distinctFloors < 2) score += 500; // allow a 2nd floor
-      else score -= 2000;                         // hard penalty — would need 3rd floor
-      // adjacent-floor nudge (makes the non-same-floor pick feel sensible)
+      if (alreadyOnFloor) score += 1000;
+      else if (distinctFloors < 2) score += 500;
+      else score -= 2000;
       if (!alreadyOnFloor) {
         const adjacent = Array.from(f).some((existingFloor) => Math.abs(existingFloor - floor) === 1);
         if (adjacent) score += 150;
       }
-      // balance
-      score -= loads[s.id] * 10;
-      return { s, score, canAdd };
+      score -= loads[id] * 10;
+      return { s, id, score, canAdd };
     });
 
-    // Prefer a staff that can add without breaking the 2-floor cap
     const eligible = scored.filter((x) => x.canAdd);
-    const pool = eligible.length > 0 ? eligible : scored; // fall back if everyone's capped
+    const pool = eligible.length > 0 ? eligible : scored;
     pool.sort((a, b) => b.score - a.score);
-    const pick = pool[0].s;
+    const pick = pool[0];
 
     result.push({ roomNumber, assignees: [pick.id] });
     loads[pick.id] = (loads[pick.id] ?? 0) + 1;
@@ -122,6 +114,15 @@ export function autoAssignRooms(
   }
 
   return result;
+}
+
+/**
+ * Seeds the first ~60% of the queue using the floor-optimized algorithm.
+ * Call this with `staff` + `queue` already in hand from the hooks.
+ */
+export function seedAssignments(staff: Any[], queue: Room[]): SeededAssignment[] {
+  const preset = queue.slice(0, Math.floor(queue.length * 0.6));
+  return autoAssignRooms([], preset.map((r) => r.number), staff, queue);
 }
 
 export const ROOM_TILE: Record<string, { bg: string; border: string; dot: string; label: string; esp: string }> = {

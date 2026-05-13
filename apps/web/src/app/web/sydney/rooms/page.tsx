@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Filter, Search, Wrench } from 'lucide-react';
-import { SYDNEY_HOTEL, getHotelRooms, getHotelTickets } from '@/lib/sydney-data';
+import { SYDNEY_HOTEL, useHotelRooms, useHotelTickets } from '@/lib/sydney-data';
 
 const ROOM_TILE: Record<string, { bg: string; border: string; dot: string; label: string }> = {
   ready:      { bg: '#f0fdf4', border: '#86efac', dot: '#22c55e', label: 'Ready' },
@@ -14,8 +14,8 @@ const ROOM_TILE: Record<string, { bg: string; border: string; dot: string; label
 };
 
 export default function SydneyRoomsPage() {
-  const rooms = useMemo(() => getHotelRooms(), []);
-  const tickets = useMemo(() => getHotelTickets(), []);
+  const rooms = useHotelRooms();
+  const tickets = useHotelTickets();
   const ticketsByRoom = useMemo(() => {
     const m = new Map<string, number>();
     for (const t of tickets) {

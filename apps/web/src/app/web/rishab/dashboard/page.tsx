@@ -3,32 +3,41 @@
 import Link from 'next/link';
 import { AlertTriangle, ChevronRight, Users, Bed, Wrench, Clock } from 'lucide-react';
 import {
-  RED_FLAGS, AI_ANOMALIES, computeHotelScore,
+  computeHotelScore,
   getEmployeesForHotel, getActiveTicketsForHotel,
   getPropertyOpsSummary, getHotelAuditSummary,
   formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
+import { useRedFlags, useAnomalies } from '@/lib/ai-data';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { csatTier } from '@/lib/csat';
 import { usePropertyScoped } from '@/lib/use-property-scoped';
+import { DashboardSkeleton } from '@/components/common/Skeleton';
+import { ErrorBanner } from '@/components/common/ErrorBanner';
 
 const HOTEL_ID = 'BTRCI';
 
 export default function RishabDashboard() {
   const scoped = usePropertyScoped(HOTEL_ID);
   const hotel = scoped.hotel;
-  const rev = scoped.revenue!;
-  const lab = scoped.labour!;
-  const dm = scoped.daily!;
+  const rev = scoped.revenue;
+  const lab = scoped.labour;
+  const dm = scoped.daily;
   const period = scoped.period;
+  if (scoped.error) return (
+    <div className="p-6">
+      <ErrorBanner error={scoped.error} />
+    </div>
+  );
+  if (!rev || !lab || !dm) return <DashboardSkeleton kpiCount={4} large />;
   const score = computeHotelScore(HOTEL_ID);
   const employees = getEmployeesForHotel(HOTEL_ID);
   const activeTickets = getActiveTicketsForHotel(HOTEL_ID);
   const opsSummary = getPropertyOpsSummary(HOTEL_ID);
   const auditSummary = getHotelAuditSummary(HOTEL_ID);
-  const flags = RED_FLAGS.filter((f) => f.hotelId === HOTEL_ID);
-  const anomalies = AI_ANOMALIES.filter((a) => a.hotelId === HOTEL_ID);
+  const flags = useRedFlags().filter((f) => f.hotelId === HOTEL_ID);
+  const anomalies = useAnomalies().filter((a) => a.hotelId === HOTEL_ID);
 
   const payrollPct = (lab.payrollCost / rev.totalRevenue) * 100;
   const callouts = employees.filter((e) => e.status === 'callout').length;

@@ -1,0 +1,112 @@
+[
+  {
+    "id": "CX-001",
+    "hotelId": "SAVFP",
+    "project": "Pool Deck Renovation",
+    "category": "Renovation",
+    "budget": 180000,
+    "spent": 46200,
+    "status": "in_progress",
+    "startDate": "2026-03-01",
+    "targetDate": "2026-07-01"
+  },
+  {
+    "id": "CX-002",
+    "hotelId": "SAVGW",
+    "project": "Room Refresh – 40 rooms",
+    "category": "Renovation",
+    "budget": 160000,
+    "spent": 14800,
+    "status": "in_progress",
+    "startDate": "2026-04-01",
+    "targetDate": "2026-06-15"
+  },
+  {
+    "id": "CX-003",
+    "hotelId": "SAVMT",
+    "project": "HVAC System Replacement",
+    "category": "Equipment",
+    "budget": 95000,
+    "spent": 0,
+    "status": "approved",
+    "startDate": "2026-07-01",
+    "targetDate": "2026-09-30"
+  },
+  {
+    "id": "CX-004",
+    "hotelId": "BTRCI",
+    "project": "Lobby Refresh",
+    "category": "Renovation",
+    "budget": 48000,
+    "spent": 48000,
+    "status": "completed",
+    "startDate": "2025-11-01",
+    "targetDate": "2026-02-28"
+  },
+  {
+    "id": "CX-005",
+    "hotelId": "JAXTX",
+    "project": "PMS & POS Integration",
+    "category": "Technology",
+    "budget": 32000,
+    "spent": 32000,
+    "status": "completed",
+    "startDate": "2026-01-15",
+    "targetDate": "2026-03-31"
+  },
+  {
+    "id": "CX-006",
+    "hotelId": "GA989",
+    "project": "Fire Suppression Upgrade",
+    "category": "Safety",
+    "budget": 56000,
+    "spent": 0,
+    "status": "planned",
+    "startDate": "2026-08-01",
+    "targetDate": "2026-10-31"
+  },
+  {
+    "id": "CX-007",
+    "hotelId": "SAVVY",
+    "project": "Rooftop Bar Buildout",
+    "category": "Renovation",
+    "budget": 220000,
+    "spent": 0,
+    "status": "on_hold",
+    "startDate": "2026-06-01",
+    "targetDate": "2026-12-31"
+  },
+  {
+    "id": "CX-008",
+    "hotelId": "DFWFW",
+    "project": "EV Charging Station Install",
+    "category": "Equipment",
+    "budget": 28000,
+    "spent": 5400,
+    "status": "in_progress",
+    "startDate": "2026-03-15",
+    "targetDate": "2026-05-15"
+  },
+  {
+    "id": "CX-009",
+    "hotelId": "BQKFP",
+    "project": "Fitness Center Equipment",
+    "category": "Equipment",
+    "budget": 22000,
+    "spent": 22000,
+    "status": "completed",
+    "startDate": "2026-02-01",
+    "targetDate": "2026-03-15"
+  },
+  {
+    "id": "CX-010",
+    "hotelId": "RISAV",
+    "project": "Exterior Signage Rebrand",
+    "category": "Landscaping",
+    "budget": 14000,
+    "spent": 0,
+    "status": "planned",
+    "startDate": "2026-09-01",
+    "targetDate": "2026-10-15"
+  }
+]

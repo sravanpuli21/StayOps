@@ -3,10 +3,10 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { Phone, Star, Clock, TrendingUp, ChevronRight } from 'lucide-react';
-import { SYDNEY_HOTEL, getMaintenanceStaff } from '@/lib/sydney-data';
+import { SYDNEY_HOTEL, useMaintenanceStaff } from '@/lib/sydney-data';
 
 export default function SydneyTeamPage() {
-  const team = useMemo(() => getMaintenanceStaff(), []);
+  const team = useMaintenanceStaff();
 
   return (
     <div className="flex flex-col gap-6">

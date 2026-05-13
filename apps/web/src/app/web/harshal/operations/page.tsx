@@ -2,12 +2,12 @@
 
 import { OpsClient } from '@/components/operations/OpsClient';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
-import { AI_ANOMALIES } from '@hos/shared';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { useAnomalies } from '@/lib/ai-data';
 
 export default function OperationsPage() {
   const { hotels, hotelIdSet, scopeSub } = useScopedData();
-  const opsAnomalies = AI_ANOMALIES.filter(
+  const opsAnomalies = useAnomalies().filter(
     (a) => a.module === 'operations' && hotelIdSet.has(a.hotelId),
   );
 

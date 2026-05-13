@@ -1,0 +1,47 @@
+[
+  {
+    "id": "upsell",
+    "title": "Upsell Commission",
+    "description": "Earn $5 for every successful room upgrade at check-in.",
+    "rewardLabel": "$5 / upgrade",
+    "progress": 0.6,
+    "earnedThisPeriod": 40,
+    "status": "active"
+  },
+  {
+    "id": "perfect-week",
+    "title": "Perfect Attendance Week",
+    "description": "Clock in on time for every scheduled shift Mon–Sun.",
+    "rewardLabel": "$50",
+    "progress": 0.71,
+    "earnedThisPeriod": 0,
+    "status": "active"
+  },
+  {
+    "id": "guest-nps",
+    "title": "Guest NPS Mention",
+    "description": "Get named in a positive guest review or NPS comment.",
+    "rewardLabel": "$25 / mention",
+    "progress": 1,
+    "earnedThisPeriod": 25,
+    "status": "active"
+  },
+  {
+    "id": "referral",
+    "title": "Employee Referral",
+    "description": "Refer a new hire that completes 90 days.",
+    "rewardLabel": "$250 / hire",
+    "progress": 0.33,
+    "earnedThisPeriod": 0,
+    "status": "active"
+  },
+  {
+    "id": "training",
+    "title": "Quarterly Training Complete",
+    "description": "Finish all required Hilton + HOS trainings before quarter end.",
+    "rewardLabel": "$75",
+    "progress": 1,
+    "earnedThisPeriod": 75,
+    "status": "maxed"
+  }
+]

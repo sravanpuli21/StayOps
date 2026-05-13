@@ -1,44 +1,56 @@
-import {
-  HOTELS, getEmployeesForHotel, getRoomsForHotel,
-  getActiveTicketsForHotel, getAuditTasksForHotel, getPropertyOpsSummary,
-  ASSETS, ASSET_HOTEL_SUMMARIES, VENDOR_SPENDS,
-} from '@hos/shared';
+'use client';
+
+import { HOTELS } from '@hos/shared';
+import { useApi } from './use-api';
+import { apiKeys } from './swr-keys';
 
 export const SYDNEY_HOTEL_ID = 'BTRCI';
 export const SYDNEY_HOTEL = HOTELS.find((h) => h.id === SYDNEY_HOTEL_ID)!;
 
-export function getMaintenanceStaff() {
-  return getEmployeesForHotel(SYDNEY_HOTEL_ID)
-    .filter((e) => e.team === 'Maintenance' && e.status === 'active');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
+
+export function useMaintenanceStaff(): Any[] {
+  const { data } = useApi(apiKeys.employees(SYDNEY_HOTEL_ID, 'Maintenance'));
+  const employees = (data?.employees ?? []) as Any[];
+  return employees.filter((e) => e.status === 'active');
 }
 
-export function getHotelTickets() {
-  return getActiveTicketsForHotel(SYDNEY_HOTEL_ID);
+export function useHotelTickets(): Any[] {
+  const { data } = useApi(apiKeys.opsTickets(SYDNEY_HOTEL_ID));
+  return (data?.tickets ?? []) as Any[];
 }
 
-export function getHotelAudits() {
-  return getAuditTasksForHotel(SYDNEY_HOTEL_ID);
+export function useHotelAudits(): Any[] {
+  const { data } = useApi(apiKeys.auditTasks(SYDNEY_HOTEL_ID));
+  return (data?.tasks ?? []) as Any[];
 }
 
-export function getHotelRooms() {
-  return getRoomsForHotel(SYDNEY_HOTEL_ID);
+export function useHotelRooms(): Any[] {
+  const { data } = useApi(apiKeys.opsRooms(SYDNEY_HOTEL_ID));
+  return (data?.rooms ?? []) as Any[];
 }
 
-export function getOpsSummary() {
-  return getPropertyOpsSummary(SYDNEY_HOTEL_ID);
+export function useOpsSummary(): Any {
+  const { data } = useApi(apiKeys.opsSummary(SYDNEY_HOTEL_ID));
+  return data?.summary ?? null;
 }
 
-export function getHotelAssets() {
-  return ASSETS.filter((a) => a.hotelId === SYDNEY_HOTEL_ID);
+export function useHotelAssets(): Any[] {
+  const { data } = useApi(apiKeys.assets(SYDNEY_HOTEL_ID));
+  return (data?.assets ?? []) as Any[];
 }
 
-export function getAssetSummary() {
-  return ASSET_HOTEL_SUMMARIES.find((s) => s.hotelId === SYDNEY_HOTEL_ID);
+export function useAssetSummary(): Any {
+  const { data } = useApi(apiKeys.assetsSummary());
+  return ((data?.summaries ?? []) as Any[]).find((s) => s.hotelId === SYDNEY_HOTEL_ID) ?? null;
 }
 
-export function getHotelVendorSpend() {
-  return VENDOR_SPENDS
-    .map((v) => ({ ...v, hotelIds: v.hotelIds.filter((id) => id === SYDNEY_HOTEL_ID) }))
+export function useHotelVendorSpend(): Any[] {
+  const { data } = useApi(apiKeys.vendorSpend());
+  const vendors = (data?.vendors ?? []) as Any[];
+  return vendors
+    .map((v) => ({ ...v, hotelIds: v.hotelIds.filter((id: string) => id === SYDNEY_HOTEL_ID) }))
     .filter((v) => v.hotelIds.length > 0);
 }
 

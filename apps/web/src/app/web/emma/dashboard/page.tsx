@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Room } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
@@ -9,8 +9,8 @@ import {
   Sparkles, UserPlus, X, Globe,
 } from 'lucide-react';
 import {
-  EMMA_HOTEL, getHkStaff, getHkCallouts, getAllHotelRooms, getQueueRooms,
-  getHotelTickets, getHotelOpsSummary, seedAssignments, autoAssignRooms,
+  EMMA_HOTEL, useHkStaff, useHkCallouts, useAllHotelRooms, useQueueRooms,
+  useHotelTickets, useHotelOpsSummary, seedAssignments, autoAssignRooms,
   ROOM_TILE as SHARED_ROOM_TILE,
 } from '@/lib/emma-data';
 
@@ -23,14 +23,21 @@ const ROOM_TILE = SHARED_ROOM_TILE;
 
 export default function EmmaDashboard() {
   const hotel = EMMA_HOTEL;
-  const allRooms = getAllHotelRooms();
-  const tickets = getHotelTickets();
-  const ops = getHotelOpsSummary();
-  const hkStaff = useMemo(() => getHkStaff(), []);
-  const calloutCount = useMemo(() => getHkCallouts().length, []);
-  const queueRooms = useMemo(() => getQueueRooms(), []);
+  const allRooms = useAllHotelRooms();
+  const tickets = useHotelTickets();
+  const ops = useHotelOpsSummary();
+  const hkStaff = useHkStaff();
+  const calloutCount = useHkCallouts().length;
+  const queueRooms = useQueueRooms();
 
-  const [assignments, setAssignments] = useState<Assignment[]>(() => seedAssignments());
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [seeded, setSeeded] = useState(false);
+  useEffect(() => {
+    if (!seeded && hkStaff.length > 0 && queueRooms.length > 0) {
+      setAssignments(seedAssignments(hkStaff, queueRooms));
+      setSeeded(true);
+    }
+  }, [seeded, hkStaff, queueRooms]);
 
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [showBilingual, setShowBilingual] = useState(false);
@@ -83,7 +90,7 @@ export default function EmmaDashboard() {
   const autoAssign = () => {
     const taken = new Set(assignments.map((a) => a.roomNumber));
     const toFill = queueRooms.filter((r) => !taken.has(r.number)).map((r) => r.number);
-    setAssignments(autoAssignRooms(assignments, toFill));
+    setAssignments(autoAssignRooms(assignments, toFill, hkStaff, queueRooms));
   };
 
   const clearAll = () => setAssignments([]);
@@ -102,6 +109,8 @@ export default function EmmaDashboard() {
   }, [allRooms]);
 
   const empById = (id: string) => hkStaff.find((e) => e.id === id);
+
+  if (!ops) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
 
   return (
     <div className="flex flex-col gap-6">

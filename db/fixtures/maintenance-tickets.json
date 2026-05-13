@@ -1,0 +1,694 @@
+[
+  {
+    "id": "T001",
+    "hotelId": "SAVGW",
+    "roomNumber": "109",
+    "type": "reactive",
+    "priority": "urgent",
+    "status": "in_progress",
+    "title": "AC not cooling – room at 78°F",
+    "description": "Room 109 reported AC running continuously but room temperature is 78°F with thermostat set to 68°F. Unit is blowing air but no cold output.",
+    "reportedBy": "Front Desk",
+    "assignedTo": "Amir Lopez",
+    "createdAt": "2026-04-25T15:14:00",
+    "updatedAt": "2026-04-25T17:45:00",
+    "estimatedCost": 180,
+    "revenueLost": 189,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T17:45:00",
+        "actor": "Amir Lopez",
+        "action": "On the way",
+        "note": "Have refrigerant kit and gauges, heading up now"
+      },
+      {
+        "timestamp": "2026-04-25T17:22:00",
+        "actor": "Emma Johnson",
+        "action": "Escalated to Urgent",
+        "note": "Second call from room 109 in 2 hours"
+      },
+      {
+        "timestamp": "2026-04-25T16:30:00",
+        "actor": "Amir Lopez",
+        "action": "Acknowledged",
+        "note": "Will check after finishing bathroom in 307"
+      },
+      {
+        "timestamp": "2026-04-25T15:14:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Room 109 called – AC running but room is hot"
+      }
+    ]
+  },
+  {
+    "id": "T002",
+    "hotelId": "SAVGW",
+    "roomNumber": "312",
+    "type": "reactive",
+    "priority": "urgent",
+    "status": "open",
+    "title": "Toilet backing up – water on floor",
+    "description": "Room 312 toilet is backing up and overflowing. Guest was moved to room 314. Water on bathroom floor – risk of seeping into 212 below.",
+    "reportedBy": "Front Desk",
+    "assignedTo": "Sydney Rivera",
+    "createdAt": "2026-04-25T16:10:00",
+    "updatedAt": "2026-04-25T18:02:00",
+    "estimatedCost": 220,
+    "revenueLost": 189,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T18:02:00",
+        "actor": "Emma Johnson",
+        "action": "Escalated to Urgent",
+        "note": "Water on floor, risk of damage to room 212"
+      },
+      {
+        "timestamp": "2026-04-25T17:30:00",
+        "actor": "Front Desk",
+        "action": "Updated",
+        "note": "Guest moved to 314, original guest unhappy"
+      },
+      {
+        "timestamp": "2026-04-25T16:45:00",
+        "actor": "Sydney Rivera",
+        "action": "Assigned to Amir",
+        "note": "Plumbing issue, Amir to handle when done with T001"
+      },
+      {
+        "timestamp": "2026-04-25T16:10:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Room 312 – toilet overflowing"
+      }
+    ]
+  },
+  {
+    "id": "T003",
+    "hotelId": "SAVMT",
+    "roomNumber": "421",
+    "type": "reactive",
+    "priority": "urgent",
+    "status": "in_progress",
+    "title": "Active water leak from ceiling",
+    "description": "Room 421 has an active ceiling leak – water dripping near the window. Appears to originate from bathroom in 521. Leak pan placed.",
+    "reportedBy": "Housekeeping",
+    "assignedTo": "Maintenance Tech",
+    "createdAt": "2026-04-25T13:20:00",
+    "updatedAt": "2026-04-25T16:10:00",
+    "estimatedCost": 800,
+    "revenueLost": 195,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T16:10:00",
+        "actor": "Maintenance Tech",
+        "action": "In room",
+        "note": "Confirmed source is wax ring failure in 521 – plumber called"
+      },
+      {
+        "timestamp": "2026-04-25T14:30:00",
+        "actor": "GM",
+        "action": "Updated",
+        "note": "Room 421 and 521 both placed OOO. Plumber ETA 5pm"
+      },
+      {
+        "timestamp": "2026-04-25T13:20:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Water dripping from ceiling when cleaning 421"
+      }
+    ]
+  },
+  {
+    "id": "T004",
+    "hotelId": "BQKCY",
+    "area": "North Elevator",
+    "type": "reactive",
+    "priority": "urgent",
+    "status": "escalated",
+    "title": "Elevator out of service – guests affected",
+    "description": "North elevator stopped between floors 2 and 3. Manual reset failed. Guests unable to use elevator. One mobility-impaired guest being assisted via staff escort.",
+    "reportedBy": "Front Desk",
+    "assignedTo": "KONE Service",
+    "createdAt": "2026-04-25T12:40:00",
+    "updatedAt": "2026-04-25T14:30:00",
+    "estimatedCost": 2400,
+    "revenueLost": 0,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T14:30:00",
+        "actor": "GM (Courtyard)",
+        "action": "Updated",
+        "note": "KONE tech on site – motor relay failed, part being sourced, ETA 6pm"
+      },
+      {
+        "timestamp": "2026-04-25T13:45:00",
+        "actor": "Harshal Patel",
+        "action": "Escalated",
+        "note": "Escalated to regional – liability risk with mobility-impaired guest"
+      },
+      {
+        "timestamp": "2026-04-25T13:15:00",
+        "actor": "Maintenance Sup",
+        "action": "Updated",
+        "note": "Called KONE – parts needed, 4-6 hr window"
+      },
+      {
+        "timestamp": "2026-04-25T12:40:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Elevator stopped between floors, reset failed"
+      }
+    ]
+  },
+  {
+    "id": "T005",
+    "hotelId": "SAVFP",
+    "roomNumber": "234",
+    "type": "escalation",
+    "priority": "urgent",
+    "status": "escalated",
+    "title": "Recurring HVAC failure – 3rd breakdown in 90 days",
+    "description": "HVAC unit in room 234 has failed again. This is the 3rd breakdown since Jan 18. Compressor appears to be failing. Total repair spend now $2,200 vs $3,400 replacement cost. Capital approval requested.",
+    "reportedBy": "GM (Fairfield/TPS)",
+    "assignedTo": "Harshal Patel",
+    "createdAt": "2026-04-25T08:45:00",
+    "updatedAt": "2026-04-25T10:00:00",
+    "estimatedCost": 850,
+    "revenueLost": 185,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T10:00:00",
+        "actor": "Harshal Patel",
+        "action": "Escalated to MD",
+        "note": "Third failure in 90 days – requesting capital approval for unit replacement ($3,400)"
+      },
+      {
+        "timestamp": "2026-04-25T09:30:00",
+        "actor": "GM (Fairfield)",
+        "action": "Updated",
+        "note": "Tech confirmed compressor failing again – same root cause as March ticket"
+      },
+      {
+        "timestamp": "2026-04-25T08:45:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Room 234 – HVAC not working again"
+      }
+    ]
+  },
+  {
+    "id": "T006",
+    "hotelId": "SAVGW",
+    "roomNumber": "411",
+    "type": "reactive",
+    "priority": "high",
+    "status": "open",
+    "title": "Window lock mechanism broken – security risk",
+    "description": "Window lock in room 411 is broken. Window cannot be properly secured. Room has been blocked per security policy until repaired.",
+    "reportedBy": "Housekeeping",
+    "assignedTo": "Amir Lopez",
+    "createdAt": "2026-04-25T10:30:00",
+    "updatedAt": "2026-04-25T10:30:00",
+    "estimatedCost": 75,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T10:30:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Found broken lock during morning inspection of 411"
+      }
+    ]
+  },
+  {
+    "id": "T007",
+    "hotelId": "SAVVY",
+    "roomNumber": "312",
+    "type": "reactive",
+    "priority": "high",
+    "status": "open",
+    "title": "Bathroom exhaust fan seized – mold risk",
+    "description": "Exhaust fan in room 312 bathroom is not spinning – seized bearing. Without ventilation, mold risk increases. Immediate repair needed.",
+    "reportedBy": "Housekeeping",
+    "createdAt": "2026-04-25T09:15:00",
+    "updatedAt": "2026-04-25T09:15:00",
+    "estimatedCost": 95,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T09:15:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Fan not working during morning turndown"
+      }
+    ]
+  },
+  {
+    "id": "T008",
+    "hotelId": "GA989",
+    "roomNumber": "118",
+    "type": "reactive",
+    "priority": "high",
+    "status": "in_progress",
+    "title": "Shower head broken – low pressure / spray malfunction",
+    "description": "Shower head in 118 is cracked and only producing a trickle. Guest complaint yesterday. Replacement part on hand.",
+    "reportedBy": "Guest Complaint",
+    "assignedTo": "Maintenance Tech",
+    "createdAt": "2026-04-24T19:30:00",
+    "updatedAt": "2026-04-25T11:00:00",
+    "estimatedCost": 45,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T11:00:00",
+        "actor": "Maintenance Tech",
+        "action": "In progress",
+        "note": "Replacing shower head, have replacement part"
+      },
+      {
+        "timestamp": "2026-04-24T19:30:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Guest called – shower barely working"
+      }
+    ]
+  },
+  {
+    "id": "T009",
+    "hotelId": "RISAV",
+    "roomNumber": "203",
+    "type": "reactive",
+    "priority": "high",
+    "status": "pending_part",
+    "title": "Television will not power on",
+    "description": "65\" TV in room 203 is completely dead – no power. Board replacement needed. Part ordered, ETA 2 business days.",
+    "reportedBy": "Guest Complaint",
+    "assignedTo": "Maintenance Tech",
+    "createdAt": "2026-04-23T14:00:00",
+    "updatedAt": "2026-04-25T09:00:00",
+    "estimatedCost": 280,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T09:00:00",
+        "actor": "Maintenance Tech",
+        "action": "Pending part",
+        "note": "Main board ordered from Samsung – ETA Apr 27"
+      },
+      {
+        "timestamp": "2026-04-24T10:00:00",
+        "actor": "Maintenance Tech",
+        "action": "Diagnosed",
+        "note": "Main board failure – not repairable, part ordered"
+      },
+      {
+        "timestamp": "2026-04-23T14:00:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Guest reported TV dead"
+      }
+    ]
+  },
+  {
+    "id": "T010",
+    "hotelId": "BSWVE",
+    "area": "Pool Deck",
+    "type": "reactive",
+    "priority": "high",
+    "status": "open",
+    "title": "Pool heater offline – water temperature 58°F",
+    "description": "Pool heater failed overnight. Water temperature dropped to 58°F (target 82°F). Pool closed to guests. Vendor called – heat exchanger failure suspected.",
+    "reportedBy": "Maintenance Supervisor",
+    "createdAt": "2026-04-25T06:45:00",
+    "updatedAt": "2026-04-25T06:45:00",
+    "estimatedCost": 1800,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T06:45:00",
+        "actor": "Maintenance Sup",
+        "action": "Ticket created",
+        "note": "Pool heater offline, closed pool. Vendor coming today."
+      }
+    ]
+  },
+  {
+    "id": "T011",
+    "hotelId": "SAVMD",
+    "roomNumber": "508",
+    "type": "preventive",
+    "priority": "high",
+    "status": "in_progress",
+    "title": "HVAC filter replacement – 14 days overdue",
+    "description": "HVAC filters on floor 5 are 14 days past replacement schedule. Airflow reduction detected in guest room readings. Completing today.",
+    "reportedBy": "PM Schedule",
+    "assignedTo": "Maintenance Tech",
+    "createdAt": "2026-04-11T08:00:00",
+    "updatedAt": "2026-04-25T14:00:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-25T14:00:00",
+        "actor": "Maintenance Tech",
+        "action": "In progress",
+        "note": "Replacing floor 5 filters now – 3 units done, 5 remaining"
+      },
+      {
+        "timestamp": "2026-04-11T08:00:00",
+        "actor": "PM Schedule",
+        "action": "Task generated",
+        "note": "Quarterly HVAC filter replacement due"
+      }
+    ]
+  },
+  {
+    "id": "T012",
+    "hotelId": "JAXTX",
+    "roomNumber": "204",
+    "type": "reactive",
+    "priority": "high",
+    "status": "open",
+    "title": "Sliding door off track – cannot fully close",
+    "description": "Sliding balcony door in room 204 has jumped the track and cannot close completely. Security concern – room cannot be sold until fixed.",
+    "reportedBy": "Housekeeping",
+    "createdAt": "2026-04-25T11:20:00",
+    "updatedAt": "2026-04-25T11:20:00",
+    "estimatedCost": 85,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T11:20:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Found during AM inspection – door off track"
+      }
+    ]
+  },
+  {
+    "id": "T013",
+    "hotelId": "DFWFW",
+    "roomNumber": "115",
+    "type": "reactive",
+    "priority": "high",
+    "status": "open",
+    "title": "Kitchen dishwasher not draining – suite",
+    "description": "Suite 115 dishwasher is not draining – standing water in basin. Likely clogged drain or pump failure. Room blocked until resolved.",
+    "reportedBy": "Housekeeping",
+    "createdAt": "2026-04-25T10:00:00",
+    "updatedAt": "2026-04-25T10:00:00",
+    "estimatedCost": 120,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T10:00:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Standing water in dishwasher during AM check"
+      }
+    ]
+  },
+  {
+    "id": "T014",
+    "hotelId": "SAVGW",
+    "roomNumber": "203",
+    "type": "reactive",
+    "priority": "normal",
+    "status": "in_progress",
+    "title": "Ceiling light fixture flickering",
+    "description": "Main ceiling light in room 203 is flickering intermittently. Likely loose connection or failing ballast. Room occupied – fixing during guest outing.",
+    "reportedBy": "Guest Complaint",
+    "assignedTo": "Amir Lopez",
+    "createdAt": "2026-04-24T21:00:00",
+    "updatedAt": "2026-04-25T14:30:00",
+    "estimatedCost": 40,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T14:30:00",
+        "actor": "Amir Lopez",
+        "action": "In progress",
+        "note": "Guest is out – checking ballast now"
+      },
+      {
+        "timestamp": "2026-04-24T21:00:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Guest called about flickering light"
+      }
+    ]
+  },
+  {
+    "id": "T015",
+    "hotelId": "SAVGW",
+    "roomNumber": "405",
+    "type": "reactive",
+    "priority": "normal",
+    "status": "open",
+    "title": "Shower drain slow – guest complaint",
+    "description": "Shower drain in room 405 is draining very slowly. Guest mentioned standing water during shower. Needs snaking or clog removal.",
+    "reportedBy": "Guest Complaint",
+    "createdAt": "2026-04-25T08:00:00",
+    "updatedAt": "2026-04-25T08:00:00",
+    "estimatedCost": 30,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T08:00:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Guest at checkout mentioned slow drain in 405"
+      }
+    ]
+  },
+  {
+    "id": "T016",
+    "hotelId": "BQKFP",
+    "area": "HVAC System",
+    "type": "preventive",
+    "priority": "normal",
+    "status": "scheduled",
+    "title": "Quarterly HVAC system servicing",
+    "description": "Scheduled quarterly service for all HVAC units. Includes filter replacement, coil cleaning, refrigerant check, and belt inspection.",
+    "reportedBy": "PM Schedule",
+    "assignedTo": "HVAC Vendor",
+    "createdAt": "2026-04-20T08:00:00",
+    "updatedAt": "2026-04-20T08:00:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-20T08:00:00",
+        "actor": "PM Schedule",
+        "action": "Task scheduled",
+        "note": "Quarterly service – vendor scheduled Apr 28"
+      }
+    ]
+  },
+  {
+    "id": "T017",
+    "hotelId": "GAA84",
+    "area": "Building-wide",
+    "type": "audit",
+    "priority": "normal",
+    "status": "scheduled",
+    "title": "Quarterly fire safety inspection",
+    "description": "Annual fire safety audit covering extinguishers, sprinkler heads, exit signage, smoke detectors, and emergency lighting.",
+    "reportedBy": "Compliance Schedule",
+    "assignedTo": "Fire Safety Inspector",
+    "createdAt": "2026-04-15T08:00:00",
+    "updatedAt": "2026-04-15T08:00:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-15T08:00:00",
+        "actor": "Compliance",
+        "action": "Task scheduled",
+        "note": "Annual fire safety inspection – Apr 29"
+      }
+    ]
+  },
+  {
+    "id": "T018",
+    "hotelId": "SGJES",
+    "roomNumber": "301",
+    "type": "reactive",
+    "priority": "normal",
+    "status": "open",
+    "title": "TV remote not functional",
+    "description": "TV remote in room 301 is unresponsive. Batteries replaced – still not working. Remote needs replacement.",
+    "reportedBy": "Housekeeping",
+    "createdAt": "2026-04-25T09:45:00",
+    "updatedAt": "2026-04-25T09:45:00",
+    "estimatedCost": 18,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T09:45:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Remote dead even with new batteries"
+      }
+    ]
+  },
+  {
+    "id": "T019",
+    "hotelId": "BTRCI",
+    "roomNumber": "118",
+    "type": "reactive",
+    "priority": "normal",
+    "status": "open",
+    "title": "Deadbolt stiff – requires excessive force",
+    "description": "Deadbolt in room 118 requires significant force to turn. Mechanism may need lubrication or replacement. Minor security concern.",
+    "reportedBy": "Housekeeping",
+    "createdAt": "2026-04-25T10:15:00",
+    "updatedAt": "2026-04-25T10:15:00",
+    "estimatedCost": 25,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T10:15:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Deadbolt very stiff during AM check"
+      }
+    ]
+  },
+  {
+    "id": "T020",
+    "hotelId": "58090LA",
+    "roomNumber": "205",
+    "type": "reactive",
+    "priority": "high",
+    "status": "open",
+    "title": "Bathroom light switch sparking – electrical hazard",
+    "description": "Guest reported light switch in bathroom sparking when toggled. Room blocked immediately. Likely worn contacts or water ingress.",
+    "reportedBy": "Guest Complaint",
+    "createdAt": "2026-04-25T07:30:00",
+    "updatedAt": "2026-04-25T07:30:00",
+    "estimatedCost": 65,
+    "revenueLost": 115,
+    "activity": [
+      {
+        "timestamp": "2026-04-25T07:30:00",
+        "actor": "Front Desk",
+        "action": "Ticket created",
+        "note": "Guest reported sparking switch – room blocked for safety"
+      }
+    ]
+  },
+  {
+    "id": "T021",
+    "hotelId": "SAVVY",
+    "roomNumber": "101",
+    "type": "preventive",
+    "priority": "normal",
+    "status": "scheduled",
+    "title": "Annual mattress rotation – Room 101",
+    "description": "Annual mattress rotation and inspection per brand standards. Check for wear, staining, and structural integrity.",
+    "reportedBy": "PM Schedule",
+    "assignedTo": "Housekeeping",
+    "createdAt": "2026-04-22T08:00:00",
+    "updatedAt": "2026-04-22T08:00:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-22T08:00:00",
+        "actor": "PM Schedule",
+        "action": "Task scheduled",
+        "note": "Annual mattress rotation – scheduled Apr 28"
+      }
+    ]
+  },
+  {
+    "id": "T022",
+    "hotelId": "RISAV",
+    "area": "Hotel-wide",
+    "type": "audit",
+    "priority": "normal",
+    "status": "in_progress",
+    "title": "Marriott brand standards audit",
+    "description": "Annual Marriott brand standards audit underway. Covers guest room quality, public spaces, F&B, and brand compliance. Day 2 of 3.",
+    "reportedBy": "Marriott Corporate",
+    "assignedTo": "GM",
+    "createdAt": "2026-04-24T09:00:00",
+    "updatedAt": "2026-04-25T09:00:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-25T09:00:00",
+        "actor": "GM",
+        "action": "Day 2 update",
+        "note": "Guest rooms passed – public areas and F&B today"
+      },
+      {
+        "timestamp": "2026-04-24T09:00:00",
+        "actor": "Marriott Corporate",
+        "action": "Audit started",
+        "note": "Annual brand standards audit – 3-day inspection"
+      }
+    ]
+  },
+  {
+    "id": "T023",
+    "hotelId": "SAVMT",
+    "roomNumber": "312",
+    "type": "reactive",
+    "priority": "normal",
+    "status": "resolved",
+    "title": "Running toilet – resolved",
+    "description": "Toilet in room 312 was running continuously. Fill valve replaced. Verified resolved.",
+    "reportedBy": "Housekeeping",
+    "assignedTo": "Maintenance Tech",
+    "createdAt": "2026-04-24T11:00:00",
+    "updatedAt": "2026-04-24T14:30:00",
+    "estimatedCost": 35,
+    "activity": [
+      {
+        "timestamp": "2026-04-24T14:30:00",
+        "actor": "Maintenance Tech",
+        "action": "Resolved",
+        "note": "Fill valve replaced – verified no more running"
+      },
+      {
+        "timestamp": "2026-04-24T11:00:00",
+        "actor": "Housekeeping",
+        "action": "Ticket created",
+        "note": "Toilet running non-stop in 312"
+      }
+    ]
+  },
+  {
+    "id": "T024",
+    "hotelId": "DFWFW",
+    "area": "Pool",
+    "type": "preventive",
+    "priority": "normal",
+    "status": "resolved",
+    "title": "Pool chemical balance check – completed",
+    "description": "Bi-weekly pool chemical balance check. pH 7.5, chlorine 2.8ppm – both within target range. All clear.",
+    "reportedBy": "PM Schedule",
+    "assignedTo": "Maintenance Tech",
+    "createdAt": "2026-04-24T07:00:00",
+    "updatedAt": "2026-04-24T08:30:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-24T08:30:00",
+        "actor": "Maintenance Tech",
+        "action": "Completed",
+        "note": "pH 7.5, chlorine 2.8 – within range"
+      },
+      {
+        "timestamp": "2026-04-24T07:00:00",
+        "actor": "PM Schedule",
+        "action": "Task due",
+        "note": "Bi-weekly pool check"
+      }
+    ]
+  },
+  {
+    "id": "T025",
+    "hotelId": "GA989",
+    "roomNumber": "118",
+    "type": "audit",
+    "priority": "normal",
+    "status": "scheduled",
+    "title": "Post-repair QA inspection – Room 118",
+    "description": "QA inspection of room 118 following shower head replacement to verify repair quality and overall room readiness.",
+    "reportedBy": "Quality Assurance",
+    "assignedTo": "Emma Johnson",
+    "createdAt": "2026-04-25T11:00:00",
+    "updatedAt": "2026-04-25T11:00:00",
+    "activity": [
+      {
+        "timestamp": "2026-04-25T11:00:00",
+        "actor": "QA",
+        "action": "Inspection scheduled",
+        "note": "Post-repair check after T008 resolved"
+      }
+    ]
+  }
+]

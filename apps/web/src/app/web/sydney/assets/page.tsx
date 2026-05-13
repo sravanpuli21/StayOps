@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Package, AlertTriangle, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '@hos/shared';
-import { SYDNEY_HOTEL, getHotelAssets, getAssetSummary, getHotelVendorSpend } from '@/lib/sydney-data';
+import { SYDNEY_HOTEL, useHotelAssets, useAssetSummary, useHotelVendorSpend } from '@/lib/sydney-data';
 
 function fmtDate(iso?: string): string {
   if (!iso) return '—';
@@ -17,9 +17,9 @@ const CONDITION_CFG: Record<string, { color: string; bg: string }> = {
 };
 
 export default function SydneyAssetsPage() {
-  const assets = useMemo(() => getHotelAssets(), []);
-  const summary = useMemo(() => getAssetSummary(), []);
-  const vendors = useMemo(() => getHotelVendorSpend(), []);
+  const assets = useHotelAssets();
+  const summary = useAssetSummary();
+  const vendors = useHotelVendorSpend();
 
   const byCategory = useMemo(() => {
     const m = new Map<string, typeof assets>();

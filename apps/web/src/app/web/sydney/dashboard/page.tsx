@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { KpiCard } from '@/components/common/KpiCard';
 import {
-  SYDNEY_HOTEL, getMaintenanceStaff, getHotelTickets, getHotelAudits,
-  getHotelRooms, getOpsSummary, getAssetSummary,
+  SYDNEY_HOTEL, useMaintenanceStaff, useHotelTickets, useHotelAudits,
+  useHotelRooms, useOpsSummary, useAssetSummary,
   TICKET_TYPE_META, PRIORITY_META,
 } from '@/lib/sydney-data';
 
@@ -24,12 +24,12 @@ function timeAgo(iso: string): string {
 
 export default function SydneyDashboard() {
   const hotel = SYDNEY_HOTEL;
-  const tickets = useMemo(() => getHotelTickets(), []);
-  const audits = useMemo(() => getHotelAudits(), []);
-  const rooms = useMemo(() => getHotelRooms(), []);
-  const ops = useMemo(() => getOpsSummary(), []);
-  const assetSummary = useMemo(() => getAssetSummary(), []);
-  const maintStaff = useMemo(() => getMaintenanceStaff(), []);
+  const tickets = useHotelTickets();
+  const audits = useHotelAudits();
+  const rooms = useHotelRooms();
+  const ops = useOpsSummary();
+  const assetSummary = useAssetSummary();
+  const maintStaff = useMaintenanceStaff();
 
   const openTickets = tickets.filter((t) => t.status !== 'resolved');
   const urgentTickets = openTickets.filter((t) => t.priority === 'urgent');
@@ -121,7 +121,7 @@ export default function SydneyDashboard() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {topUrgent.map((t) => {
-              const typeMeta = TICKET_TYPE_META[t.type];
+              const typeMeta = TICKET_TYPE_META[t.type as keyof typeof TICKET_TYPE_META];
               return (
                 <div
                   key={t.id}
@@ -180,7 +180,7 @@ export default function SydneyDashboard() {
           ) : (
             <ul className="flex flex-col gap-2">
               {todaysPreventive.map((t) => {
-                const pmeta = PRIORITY_META[t.priority];
+                const pmeta = PRIORITY_META[t.priority as keyof typeof PRIORITY_META];
                 return (
                   <li
                     key={t.id}

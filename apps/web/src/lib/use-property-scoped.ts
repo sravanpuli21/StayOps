@@ -1,73 +1,43 @@
 'use client';
 
 import { useMemo } from 'react';
-import {
-  HOTELS, REVENUE_DATA, LABOUR_DATA, DAILY_METRICS,
-} from '@hos/shared';
+import { HOTELS, resolveDateRange, type DateRangeKind } from '@hos/shared';
 import { useDateFilter, DATE_RANGE_META } from './date-filter-context';
+import { useApi } from './use-api';
+import { apiKeys } from './swr-keys';
 
 /**
- * Period-aware single-property data hook. For personas pinned to one hotel
- * (Rishab / Emma / Sydney) — applies the global date filter's multiplier to
- * revenue / labour / daily metrics so Today/Week/Month/YTD all work.
- *
- * Ratios (occupancy %, ADR, rating) are NOT scaled — they're meaningful as
- * averages regardless of period. Counters (revenue, hours, rooms sold) are.
+ * Single-property data hook (Rishab / Emma / Sydney). Reads server-aggregated
+ * revenue / labour / daily for the active date window.
  */
 export function usePropertyScoped(hotelId: string) {
   const { range } = useDateFilter();
-  const period = DATE_RANGE_META[range];
-  const mult = period.multiplier;
+  const meta = DATE_RANGE_META[range];
 
   const hotel = useMemo(() => HOTELS.find((h) => h.id === hotelId)!, [hotelId]);
 
-  const revenue = useMemo(() => {
-    const r = REVENUE_DATA.find((x) => x.hotelId === hotelId);
-    if (!r) return null;
-    return {
-      ...r,
-      totalRevenue: r.totalRevenue * mult,
-      roomRevenue: r.roomRevenue * mult,
-      nonRoomRevenue: r.nonRoomRevenue * mult,
-    };
-  }, [hotelId, mult]);
+  const { from, to } = useMemo(() => {
+    const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+    const today = frozen ? new Date(`${frozen}T00:00:00Z`) : new Date();
+    const kind: DateRangeKind = range;
+    return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
+  }, [range]);
 
-  const labour = useMemo(() => {
-    const l = LABOUR_DATA.find((x) => x.hotelId === hotelId);
-    if (!l) return null;
-    return {
-      ...l,
-      scheduledHours: Math.round(l.scheduledHours * mult),
-      clockedHours: Math.round(l.clockedHours * mult),
-      variance: Math.round(l.variance * mult),
-      overtimeHours: Math.round(l.overtimeHours * mult),
-      payrollCost: l.payrollCost * mult,
-      departments: l.departments.map((d) => ({
-        ...d,
-        scheduledHours: Math.round(d.scheduledHours * mult),
-        clockedHours: Math.round(d.clockedHours * mult),
-        variance: Math.round(d.variance * mult),
-        overtimeHours: Math.round(d.overtimeHours * mult),
-        payrollCost: d.payrollCost * mult,
-      })),
-    };
-  }, [hotelId, mult]);
+  const rev = useApi(apiKeys.revenueProperty(hotelId, from, to));
+  const lab = useApi(apiKeys.labourProperty(hotelId, from, to));
+  const day = useApi(apiKeys.dailyProperty(hotelId, from, to));
 
-  const daily = useMemo(() => {
-    const d = DAILY_METRICS.find((x) => x.hotelId === hotelId);
-    if (!d) return null;
-    return {
-      ...d,
-      roomsSold: Math.round(d.roomsSold * mult),
-    };
-  }, [hotelId, mult]);
+  const loading = rev.isLoading || lab.isLoading || day.isLoading;
+  const error   = rev.error ?? lab.error ?? day.error ?? null;
 
   return {
     hotel,
-    period,
+    period: { ...meta, multiplier: 1 },
     range,
-    revenue,
-    labour,
-    daily,
+    revenue: rev.data?.summary ?? null,
+    labour:  lab.data?.summary ?? null,
+    daily:   day.data?.summary ?? null,
+    loading,
+    error,
   };
 }

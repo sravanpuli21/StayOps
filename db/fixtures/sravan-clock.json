@@ -1,0 +1,33 @@
+[
+  {
+    "id": "cs-001",
+    "clockIn": "2026-04-21T14:58:00-04:00",
+    "clockOut": "2026-04-21T23:06:00-04:00",
+    "breakMinutes": 30
+  },
+  {
+    "id": "cs-002",
+    "clockIn": "2026-04-22T14:55:00-04:00",
+    "clockOut": "2026-04-22T23:02:00-04:00",
+    "breakMinutes": 30
+  },
+  {
+    "id": "cs-003",
+    "clockIn": "2026-04-23T14:59:00-04:00",
+    "clockOut": "2026-04-23T23:15:00-04:00",
+    "breakMinutes": 30,
+    "notes": "Stayed 15 min late — busy arrival"
+  },
+  {
+    "id": "cs-004",
+    "clockIn": "2026-04-25T14:57:00-04:00",
+    "clockOut": "2026-04-25T23:01:00-04:00",
+    "breakMinutes": 30
+  },
+  {
+    "id": "cs-005",
+    "clockIn": "2026-04-26T14:54:00-04:00",
+    "clockOut": "2026-04-26T23:07:00-04:00",
+    "breakMinutes": 30
+  }
+]

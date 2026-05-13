@@ -1,7 +1,12 @@
+'use client';
+
 import { Mail, Phone, Badge, Building2, Calendar, DollarSign, User } from 'lucide-react';
-import { SRAVAN_EMPLOYEE, formatCurrency } from '@hos/shared';
+import { formatCurrency } from '@hos/shared';
+import { useSravanProfile } from '@/lib/sravan-data';
 
 export default function SravanProfilePage() {
+  const SRAVAN_EMPLOYEE = useSravanProfile() as any;
+  if (!SRAVAN_EMPLOYEE) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
       <div>

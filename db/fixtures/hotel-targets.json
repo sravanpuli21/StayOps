@@ -1,0 +1,98 @@
+[
+  {
+    "hotelId": "SAVGW",
+    "revenueTarget": 240000,
+    "occupancyTarget": 87,
+    "adrTarget": 168
+  },
+  {
+    "hotelId": "SAVVY",
+    "revenueTarget": 260000,
+    "occupancyTarget": 88,
+    "adrTarget": 196
+  },
+  {
+    "hotelId": "GA989",
+    "revenueTarget": 310000,
+    "occupancyTarget": 91,
+    "adrTarget": 181
+  },
+  {
+    "hotelId": "SAVMT",
+    "revenueTarget": 230000,
+    "occupancyTarget": 82,
+    "adrTarget": 164
+  },
+  {
+    "hotelId": "SAVMD",
+    "revenueTarget": 280000,
+    "occupancyTarget": 85,
+    "adrTarget": 162
+  },
+  {
+    "hotelId": "RISAV",
+    "revenueTarget": 210000,
+    "occupancyTarget": 89,
+    "adrTarget": 184
+  },
+  {
+    "hotelId": "SAVFP",
+    "revenueTarget": 380000,
+    "occupancyTarget": 93,
+    "adrTarget": 177
+  },
+  {
+    "hotelId": "BQKCY",
+    "revenueTarget": 220000,
+    "occupancyTarget": 82,
+    "adrTarget": 152
+  },
+  {
+    "hotelId": "BSWVE",
+    "revenueTarget": 235000,
+    "occupancyTarget": 85,
+    "adrTarget": 156
+  },
+  {
+    "hotelId": "GAA84",
+    "revenueTarget": 205000,
+    "occupancyTarget": 79,
+    "adrTarget": 128
+  },
+  {
+    "hotelId": "BQKFP",
+    "revenueTarget": 245000,
+    "occupancyTarget": 84,
+    "adrTarget": 153
+  },
+  {
+    "hotelId": "SGJES",
+    "revenueTarget": 190000,
+    "occupancyTarget": 86,
+    "adrTarget": 144
+  },
+  {
+    "hotelId": "JAXTX",
+    "revenueTarget": 200000,
+    "occupancyTarget": 90,
+    "adrTarget": 204
+  },
+  {
+    "hotelId": "DFWFW",
+    "revenueTarget": 180000,
+    "occupancyTarget": 88,
+    "adrTarget": 136
+  },
+  {
+    "hotelId": "BTRCI",
+    "revenueTarget": 230000,
+    "occupancyTarget": 87,
+    "adrTarget": 138
+  },
+  {
+    "hotelId": "58090LA",
+    "revenueTarget": 170000,
+    "occupancyTarget": 81,
+    "adrTarget": 130
+  }
+]

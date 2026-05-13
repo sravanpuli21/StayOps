@@ -1,0 +1,178 @@
+[
+  {
+    "hotelId": "SAVGW",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 1,
+    "ytdSpend": 2000,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 40,
+    "health": "amber"
+  },
+  {
+    "hotelId": "SAVVY",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 5,
+    "failingAssets": 1,
+    "ytdSpend": 4200,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 0,
+    "health": "amber"
+  },
+  {
+    "hotelId": "GA989",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 5,
+    "failingAssets": 1,
+    "ytdSpend": 2730,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 40,
+    "health": "amber"
+  },
+  {
+    "hotelId": "SAVMT",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 1,
+    "ytdSpend": 3240,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 29,
+    "health": "amber"
+  },
+  {
+    "hotelId": "SAVMD",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 1,
+    "ytdSpend": 350,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 0,
+    "health": "amber"
+  },
+  {
+    "hotelId": "RISAV",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 0,
+    "ytdSpend": 1800,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 100,
+    "health": "green"
+  },
+  {
+    "hotelId": "SAVFP",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 5,
+    "failingAssets": 0,
+    "ytdSpend": 2680,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 60,
+    "health": "green"
+  },
+  {
+    "hotelId": "BQKCY",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 1,
+    "ytdSpend": 4120,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 33,
+    "health": "amber"
+  },
+  {
+    "hotelId": "BSWVE",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 0,
+    "ytdSpend": 660,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 0,
+    "health": "green"
+  },
+  {
+    "hotelId": "GAA84",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 0,
+    "ytdSpend": 0,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 100,
+    "health": "green"
+  },
+  {
+    "hotelId": "BQKFP",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 5,
+    "failingAssets": 0,
+    "ytdSpend": 1160,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 0,
+    "health": "green"
+  },
+  {
+    "hotelId": "SGJES",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 0,
+    "ytdSpend": 310,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 0,
+    "health": "green"
+  },
+  {
+    "hotelId": "JAXTX",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 0,
+    "ytdSpend": 450,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 100,
+    "health": "green"
+  },
+  {
+    "hotelId": "DFWFW",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 1,
+    "ytdSpend": 2830,
+    "openWorkOrders": 1,
+    "preventiveCompliancePct": 0,
+    "health": "amber"
+  },
+  {
+    "hotelId": "BTRCI",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 4,
+    "failingAssets": 0,
+    "ytdSpend": 1200,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 100,
+    "health": "green"
+  },
+  {
+    "hotelId": "58090LA",
+    "totalAssets": 10,
+    "totalValue": 436000,
+    "agingAssets": 5,
+    "failingAssets": 0,
+    "ytdSpend": 1400,
+    "openWorkOrders": 0,
+    "preventiveCompliancePct": 0,
+    "health": "green"
+  }
+]

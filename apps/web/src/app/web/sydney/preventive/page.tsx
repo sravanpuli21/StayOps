@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Plus, Filter } from 'lucide-react';
-import { SYDNEY_HOTEL, getHotelTickets, getHotelAudits, PRIORITY_META } from '@/lib/sydney-data';
+import { SYDNEY_HOTEL, PRIORITY_META } from '@/lib/sydney-data';
 
 // Deterministic hash for seeding synthetic preventive tasks across the month
 function hash(str: string): number {

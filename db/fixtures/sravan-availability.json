@@ -1,0 +1,42 @@
+[
+  {
+    "dayOfWeek": "Mon",
+    "level": "available",
+    "start": "07:00",
+    "end": "23:00"
+  },
+  {
+    "dayOfWeek": "Tue",
+    "level": "preferred",
+    "start": "15:00",
+    "end": "23:00"
+  },
+  {
+    "dayOfWeek": "Wed",
+    "level": "available",
+    "start": "15:00",
+    "end": "23:00"
+  },
+  {
+    "dayOfWeek": "Thu",
+    "level": "preferred",
+    "start": "15:00",
+    "end": "23:00"
+  },
+  {
+    "dayOfWeek": "Fri",
+    "level": "available",
+    "start": "15:00",
+    "end": "23:00"
+  },
+  {
+    "dayOfWeek": "Sat",
+    "level": "unavailable"
+  },
+  {
+    "dayOfWeek": "Sun",
+    "level": "available",
+    "start": "15:00",
+    "end": "23:00"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "date": "2026-04-27",
+    "label": "Mon, Apr 27",
+    "start": "15:00",
+    "end": "23:00",
+    "role": "Front Desk · PM",
+    "hotelCode": "BTRCI"
+  },
+  {
+    "date": "2026-04-28",
+    "label": "Tue, Apr 28",
+    "start": "15:00",
+    "end": "23:00",
+    "role": "Front Desk · PM",
+    "hotelCode": "BTRCI"
+  },
+  {
+    "date": "2026-04-29",
+    "label": "Wed, Apr 29",
+    "start": "07:00",
+    "end": "15:00",
+    "role": "Front Desk · AM",
+    "hotelCode": "BTRCI",
+    "note": "Covering AM for Jamie"
+  },
+  {
+    "date": "2026-04-30",
+    "label": "Thu, Apr 30",
+    "start": "15:00",
+    "end": "23:00",
+    "role": "Front Desk · PM",
+    "hotelCode": "BTRCI"
+  },
+  {
+    "date": "2026-05-01",
+    "label": "Fri, May 1",
+    "start": "15:00",
+    "end": "23:00",
+    "role": "Front Desk · PM",
+    "hotelCode": "BTRCI"
+  },
+  {
+    "date": "2026-05-03",
+    "label": "Sun, May 3",
+    "start": "23:00",
+    "end": "07:00",
+    "role": "Front Desk · NA",
+    "hotelCode": "BTRCI",
+    "note": "Overnight audit shift"
+  }
+]

@@ -1,5 +1,8 @@
+'use client';
+
 import { BookOpen, ChevronRight, AlertCircle } from 'lucide-react';
-import { SRAVAN_SOPS, type SopItem } from '@hos/shared';
+import { type SopItem } from '@hos/shared';
+import { useSravanSops } from '@/lib/sravan-data';
 
 const CATEGORY_COLORS: Record<SopItem['category'], { bg: string; fg: string }> = {
   'Check-in':       { bg: '#e0e7ff', fg: '#3730a3' },
@@ -11,6 +14,7 @@ const CATEGORY_COLORS: Record<SopItem['category'], { bg: string; fg: string }> =
 };
 
 export default function SravanSopPage() {
+  const SRAVAN_SOPS = useSravanSops() as SopItem[];
   const grouped = SRAVAN_SOPS.reduce<Record<string, SopItem[]>>((acc, s) => {
     (acc[s.category] ??= []).push(s);
     return acc;

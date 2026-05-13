@@ -1,6 +1,6 @@
 'use client';
 
-import { AI_ANOMALIES, AI_RECOMMENDATIONS, AI_FORECASTS } from '@hos/shared';
+import { useAnomalies, useAiRecommendations, useAiForecasts } from '@/lib/ai-data';
 import { LabourSummaryCards } from '@/components/labour/LabourSummaryCards';
 import { HotelLabourTable } from '@/components/labour/HotelLabourTable';
 import { LabourEfficiencyTable } from '@/components/labour/LabourEfficiencyTable';
@@ -36,11 +36,11 @@ export default function LabourPage() {
     labour: labourRows.find((l) => l.hotelId === hotel.id)!,
   }));
 
-  const labourAnomalies = AI_ANOMALIES.filter(
+  const labourAnomalies = useAnomalies().filter(
     (a) => a.module === 'labour' && hotelIdSet.has(a.hotelId),
   );
-  const labourForecast = AI_FORECASTS.find((f) => f.id === 'fc-002')!;
-  const topLabourRecs = AI_RECOMMENDATIONS
+  const labourForecast = useAiForecasts().find((f) => f.id === 'fc-002');
+  const topLabourRecs = useAiRecommendations()
     .filter((r) => labourAnomalies.some((a) => a.id === r.findingId))
     .slice(0, 3);
 
@@ -66,7 +66,7 @@ export default function LabourPage() {
 
       <AIFlagsPanel findings={labourAnomalies} title="Labour AI Findings" />
 
-      <ForecastWidget forecast={labourForecast} />
+      {labourForecast && <ForecastWidget forecast={labourForecast} />}
 
       {topLabourRecs.length > 0 && (
         <div>

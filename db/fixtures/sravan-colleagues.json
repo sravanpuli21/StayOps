@@ -1,0 +1,126 @@
+[
+  {
+    "id": "marcus",
+    "name": "Marcus Lee",
+    "initials": "ML",
+    "role": "Front Desk · Night Audit",
+    "avatarColor": "#1e40af",
+    "shiftsThisWeek": [
+      {
+        "shiftId": "ml-1",
+        "date": "2026-04-28",
+        "label": "Tue, Apr 28",
+        "start": "23:00",
+        "end": "07:00",
+        "role": "Night Audit"
+      },
+      {
+        "shiftId": "ml-2",
+        "date": "2026-04-30",
+        "label": "Thu, Apr 30",
+        "start": "07:00",
+        "end": "15:00",
+        "role": "Front Desk · AM"
+      },
+      {
+        "shiftId": "ml-3",
+        "date": "2026-05-03",
+        "label": "Sun, May 3",
+        "start": "23:00",
+        "end": "07:00",
+        "role": "Night Audit"
+      }
+    ]
+  },
+  {
+    "id": "jamie",
+    "name": "Jamie Rodriguez",
+    "initials": "JR",
+    "role": "Front Desk · AM",
+    "avatarColor": "#c2410c",
+    "shiftsThisWeek": [
+      {
+        "shiftId": "jr-1",
+        "date": "2026-04-27",
+        "label": "Mon, Apr 27",
+        "start": "07:00",
+        "end": "15:00",
+        "role": "Front Desk · AM"
+      },
+      {
+        "shiftId": "jr-2",
+        "date": "2026-04-30",
+        "label": "Thu, Apr 30",
+        "start": "07:00",
+        "end": "15:00",
+        "role": "Front Desk · AM"
+      },
+      {
+        "shiftId": "jr-3",
+        "date": "2026-05-02",
+        "label": "Sat, May 2",
+        "start": "07:00",
+        "end": "15:00",
+        "role": "Front Desk · AM"
+      }
+    ]
+  },
+  {
+    "id": "priya",
+    "name": "Priya Shah",
+    "initials": "PS",
+    "role": "Front Desk · PM",
+    "avatarColor": "#6d28d9",
+    "shiftsThisWeek": [
+      {
+        "shiftId": "ps-1",
+        "date": "2026-04-29",
+        "label": "Wed, Apr 29",
+        "start": "15:00",
+        "end": "23:00",
+        "role": "Front Desk · PM"
+      },
+      {
+        "shiftId": "ps-2",
+        "date": "2026-05-01",
+        "label": "Fri, May 1",
+        "start": "07:00",
+        "end": "15:00",
+        "role": "Front Desk · AM"
+      },
+      {
+        "shiftId": "ps-3",
+        "date": "2026-05-02",
+        "label": "Sat, May 2",
+        "start": "15:00",
+        "end": "23:00",
+        "role": "Front Desk · PM"
+      }
+    ]
+  },
+  {
+    "id": "devon",
+    "name": "Devon Carter",
+    "initials": "DC",
+    "role": "Front Desk · PM",
+    "avatarColor": "#047857",
+    "shiftsThisWeek": [
+      {
+        "shiftId": "dc-1",
+        "date": "2026-04-28",
+        "label": "Tue, Apr 28",
+        "start": "07:00",
+        "end": "15:00",
+        "role": "Front Desk · AM"
+      },
+      {
+        "shiftId": "dc-2",
+        "date": "2026-05-01",
+        "label": "Fri, May 1",
+        "start": "15:00",
+        "end": "23:00",
+        "role": "Front Desk · PM"
+      }
+    ]
+  }
+]

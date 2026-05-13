@@ -3,19 +3,16 @@
 import { useState } from 'react';
 import { Calendar, RefreshCw, UserPlus, Plus, Check, X, Clock, CircleDashed, CheckCircle2, CircleDot } from 'lucide-react';
 import {
-  SRAVAN_SCHEDULE,
-  SRAVAN_OPEN_SHIFTS,
-  SRAVAN_SWAP_REQUESTS,
-  SRAVAN_COLLEAGUES,
-  SRAVAN_EMPLOYEE,
   type ShiftBlock,
   type SwapRequest,
   type Colleague,
   type ColleagueShift,
   type OpenShift,
 } from '@hos/shared';
-
-const MANAGER_NAME = SRAVAN_EMPLOYEE.supervisor; // "Lashwanda (AGM)"
+import {
+  useSravanSchedule, useSravanOpenShifts, useSravanSwaps,
+  useSravanColleagues, useSravanProfile,
+} from '@/lib/sravan-data';
 
 function fmtTime(hhmm: string): string {
   const [h, m] = hhmm.split(':').map(Number);
@@ -40,19 +37,21 @@ interface MyRequest {
   submittedAt: string;
 }
 
-// Seed a couple of historical entries matching SRAVAN_SWAP_REQUESTS
-const SEED_REQUESTS: MyRequest[] = SRAVAN_SWAP_REQUESTS.map<MyRequest>((r) => ({
-  id: r.id,
-  kind: r.kind,
-  myShiftLabel: r.myShiftLabel,
-  myShiftTime: r.myShiftTime,
-  teammateName: r.targetColleague,
-  teammateStatus: r.status === 'accepted' || r.status === 'approved' ? 'accepted' : r.status,
-  targetShiftLabel: r.targetShiftDate ? new Date(r.targetShiftDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : undefined,
-  targetShiftTime: r.targetShiftTime,
-  managerStatus: r.status === 'approved' ? 'approved' : r.status === 'accepted' ? 'pending' : 'pending',
-  submittedAt: r.submittedAt,
-}));
+// Seed historical entries from API SwapRequests
+function buildSeedRequests(swaps: SwapRequest[]): MyRequest[] {
+  return swaps.map<MyRequest>((r) => ({
+    id: r.id,
+    kind: r.kind,
+    myShiftLabel: r.myShiftLabel,
+    myShiftTime: r.myShiftTime,
+    teammateName: r.targetColleague,
+    teammateStatus: r.status === 'accepted' || r.status === 'approved' ? 'accepted' : r.status,
+    targetShiftLabel: r.targetShiftDate ? new Date(r.targetShiftDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : undefined,
+    targetShiftTime: r.targetShiftTime,
+    managerStatus: r.status === 'approved' ? 'approved' : r.status === 'accepted' ? 'pending' : 'pending',
+    submittedAt: r.submittedAt,
+  }));
+}
 
 interface PickUpStatus {
   shift: OpenShift;
@@ -66,10 +65,22 @@ type ShiftAction =
   | null;
 
 export default function SravanSchedulePage() {
+  const SRAVAN_SCHEDULE     = useSravanSchedule() as ShiftBlock[];
+  const SRAVAN_OPEN_SHIFTS  = useSravanOpenShifts() as OpenShift[];
+  const SRAVAN_SWAP_REQUESTS = useSravanSwaps() as SwapRequest[];
+  const SRAVAN_COLLEAGUES   = useSravanColleagues() as Colleague[];
+  const SRAVAN_EMPLOYEE     = useSravanProfile();
+  const MANAGER_NAME = (SRAVAN_EMPLOYEE as any)?.supervisor ?? 'Manager';
+
   const [action, setAction] = useState<ShiftAction>(null);
   const [sentSwap, setSentSwap] = useState<Set<string>>(new Set());
   const [sentCover, setSentCover] = useState<Set<string>>(new Set());
-  const [myRequests, setMyRequests] = useState<MyRequest[]>(SEED_REQUESTS);
+  const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
+  const [seededReqs, setSeededReqs] = useState(false);
+  if (!seededReqs && SRAVAN_SWAP_REQUESTS.length > 0) {
+    setMyRequests(buildSeedRequests(SRAVAN_SWAP_REQUESTS));
+    setSeededReqs(true);
+  }
   const [pickUps, setPickUps] = useState<PickUpStatus[]>([]);
 
   const submitRequest = (
@@ -395,6 +406,9 @@ function ShiftActionModal({
   onClose: () => void;
   onSubmit: (teammateName: string, targetShift: ColleagueShift | null) => void;
 }) {
+  const SRAVAN_COLLEAGUES = useSravanColleagues() as Colleague[];
+  const SRAVAN_EMPLOYEE_INNER = useSravanProfile() as any;
+  const MANAGER_NAME = SRAVAN_EMPLOYEE_INNER?.supervisor ?? 'Manager';
   const [colleagueId, setColleagueId] = useState<string | null>(null);
   const [targetShiftId, setTargetShiftId] = useState<string | null>(null);
   const [note, setNote] = useState('');

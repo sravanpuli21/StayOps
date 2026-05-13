@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import type { Room } from '@hos/shared';
+import { useEffect } from 'react';
 import {
-  EMMA_HOTEL, getHkStaff, getAllHotelRooms, getQueueRooms, seedAssignments, autoAssignRooms, ROOM_TILE,
+  EMMA_HOTEL, useHkStaff, useAllHotelRooms, useQueueRooms, seedAssignments, autoAssignRooms, ROOM_TILE,
 } from '@/lib/emma-data';
 import { CheckCircle2, Circle, Sparkles, UserPlus, X, Printer, Filter, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
@@ -25,24 +26,34 @@ const PROGRESS_CYCLE: RoomProgress[] = ['pending', 'cleaning', 'cleaned', 'inspe
 
 export default function EmmaAssignmentsPage() {
   const hotel = EMMA_HOTEL;
-  const hkStaff = useMemo(() => getHkStaff(), []);
-  const allRooms = useMemo(() => getAllHotelRooms(), []);
-  const queueRooms = useMemo(() => getQueueRooms(), []);
+  const hkStaff = useHkStaff();
+  const allRooms = useAllHotelRooms();
+  const queueRooms = useQueueRooms();
   const roomByNumber = useMemo(() => {
     const m = new Map<string, Room>();
     for (const r of allRooms) m.set(r.number, r);
     return m;
   }, [allRooms]);
 
-  const [assignments, setAssignments] = useState<Assignment[]>(() => seedAssignments());
-  const [progress, setProgress] = useState<Record<string, RoomProgress>>(() => {
-    // Seed first few as "cleaning" to make the page feel live
-    const seed: Record<string, RoomProgress> = {};
-    seedAssignments().slice(0, 4).forEach((a, i) => {
-      seed[a.roomNumber] = i < 2 ? 'cleaned' : 'cleaning';
-    });
-    return seed;
-  });
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [seeded, setSeeded] = useState(false);
+  useEffect(() => {
+    if (!seeded && hkStaff.length > 0 && queueRooms.length > 0) {
+      setAssignments(seedAssignments(hkStaff, queueRooms));
+      setSeeded(true);
+    }
+  }, [seeded, hkStaff, queueRooms]);
+  const [progress, setProgress] = useState<Record<string, RoomProgress>>({});
+  useEffect(() => {
+    if (assignments.length > 0 && Object.keys(progress).length === 0) {
+      const seed: Record<string, RoomProgress> = {};
+      assignments.slice(0, 4).forEach((a, i) => {
+        seed[a.roomNumber] = i < 2 ? 'cleaned' : 'cleaning';
+      });
+      setProgress(seed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignments]);
 
   const [staffFilter, setStaffFilter] = useState<string>('all');
   const [floorFilter, setFloorFilter] = useState<string>('all');
@@ -90,7 +101,7 @@ export default function EmmaAssignmentsPage() {
   const autoAssign = () => {
     const taken = new Set(assignments.map((a) => a.roomNumber));
     const toFill = queueRooms.filter((r) => !taken.has(r.number)).map((r) => r.number);
-    setAssignments(autoAssignRooms(assignments, toFill));
+    setAssignments(autoAssignRooms(assignments, toFill, hkStaff, queueRooms));
   };
 
   const cycleProgress = (roomNumber: string) => {

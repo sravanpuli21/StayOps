@@ -1,9 +1,9 @@
 'use client';
 
-import { RED_FLAGS, AI_ANOMALIES } from '@hos/shared';
 import { RedFlagsPanel } from '@/components/common/RedFlagsPanel';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { useRedFlags, useAnomalies } from '@/lib/ai-data';
 
 function SectionTitle({ children, subtitle }: { children: React.ReactNode; subtitle?: string }) {
   return (
@@ -16,17 +16,17 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 
 export default function AlertsPage() {
   const { hotelIdSet, scopeSub } = useScopedData();
-  const flags = RED_FLAGS.filter((f) => hotelIdSet.has(f.hotelId));
-  const anomalies = AI_ANOMALIES.filter((a) => hotelIdSet.has(a.hotelId));
+  const flags = useRedFlags().filter((f) => hotelIdSet.has(f.hotelId));
+  const anomalies = useAnomalies().filter((a) => hotelIdSet.has(a.hotelId));
 
   const critical = flags.filter((f) => f.severity === 'critical').length;
   const warning = flags.filter((f) => f.severity === 'warning').length;
   const info = flags.filter((f) => f.severity === 'info').length;
 
-  const byModule = flags.reduce((acc, f) => {
-    (acc[f.module] ??= []).push(f);
+  const byModule = flags.reduce<Record<string, typeof flags>>((acc, f) => {
+    (acc[f.module] ??= [] as typeof flags).push(f);
     return acc;
-  }, {} as Record<string, typeof flags>);
+  }, {});
 
   return (
     <div className="flex flex-col gap-8">

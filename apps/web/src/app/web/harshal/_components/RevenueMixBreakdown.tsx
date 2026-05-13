@@ -21,8 +21,8 @@ interface Props {
   initialOpen?: MixBucket | null;
   /** If true, render a compact variant (used inside the dashboard drawer). */
   compact?: boolean;
-  /** Period multiplier from the active date filter (1 = one day). */
-  multiplier?: number;
+  /** Number of days in the active date window. Baseline mix is ~1 day. */
+  days?: number;
 }
 
 /**
@@ -31,10 +31,10 @@ interface Props {
  * Used by both the Total Revenue drawer on the dashboard and the Revenue page.
  */
 export function RevenueMixBreakdown({
-  hotelIds, initialOpen = 'room', compact = false, multiplier = 1,
+  hotelIds, initialOpen = 'room', compact = false, days = 1,
 }: Props) {
   const [openBucket, setOpenBucket] = useState<MixBucket | null>(initialOpen);
-  const buckets = aggregateMixBreakdown(hotelIds, multiplier);
+  const buckets = aggregateMixBreakdown(hotelIds, days);
   const total = buckets.reduce((s, b) => s + b.total, 0);
 
   return (

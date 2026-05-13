@@ -1,7 +1,14 @@
+'use client';
+
 import { Timer } from 'lucide-react';
-import { SRAVAN_EMPLOYEE, SRAVAN_PAYSTUBS, SRAVAN_CLOCK_LOG, sravanPeriodHours } from '@hos/shared';
+import { sravanPeriodHours } from '@hos/shared';
+import { useSravanProfile, useSravanPaystubs, useSravanClock } from '@/lib/sravan-data';
 
 export default function SravanHoursPage() {
+  const SRAVAN_EMPLOYEE = useSravanProfile() as any;
+  const SRAVAN_PAYSTUBS = useSravanPaystubs();
+  const SRAVAN_CLOCK_LOG = useSravanClock();
+  if (!SRAVAN_EMPLOYEE) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
   const current = sravanPeriodHours(SRAVAN_CLOCK_LOG);
   const totalCurrent = current.regular + current.overtime;
 

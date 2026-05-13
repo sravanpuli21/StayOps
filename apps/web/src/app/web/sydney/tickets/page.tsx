@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { TicketType, TicketPriority, TicketStatus } from '@hos/shared';
 import { Wrench, Clock, Filter, Search, ChevronRight, AlertTriangle } from 'lucide-react';
-import { SYDNEY_HOTEL, getHotelTickets, TICKET_TYPE_META, PRIORITY_META } from '@/lib/sydney-data';
+import { SYDNEY_HOTEL, useHotelTickets, TICKET_TYPE_META, PRIORITY_META } from '@/lib/sydney-data';
 
 const STATUS_META: Record<TicketStatus, { label: string; bg: string; color: string }> = {
   open:         { label: 'Open',         bg: '#fef2f2', color: '#b91c1c' },
@@ -26,7 +26,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function SydneyTicketsPage() {
-  const tickets = useMemo(() => getHotelTickets(), []);
+  const tickets = useHotelTickets();
   const [typeFilter, setTypeFilter] = useState<TicketType | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [q, setQ] = useState('');
@@ -116,9 +116,9 @@ export default function SydneyTicketsPage() {
       {/* Tickets */}
       <div className="flex flex-col gap-2">
         {filtered.map((t) => {
-          const tmeta = TICKET_TYPE_META[t.type];
-          const pmeta = PRIORITY_META[t.priority];
-          const smeta = STATUS_META[t.status] ?? STATUS_META.open;
+          const tmeta = TICKET_TYPE_META[t.type as keyof typeof TICKET_TYPE_META];
+          const pmeta = PRIORITY_META[t.priority as keyof typeof PRIORITY_META];
+          const smeta = STATUS_META[t.status as TicketStatus] ?? STATUS_META.open;
           return (
             <div
               key={t.id}

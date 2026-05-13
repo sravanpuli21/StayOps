@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Room } from '@hos/shared';
-import { EMMA_HOTEL, getAllHotelRooms, getHotelTickets, ROOM_TILE } from '@/lib/emma-data';
+import { EMMA_HOTEL, useAllHotelRooms, useHotelTickets, ROOM_TILE } from '@/lib/emma-data';
 import { Filter, Search, Wrench, AlertTriangle } from 'lucide-react';
 
 const ALL_STATUSES = ['ready', 'inspecting', 'dirty', 'occupied', 'ooo', 'blocked'] as const;
@@ -13,8 +13,8 @@ function fmtDate(iso?: string | null): string {
 }
 
 export default function EmmaRoomsPage() {
-  const allRooms = useMemo(() => getAllHotelRooms(), []);
-  const tickets = useMemo(() => getHotelTickets(), []);
+  const allRooms = useAllHotelRooms();
+  const tickets = useHotelTickets();
   const ticketsByRoom = useMemo(() => {
     const m = new Map<string, number>();
     for (const t of tickets) {

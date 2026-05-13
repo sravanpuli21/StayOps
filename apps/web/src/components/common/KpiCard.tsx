@@ -8,6 +8,8 @@ interface KpiCardProps {
   trendValue?: string;
   size?: 'large' | 'medium';
   alert?: boolean;
+  /** When true, replace value/subtext with shimmer blocks while data is loading. */
+  loading?: boolean;
   className?: string;
 }
 
@@ -19,11 +21,13 @@ export function KpiCard({
   trendValue,
   size = 'medium',
   alert = false,
+  loading = false,
   className,
 }: KpiCardProps) {
   const trendColor =
     trend === 'up' ? '#16a34a' : trend === 'down' ? '#dc2626' : '#6a6a6a';
   const trendPrefix = trend === 'up' ? '▲' : trend === 'down' ? '▼' : '';
+  const valueHeight = size === 'large' ? 30 : 24;
 
   return (
     <div
@@ -38,21 +42,36 @@ export function KpiCard({
       <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#929292' }}>
         {label}
       </p>
-      <p
-        className={cn('font-bold leading-none', size === 'large' ? 'text-3xl' : 'text-2xl')}
-        style={{ color: '#222222' }}
-      >
-        {value}
-      </p>
-      {(subtext || trendValue) && (
-        <p className="text-xs mt-1" style={{ color: '#6a6a6a' }}>
-          {trendValue && (
-            <span style={{ color: trendColor }} className="font-semibold mr-1">
-              {trendPrefix} {trendValue}
-            </span>
+      {loading ? (
+        <>
+          <div
+            className="animate-pulse rounded-md mt-1"
+            style={{ width: '60%', height: valueHeight, background: '#e8e8e8' }}
+          />
+          <div
+            className="animate-pulse rounded-md mt-2"
+            style={{ width: '85%', height: 11, background: '#eee' }}
+          />
+        </>
+      ) : (
+        <>
+          <p
+            className={cn('font-bold leading-none', size === 'large' ? 'text-3xl' : 'text-2xl')}
+            style={{ color: '#222222' }}
+          >
+            {value}
+          </p>
+          {(subtext || trendValue) && (
+            <p className="text-xs mt-1" style={{ color: '#6a6a6a' }}>
+              {trendValue && (
+                <span style={{ color: trendColor }} className="font-semibold mr-1">
+                  {trendPrefix} {trendValue}
+                </span>
+              )}
+              {subtext}
+            </p>
           )}
-          {subtext}
-        </p>
+        </>
       )}
     </div>
   );

@@ -1,8 +1,14 @@
+'use client';
+
 import { DollarSign, Download } from 'lucide-react';
-import { SRAVAN_EMPLOYEE, SRAVAN_PAYSTUBS, formatCurrency } from '@hos/shared';
+import { formatCurrency } from '@hos/shared';
+import { useSravanProfile, useSravanPaystubs } from '@/lib/sravan-data';
 
 export default function SravanEarningsPage() {
-  const current = SRAVAN_PAYSTUBS.find((p) => p.status === 'pending')!;
+  const SRAVAN_EMPLOYEE = useSravanProfile() as any;
+  const SRAVAN_PAYSTUBS = useSravanPaystubs();
+  const current = SRAVAN_PAYSTUBS.find((p) => p.status === 'pending');
+  if (!SRAVAN_EMPLOYEE || !current) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
   const history = SRAVAN_PAYSTUBS.filter((p) => p.status === 'paid');
 
   const totalHours = current.regularHours + current.overtimeHours;

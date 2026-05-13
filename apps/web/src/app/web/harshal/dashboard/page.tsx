@@ -4,13 +4,16 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import {
-  RED_FLAGS, GM_ROSTER, computeHotelScore, computeRegionalScore, REGIONAL_ROSTER,
+  GM_ROSTER, computeHotelScore, computeRegionalScore, REGIONAL_ROSTER,
   getStaleDirtyRoomsForHotel,
   formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
+import { useRedFlags } from '@/lib/ai-data';
 import { KpiCard } from '@/components/common/KpiCard';
 import { RedFlagsPanel } from '@/components/common/RedFlagsPanel';
 import { HealthBadge } from '@/components/common/HealthBadge';
+import { DashboardSkeleton } from '@/components/common/Skeleton';
+import { ErrorBanner } from '@/components/common/ErrorBanner';
 import { csatTier } from '@/lib/csat';
 import { useScopedData } from '@/lib/use-scoped-data';
 import { KpiDrawer } from './_components/KpiDrawer';
@@ -27,20 +30,31 @@ type KpiKey =
 export default function HarshalDashboard() {
   const {
     hotels, hotelIdSet, scopeLabel, scopeSub, period,
-    revenueRows, labourRows, dailyRows, isSingleHotel, selection,
+    revenueRows, labourRows, dailyRows, isSingleHotel, selection, loading, error,
   } = useScopedData();
 
   const [openKpi, setOpenKpi] = useState<KpiKey>(null);
+
+  if (error) return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
+        <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+      </div>
+      <ErrorBanner error={error} />
+    </div>
+  );
+  if (loading) return <DashboardSkeleton kpiCount={5} large />;
   const scoped = {
     hotels, revenueRows, labourRows, dailyRows,
-    periodMultiplier: period.multiplier,
+    periodDays: period.days,
   };
 
   // Aggregates
   const totalRooms = hotels.reduce((s, h) => s + h.rooms, 0);
   const totalRoomCapacity = totalRooms * period.days;
   const roomsSold = dailyRows.reduce((s, d) => s + d.roomsSold, 0);
-  const roomsOoo = Math.max(0, Math.round(dailyRows.reduce((s, d) => s + d.roomsOoo, 0) * Math.min(period.multiplier, 2)));
+  const roomsOoo = dailyRows.reduce((s, d) => s + d.roomsOoo, 0);
   const staleDirty = hotels.reduce((s, h) => s + getStaleDirtyRoomsForHotel(h.id).length, 0);
   const occupancyPct = totalRoomCapacity > 0 ? (roomsSold / totalRoomCapacity) * 100 : 0;
   const totalRevenue = revenueRows.reduce((s, r) => s + r.totalRevenue, 0);
@@ -68,7 +82,7 @@ export default function HarshalDashboard() {
   const weakest = hotels.length > 1 ? rows.slice(0, 2) : [];
 
   // Red flags filtered to scope
-  const regionalFlags = RED_FLAGS.filter((f) => hotelIdSet.has(f.hotelId));
+  const regionalFlags = useRedFlags().filter((f) => hotelIdSet.has(f.hotelId));
 
   // Regional score — use viewer's region unless viewing a different regional specifically
   const regionalIdForScore =

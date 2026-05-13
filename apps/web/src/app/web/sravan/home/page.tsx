@@ -1,13 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { Clock, Calendar, DollarSign, Sparkles, Timer, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { formatCurrency } from '@hos/shared';
 import {
-  SRAVAN_EMPLOYEE,
-  SRAVAN_SCHEDULE,
-  SRAVAN_PAYSTUBS,
-  SRAVAN_BONUSES,
-  SRAVAN_SOPS,
-  formatCurrency,
-} from '@hos/shared';
+  useSravanProfile, useSravanSchedule, useSravanPaystubs,
+  useSravanBonuses, useSravanSops,
+} from '@/lib/sravan-data';
 
 function fmtTime(hhmm: string): string {
   const [h, m] = hhmm.split(':').map(Number);
@@ -17,6 +16,16 @@ function fmtTime(hhmm: string): string {
 }
 
 export default function SravanHomePage() {
+  const SRAVAN_EMPLOYEE = useSravanProfile();
+  const SRAVAN_SCHEDULE = useSravanSchedule();
+  const SRAVAN_PAYSTUBS = useSravanPaystubs();
+  const SRAVAN_BONUSES  = useSravanBonuses();
+  const SRAVAN_SOPS     = useSravanSops();
+
+  if (!SRAVAN_EMPLOYEE || SRAVAN_SCHEDULE.length === 0 || SRAVAN_PAYSTUBS.length === 0) {
+    return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
+  }
+
   const currentStub = SRAVAN_PAYSTUBS.find((p) => p.status === 'pending')!;
   const nextShift = SRAVAN_SCHEDULE.find((s) => s.date >= '2026-05-01') ?? SRAVAN_SCHEDULE[0];
   const weekShifts = SRAVAN_SCHEDULE.slice(0, 5);

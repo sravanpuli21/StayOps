@@ -4,20 +4,33 @@ import { formatCurrency, formatPct, formatVariance } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
 import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
+import { DashboardSkeleton } from '@/components/common/Skeleton';
+import { ErrorBanner } from '@/components/common/ErrorBanner';
 import { useScopedData } from '@/lib/use-scoped-data';
 
 export default function DashboardPage() {
   const {
     hotels, scopeLabel, scopeSub, period,
     revenueRows, labourRows, dailyRows, openAnomalies,
-    isSingleHotel, isRegional,
+    isSingleHotel, isRegional, loading, error,
   } = useScopedData();
+
+  if (error) return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
+        <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+      </div>
+      <ErrorBanner error={error} />
+    </div>
+  );
+  if (loading) return <DashboardSkeleton kpiCount={4} large />;
 
   const totalRooms = hotels.reduce((s, h) => s + h.rooms, 0);
   const totalRoomCapacity = totalRooms * period.days;
   const totalRoomsSold = dailyRows.reduce((s, m) => s + m.roomsSold, 0);
   // OOO is a current snapshot, scale lightly (capped at 2×) so it doesn't explode for YTD
-  const totalRoomsOoo = Math.max(0, Math.round(dailyRows.reduce((s, m) => s + m.roomsOoo, 0) * Math.min(period.multiplier, 2)));
+  const totalRoomsOoo = dailyRows.reduce((s, m) => s + m.roomsOoo, 0);
   const occupancyPct = totalRoomCapacity > 0 ? (totalRoomsSold / totalRoomCapacity) * 100 : 0;
   const roomsNotSold = totalRoomCapacity - totalRoomsSold;
   const totalRevenue = revenueRows.reduce((s, r) => s + r.totalRevenue, 0);
@@ -29,10 +42,12 @@ export default function DashboardPage() {
     ? dailyRows.reduce((s, m) => s + m.avgCustomerRating, 0) / dailyRows.length
     : 0;
 
-  const portfolioRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-  }));
+  const portfolioRows = hotels
+    .map((hotel) => {
+      const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+      return revenue ? { hotel, revenue } : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   const roomsNotSoldAlert = roomsNotSold > totalRoomCapacity * 0.2;
   const labourVarAlert = labourVariance > Math.max(50, totalScheduled * 0.04);

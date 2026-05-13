@@ -1,0 +1,124 @@
+[
+  {
+    "id": "A001",
+    "hotelId": "SAVGW",
+    "roomNumber": "312",
+    "type": "audit",
+    "title": "Room Deep Inspection",
+    "scheduledDate": "2026-04-20",
+    "completedDate": "2026-04-20",
+    "status": "passed",
+    "score": 88,
+    "findings": [
+      "Minor grout discoloration in shower corner",
+      "Toilet mechanism showing age-related wear"
+    ],
+    "assignedTo": "Emma Johnson"
+  },
+  {
+    "id": "A002",
+    "hotelId": "SAVGW",
+    "roomNumber": "109",
+    "type": "audit",
+    "title": "Quarterly Room Inspection",
+    "scheduledDate": "2026-04-18",
+    "completedDate": "2026-04-18",
+    "status": "passed",
+    "score": 92,
+    "findings": [
+      "AC unit showing age – recommend monitoring for cooling efficiency"
+    ],
+    "assignedTo": "Emma Johnson"
+  },
+  {
+    "id": "A003",
+    "hotelId": "SAVGW",
+    "area": "Floors 1–3",
+    "type": "preventive",
+    "title": "HVAC Filter Replacement – Floors 1–3",
+    "scheduledDate": "2026-04-25",
+    "status": "scheduled",
+    "assignedTo": "Amir Lopez"
+  },
+  {
+    "id": "A004",
+    "hotelId": "SAVGW",
+    "area": "Floors 4–6",
+    "type": "preventive",
+    "title": "HVAC Filter Replacement – Floors 4–6",
+    "scheduledDate": "2026-04-28",
+    "status": "scheduled",
+    "assignedTo": "Amir Lopez"
+  },
+  {
+    "id": "A005",
+    "hotelId": "SAVGW",
+    "roomNumber": "412",
+    "type": "audit",
+    "title": "Pre-renovation Assessment",
+    "scheduledDate": "2026-04-22",
+    "completedDate": "2026-04-22",
+    "status": "passed",
+    "score": 95,
+    "findings": [],
+    "assignedTo": "Sydney Rivera"
+  },
+  {
+    "id": "A006",
+    "hotelId": "SAVMT",
+    "area": "Hotel-wide",
+    "type": "audit",
+    "title": "Hilton Brand Standards Audit",
+    "scheduledDate": "2026-05-01",
+    "status": "scheduled",
+    "assignedTo": "GM (Hilton Garden Midtown)"
+  },
+  {
+    "id": "A007",
+    "hotelId": "SAVFP",
+    "roomNumber": "234",
+    "type": "audit",
+    "title": "Post-repair Inspection (3rd HVAC)",
+    "scheduledDate": "2026-04-26",
+    "status": "scheduled",
+    "assignedTo": "Sydney Rivera"
+  },
+  {
+    "id": "A008",
+    "hotelId": "GA989",
+    "area": "Hotel-wide",
+    "type": "audit",
+    "title": "Choice Hotels QA Inspection",
+    "scheduledDate": "2026-04-30",
+    "status": "in_progress",
+    "assignedTo": "QA Inspector"
+  },
+  {
+    "id": "A009",
+    "hotelId": "BQKCY",
+    "area": "Common Areas",
+    "type": "audit",
+    "title": "Life Safety Systems Inspection",
+    "scheduledDate": "2026-04-23",
+    "completedDate": "2026-04-23",
+    "status": "passed",
+    "score": 96,
+    "findings": [],
+    "assignedTo": "Fire Safety Inspector"
+  },
+  {
+    "id": "A010",
+    "hotelId": "BSWVE",
+    "area": "Pool & Spa",
+    "type": "preventive",
+    "title": "Pool & Spa Quarterly Check",
+    "scheduledDate": "2026-04-24",
+    "completedDate": "2026-04-24",
+    "status": "failed",
+    "findings": [
+      "Pool heater inoperative – heat exchanger failure",
+      "Pool pH at 8.2 (target 7.4–7.6)"
+    ],
+    "assignedTo": "Pool Vendor"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "employeeId": "FD-2042",
+  "name": "Sravan Puli",
+  "role": "Front Desk Agent",
+  "hotel": "Home2 Baton Rouge",
+  "hotelCode": "BTRCI",
+  "hireDate": "2024-07-15",
+  "payRate": 18.5,
+  "payPeriod": "Apr 21 – May 4",
+  "nextPayDate": "2026-05-08",
+  "ptoBalanceHours": 42,
+  "supervisor": "Lashwanda (AGM)",
+  "email": "sravan.p@hosmanagement.co",
+  "phone": "(912) 555-0142"
+}

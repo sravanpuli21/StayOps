@@ -1,0 +1,102 @@
+[
+  {
+    "vendor": "Southern Roofing Co.",
+    "totalSpend": 7900,
+    "workOrderCount": 4,
+    "hotelIds": [
+      "SAVVY",
+      "BQKCY"
+    ]
+  },
+  {
+    "vendor": "Continental Girbau",
+    "totalSpend": 4790,
+    "workOrderCount": 6,
+    "hotelIds": [
+      "SAVFP",
+      "DFWFW",
+      "BQKFP"
+    ]
+  },
+  {
+    "vendor": "GE Zoneline Service",
+    "totalSpend": 4080,
+    "workOrderCount": 11,
+    "hotelIds": [
+      "SAVMT",
+      "SAVGW",
+      "SAVMD",
+      "GA989",
+      "BSWVE",
+      "SAVFP"
+    ]
+  },
+  {
+    "vendor": "HD Supply",
+    "totalSpend": 3000,
+    "workOrderCount": 2,
+    "hotelIds": [
+      "RISAV",
+      "BTRCI"
+    ]
+  },
+  {
+    "vendor": "Restaurant Depot Service",
+    "totalSpend": 2250,
+    "workOrderCount": 3,
+    "hotelIds": [
+      "GA989",
+      "SAVFP",
+      "JAXTX"
+    ]
+  },
+  {
+    "vendor": "Pentair Service",
+    "totalSpend": 2220,
+    "workOrderCount": 4,
+    "hotelIds": [
+      "SAVFP",
+      "GA989",
+      "SAVGW",
+      "58090LA"
+    ]
+  },
+  {
+    "vendor": "Otis",
+    "totalSpend": 2200,
+    "workOrderCount": 4,
+    "hotelIds": [
+      "SAVGW",
+      "SAVMT",
+      "GA989",
+      "SAVFP"
+    ]
+  },
+  {
+    "vendor": "Brite-Lite Electric",
+    "totalSpend": 1530,
+    "workOrderCount": 3,
+    "hotelIds": [
+      "SAVMT",
+      "SAVGW",
+      "SGJES"
+    ]
+  },
+  {
+    "vendor": "A.O. Smith Tech",
+    "totalSpend": 840,
+    "workOrderCount": 2,
+    "hotelIds": [
+      "BQKCY",
+      "SAVMT"
+    ]
+  },
+  {
+    "vendor": "Opera Cloud Support",
+    "totalSpend": 320,
+    "workOrderCount": 1,
+    "hotelIds": [
+      "GA989"
+    ]
+  }
+]
