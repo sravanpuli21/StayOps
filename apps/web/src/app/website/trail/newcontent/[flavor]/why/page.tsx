@@ -1,0 +1,13 @@
+import { notFound } from 'next/navigation';
+import { WhyPage } from '../../_why';
+import type { Flavor } from '../../_palette';
+
+export default async function Page({ params }: { params: Promise<{ flavor: string }> }) {
+  const { flavor } = await params;
+  if (flavor !== 'night' && flavor !== 'daylight') notFound();
+  return <WhyPage flavor={flavor as Flavor} />;
+}
+
+export function generateStaticParams() {
+  return [{ flavor: 'night' }, { flavor: 'daylight' }];
+}

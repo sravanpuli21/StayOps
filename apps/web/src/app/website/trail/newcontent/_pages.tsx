@@ -411,16 +411,70 @@ export function CompanyOverviewPage({ flavor }: { flavor: Flavor }) {
   return (
     <main style={{ background: P.pageBg, color: P.text }}>
       <PageHero palette={P}
+        eyebrow="Company"
         headline="Building better visibility for hotel ownership groups."
         subhead="StayOps is built for the hotel leaders who manage multiple properties, brands, teams, reports, and daily issues — and need one clear place to see what is happening."
         primaryCta={{ label: 'Contact us', href: fp(flavor, '/website/contact') }}
+        secondaryCta={{ label: 'About StayOps', href: fp(flavor, '/website/company/about') }}
       />
 
+      {/* Mission / belief */}
       <Section palette={P} alt>
-        <CardGrid palette={Pa} columns={3} linkable items={[
-          { title: 'About Us',   body: 'Learn why StayOps is being built for hotel owners and regional operations teams.', href: `/website/trail/newcontent/${flavor}/company/about` },
-          { title: 'Contact',    body: 'Have questions or want to see the product? Contact the StayOps team.',           href: `/website/trail/newcontent/${flavor}/contact` },
-          { title: 'Book a Demo',body: 'See how StayOps can work for your current hotel portfolio and workflows.',        href: fp(flavor, '/website/contact') },
+        <SectionHeader palette={Pa}
+          eyebrow="What we believe"
+          headline="Operational data — not month-end reports — is the fastest path to understanding hotel health."
+          body="Hotel groups today run properties across different brands, cities, teams, and systems. But ownership still needs one clear view of how the business is performing. We are building StayOps to make that view possible — without replacing the tools, people, or systems already in place."
+        />
+        <StrongLine palette={Pa}>
+          Ownership should not have to call ten managers to know what is happening across the business.
+        </StrongLine>
+      </Section>
+
+      {/* Principles */}
+      <Section palette={P}>
+        <SectionHeader palette={P}
+          eyebrow="Principles"
+          headline="Four ideas we keep coming back to."
+        />
+        <CardGrid palette={P} columns={4} icon="check" items={[
+          { title: 'Calm control',
+            body: 'Hotel leadership should not feel like an inbox. The right view at the right moment, not more noise.' },
+          { title: 'Every brand. One dashboard.',
+            body: 'Marriott, Hilton, IHG, Choice, Hyatt, Wyndham, independents — one operational layer above them all.' },
+          { title: 'Operations explain the numbers.',
+            body: 'When the P&L moves, the operational record explains why. Owners should never have to guess.' },
+          { title: 'Built for operators.',
+            body: 'Not an AI demo. Not a surveillance tool. A working dashboard for the people who run hotels.' },
+        ]} />
+      </Section>
+
+      {/* What StayOps is not */}
+      <Section palette={P} alt>
+        <SectionHeader palette={Pa}
+          eyebrow="To be clear"
+          headline="What StayOps is not."
+          body="We sit alongside the systems hotels already use, not on top of them. The clarity comes from connecting operational signals — not from replacing what works."
+        />
+        <CardGrid palette={Pa} columns={3} icon="dot" items={[
+          { title: 'Not a PMS',
+            body: 'OnQ, MGS, Opera, Choice Advantage — keep what you have. StayOps reads the operational signals that flow out of them.' },
+          { title: 'Not accounting software',
+            body: 'QuickBooks, M3, Sage, NetSuite, Excel — your books still live where they live. We capture operational context for the people doing the work.' },
+          { title: 'Not a surveillance tool',
+            body: 'Property teams should have proof of work, not blame for missed updates. StayOps respects the people on the floor.' },
+        ]} />
+      </Section>
+
+      {/* Three doors */}
+      <Section palette={P}>
+        <SectionHeader palette={P}
+          eyebrow="Find what you need"
+          headline="Three quick doors into StayOps."
+        />
+        <CardGrid palette={P} columns={3} linkable items={[
+          { title: 'About Us',    body: 'Learn why StayOps is being built for hotel owners and regional operations teams.', href: fp(flavor, '/website/company/about') },
+          { title: 'Contact',     body: 'Have questions or want to see the product? Talk to the StayOps team.',            href: fp(flavor, '/website/contact') },
+          { title: 'Book a Demo', body: 'See how StayOps can work for your current hotel portfolio and workflows.',         href: fp(flavor, '/website/contact') },
         ]} />
       </Section>
 
@@ -443,24 +497,80 @@ export function AboutPage({ flavor }: { flavor: Flavor }) {
   return (
     <main style={{ background: P.pageBg, color: P.text }}>
       <PageHero palette={P}
-        eyebrow="About StayOps"
-        headline="We are building StayOps for the way hotel groups actually operate."
-        subhead="Many hotel ownership groups run properties across different brands, cities, teams, and systems. But leadership still needs one clear view of performance, issues, reports, and daily execution."
+        eyebrow="Our story"
+        headline="It started with a simple question."
+        subhead="How is it possible that a hotel ownership group can run multiple properties across different brands — and still have to call ten managers to know what is happening across the business?"
+        primaryCta={{ label: 'Book a demo', href: fp(flavor, '/website/contact') }}
+        secondaryCta={{ label: 'Why StayOps', href: fp(flavor, '/why') }}
       />
 
+      {/* What we saw */}
       <Section palette={P} alt>
-        <SectionHeader palette={Pa} headline="Hotels may run separately. Ownership does not."
-          body="A hotel group may operate Marriott, Hilton, IHG, Choice, Hyatt, Wyndham, and independent properties at the same time. Each property may use different systems and send different reports. But for ownership and regional leadership, every hotel is part of one business. StayOps is built to bring that business into one view." />
+        <SectionHeader palette={Pa}
+          eyebrow="What we saw"
+          headline="Hotels are run by people. Portfolios are run on guesswork."
+          body="Hotel groups today operate Marriott, Hilton, IHG, Choice, Hyatt, Wyndham, and independent properties at the same time. Each property has its own PMS, its own payroll, its own accounting workflow, its own reports, its own group chats. The data exists — but it does not roll up. So ownership ends up depending on month-end P&Ls, fragmented updates, and gut feel."
+        />
+        <StrongLine palette={Pa}>
+          The bigger the portfolio, the further leadership drifts from what is actually happening.
+        </StrongLine>
       </Section>
 
+      {/* What we kept hearing */}
       <Section palette={P}>
-        <SectionHeader palette={P} headline="Our focus is simple: visibility, control, and faster decisions."
-          body="StayOps helps hotel leaders see revenue, labour, rooms, tickets, audits, maintenance, assets, and reports across every property — so they can find problems faster and act with better information." />
+        <SectionHeader palette={P}
+          eyebrow="What we kept hearing"
+          headline="Owners do not need another report. They need clarity."
+          body="The pattern showed up the same way across every conversation with hotel ownership and regional operations teams."
+        />
+        <CardGrid palette={P} columns={2} icon="dot" items={[
+          { title: 'Numbers come too late.',
+            body: 'By the time the monthly P&L lands, the month is already over and the questions cannot be answered.' },
+          { title: 'Problems show up through guests.',
+            body: 'Owners often hear about issues from guest complaints, brand calls, or escalations — not from their own systems.' },
+          { title: 'GMs are great. The view is not.',
+            body: 'Property teams know what is happening. The challenge is connecting that knowledge to leadership in real time.' },
+          { title: 'Hotels forget.',
+            body: 'A repair, an audit, a fix, a follow-up — completed and then disappeared. No history, no proof, no pattern.' },
+        ]} />
       </Section>
 
+      {/* What we're building */}
       <Section palette={P} alt>
-        <SectionHeader palette={Pa} headline="Built for owners. Useful for teams."
-          body="The product starts with leadership visibility, but connects to the teams doing the work. Owners and regional managers see the full picture. GMs and supervisors manage execution. Property teams update the work from the floor." />
+        <SectionHeader palette={Pa}
+          eyebrow="What we are building"
+          headline="One operational layer for the hotel group — not just the property."
+          body="StayOps is the dashboard for the people responsible for performance across multiple hotels. It connects revenue, occupancy, labour, rooms, tickets, audits, maintenance, assets, reports, and team execution — across brands, across systems, across properties — into one clear place."
+        />
+      </Section>
+
+      {/* Where we are */}
+      <Section palette={P}>
+        <SectionHeader palette={P}
+          eyebrow="Where we are"
+          headline="Early. Honest. Building with operators in the room."
+          body="We are early. We are building StayOps with hotel owners, regional managers, GMs, and property teams — listening, learning, and shipping carefully. Some parts are live. Others are on the roadmap. We will always tell you which is which."
+        />
+        <Bullets palette={P} columns={2} items={[
+          'Building alongside hotel ownership and regional operations teams',
+          'Talking to GMs, supervisors, bookkeepers, and property staff',
+          'Connecting to the systems hotels already use',
+          'Shipping in small, useful steps',
+          'Learning what every brand actually exports',
+          'Refusing to fake what we have not built yet',
+        ]} />
+      </Section>
+
+      {/* Where this is going */}
+      <Section palette={P} alt>
+        <SectionHeader palette={Pa}
+          eyebrow="Where this is going"
+          headline="A control room for hotel ownership."
+          body="A future where ownership groups can see their portfolio in real time — without waiting for the monthly close, without calling ten managers, without rebuilding the same spreadsheet every morning. Operations that explain the numbers. Property teams that have proof of work. Owners that act on signal, not noise."
+        />
+        <StrongLine palette={Pa}>
+          Every hotel. Every brand. One dashboard.
+        </StrongLine>
         <div className="mt-8"><PrimaryButton palette={Pa} label="Book a demo" href={fp(flavor, '/website/contact')} /></div>
       </Section>
 

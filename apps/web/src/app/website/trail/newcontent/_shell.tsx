@@ -35,7 +35,8 @@ const solutionItems = (flavor: Flavor): DropdownItem[] => [
 ];
 
 const companyItems = (flavor: Flavor): DropdownItem[] => [
-  { href: fp(flavor, '/company/about'), title: 'About Us', description: 'Why StayOps is being built.' },
+  { href: fp(flavor, '/company/about'), title: 'About Us', description: 'The story behind StayOps and why we are building it.' },
+  { href: fp(flavor, '/why'),           title: 'Why StayOps', description: 'Hidden operational losses and the gap StayOps is built to close.' },
   { href: fp(flavor, '/contact'),       title: 'Contact',  description: 'Talk to the StayOps team.' },
 ];
 
@@ -100,6 +101,12 @@ export function FlavoredSiteNav({ palette: P, flavor }: { palette: Palette; flav
             wide
             navLinkVars={navLinkVars}
           />
+
+          <Link href={fp(flavor, '/why')}
+            className={`flavor-nav-link${isActive(fp(flavor, '/why')) ? ' is-active' : ''}`}
+            style={navLinkVars}>
+            Why StayOps
+          </Link>
 
           <FlavoredNavDropdown palette={P} flavor={flavor}
             label="Company" href={fp(flavor, '/company')}
@@ -242,10 +249,11 @@ function MobileMenu({
 }) {
   const isDark = P.flavor === 'night';
   const sections: Array<{ label: string; href: string; items?: DropdownItem[] }> = [
-    { label: 'Home',      href: fp(flavor, '/') },
-    { label: 'Product',   href: fp(flavor, '/products'),  items: productItems(flavor)  },
-    { label: 'Solutions', href: fp(flavor, '/solutions'), items: solutionItems(flavor) },
-    { label: 'Company',   href: fp(flavor, '/company'),   items: companyItems(flavor)  },
+    { label: 'Home',         href: fp(flavor, '/') },
+    { label: 'Product',      href: fp(flavor, '/products'),  items: productItems(flavor)  },
+    { label: 'Solutions',    href: fp(flavor, '/solutions'), items: solutionItems(flavor) },
+    { label: 'Why StayOps',  href: fp(flavor, '/why') },
+    { label: 'Company',      href: fp(flavor, '/company'),   items: companyItems(flavor)  },
   ];
 
   return (
@@ -406,9 +414,10 @@ export function FlavoredSiteFooter({ palette: P, flavor }: { palette: Palette; f
           <p className="text-xs font-semibold uppercase tracking-[0.14em] mb-3" style={{ color: P.muted }}>Company</p>
           <ul className="flex flex-col gap-2">
             {[
-              { label: 'About Us',    href: fp(flavor, '/company/about') },
-              { label: 'Contact',     href: fp(flavor, '/contact')       },
-              { label: 'Book a Demo', href: fp(flavor, '/contact')       },
+              { label: 'About Us',     href: fp(flavor, '/company/about') },
+              { label: 'Why StayOps',  href: fp(flavor, '/why')           },
+              { label: 'Contact',      href: fp(flavor, '/contact')       },
+              { label: 'Book a Demo',  href: fp(flavor, '/contact')       },
             ].map((l) => (
               <li key={l.label}>
                 <Link href={l.href} className="transition-colors hover:opacity-70" style={{ color: P.body }}>{l.label}</Link>

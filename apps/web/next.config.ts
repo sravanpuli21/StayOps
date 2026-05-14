@@ -38,8 +38,8 @@ const nextConfig: NextConfig = {
       // Contact
       { source: "/website/contact", destination: `${NIGHT_BASE}/contact`, permanent: false },
 
-      // /why has no Night equivalent yet — fall back to home
-      { source: "/website/why", destination: NIGHT_BASE, permanent: false },
+      // Why StayOps
+      { source: "/website/why", destination: `${NIGHT_BASE}/why`, permanent: false },
     ];
   },
 };
