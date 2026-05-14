@@ -13,9 +13,9 @@ export const HERO = {
   eyebrow:    'For hotel owners and regional managers',
   headline:   'Every hotel. Every brand. One dashboard.',
   subheadline:
-    'StayOps gives hotel owners and regional managers one clear view across revenue, occupancy, labour, rooms, audits, maintenance, tickets, scheduling, assets, reports, and team execution — across every property they manage.',
+    'StayOps gives hotel owners and regional managers one clear view\nacross revenue, occupancy, labour, rooms, audits, maintenance,\ntickets, scheduling, assets, reports, and team execution\nacross every property they manage.',
   supporting:
-    'Built for hotel groups operating across multiple brands, systems, reports, and locations.',
+    'Built for hotel groups operating across multiple brands,\nsystems, reports, and locations.',
   primaryCta:   { label: 'Book a Demo',     href: '/website/contact' },
   secondaryCta: { label: 'See the Product', href: '/website/products' },
   trustLine:
@@ -23,7 +23,7 @@ export const HERO = {
 } as const;
 
 export const PROBLEM = {
-  headline: 'Running 15 hotels shouldn’t feel like running 15 separate businesses.',
+  headline: 'Running 15 hotels shouldn’t feel\nlike running 15 separate businesses.',
   body:
     'Your hotels may be under Marriott, Hilton, IHG, Choice, Hyatt, Wyndham, or independent brands. But every property has its own systems, reports, managers, tickets, schedules, audits, and daily issues. Leadership spends too much time switching between portals, calling managers, collecting reports, and still not seeing the full picture.',
   cards: [
@@ -37,7 +37,7 @@ export const PROBLEM = {
 export const CORE_VALUE = {
   headline: 'One screen for the full picture.',
   body:
-    'StayOps brings your hotel portfolio into one view, so leadership can see what is happening across every property and act before small problems become expensive losses.',
+    'StayOps gives leadership one clear view of every property, helping them catch issues early before they become costly losses.',
   cards: [
     { title: 'See every property',       body: 'Compare revenue, occupancy, labour, room status, and operational issues across the full group.' },
     { title: 'Find what needs attention', body: 'Spot high labour, aging tickets, missed audits, out-of-order rooms, and underperforming hotels.' },

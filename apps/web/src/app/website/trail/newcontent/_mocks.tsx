@@ -495,6 +495,101 @@ export function EmployeeAppMock() {
   );
 }
 
+/* ─── iPad landscape chrome wrapper — frames the MD dashboard ──────────────── */
+function IpadFrame({ children, label }: { children: React.ReactNode; label?: string }) {
+  return (
+    <div className="mx-auto" style={{ maxWidth: 1040 }}>
+      <div
+        className="relative rounded-[36px] p-3 sm:p-4"
+        style={{
+          background: 'linear-gradient(160deg, #2a2a2a 0%, #1a1a1a 100%)',
+          boxShadow:
+            '0 40px 80px -28px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), inset 0 0 0 1px rgba(255,255,255,0.05)',
+        }}
+      >
+        {/* Camera dot */}
+        <span
+          className="absolute left-1/2 -translate-x-1/2 top-[10px] sm:top-[14px] w-1.5 h-1.5 rounded-full"
+          style={{ background: '#0a0a0a', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)' }}
+        />
+        <div
+          className="rounded-[22px] overflow-hidden"
+          style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)' }}
+        >
+          {label && (
+            <div
+              className="px-4 py-2 text-[11px] font-medium"
+              style={{ background: '#f7f7f7', borderBottom: '1px solid #dddddd', color: '#929292' }}
+            >
+              {label}
+            </div>
+          )}
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ *  MdDashboardIpadMock — the MD home dashboard inside an iPad frame.
+ *  Mirrors the real /web/kris/dashboard layout: 4 KPIs + portfolio table.
+ * ============================================================ */
+export function MdDashboardIpadMock() {
+  const rows = [
+    { name: 'Home2 Suites - Baton Rouge',     meta: 'Baton Rouge, LA · Hilton',  rooms: 116, occ: '83%', rev: '$24.3K', health: 'green' as const },
+    { name: 'Hilton Garden Inn - Midtown',    meta: 'Savannah, GA · Hilton',     rooms: 132, occ: '77%', rev: '$17.6K', health: 'amber' as const },
+    { name: 'Fairfield/TPS - Pooler, GA',     meta: 'Pooler, GA · Marriott',     rooms: 158, occ: '91%', rev: '$29.4K', health: 'green' as const },
+    { name: 'Woodspring - Brunswick',         meta: 'Brunswick, GA · Choice',    rooms: 122, occ: '74%', rev: '$15.8K', health: 'red'   as const },
+    { name: 'Home2 Suites - Flower Mound TX', meta: 'Flower Mound, TX · Hilton', rooms:  99, occ: '85%', rev: '$13.7K', health: 'green' as const },
+  ];
+  const thClass = 'text-left text-xs font-semibold uppercase tracking-wide py-3 px-4 whitespace-nowrap';
+
+  return (
+    <IpadFrame label="StayOps · MD Home Dashboard · Today">
+      <div className="px-4 sm:px-5 pt-4 sm:pt-5" style={{ background: '#ffffff' }}>
+        <h3 className="text-base sm:text-lg font-bold" style={{ color: '#222222' }}>Portfolio Dashboard</h3>
+        <p className="text-xs mt-0.5" style={{ color: '#929292' }}>16 properties · 5 brands · this month</p>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 sm:p-5" style={{ background: '#f7f7f7' }}>
+        <MiniKpi label="Occupancy"      value="83.4%"  subtext="1,243 of 1,490 sold"   large />
+        <MiniKpi label="Room Revenue"   value="$1.04M" subtext="Rooms only, excl. F&B" large />
+        <MiniKpi label="Total Revenue"  value="$1.24M" subtext="All revenue streams"   large />
+        <MiniKpi label="Rooms Not Sold" value="247"    subtext="11 rooms out of order" alert large />
+      </div>
+      <div className="overflow-x-auto" style={{ background: '#ffffff' }}>
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr style={{ borderBottom: '1px solid #dddddd', background: '#f7f7f7' }}>
+              <th className={thClass} style={{ color: '#6a6a6a' }}>Property <ChevronUp className="w-3 h-3 inline ml-1" style={{ color: '#ff385c' }} /></th>
+              <th className={thClass} style={{ color: '#6a6a6a' }}>Rooms <ChevronsUpDown className="w-3 h-3 opacity-30 inline ml-1" /></th>
+              <th className={thClass} style={{ color: '#6a6a6a' }}>Occ % <ChevronsUpDown className="w-3 h-3 opacity-30 inline ml-1" /></th>
+              <th className={thClass} style={{ color: '#6a6a6a' }}>Revenue <ChevronsUpDown className="w-3 h-3 opacity-30 inline ml-1" /></th>
+              <th className={thClass} style={{ color: '#6a6a6a' }}>Health</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.name} style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                <td className="py-3 px-4">
+                  <div>
+                    <p className="font-medium text-sm" style={{ color: '#222222' }}>{r.name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#929292' }}>{r.meta}</p>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-sm font-medium" style={{ color: '#3f3f3f' }}>{r.rooms}</td>
+                <td className="py-3 px-4 text-sm font-medium" style={{ color: '#3f3f3f' }}>{r.occ}</td>
+                <td className="py-3 px-4 text-sm font-medium" style={{ color: '#3f3f3f' }}>{r.rev}</td>
+                <td className="py-3 px-4"><HealthPill h={r.health} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </IpadFrame>
+  );
+}
+
 /* ============================================================
  *  MobileAppTriptych — three phones side-by-side for the Mobile Team App page.
  * ============================================================ */

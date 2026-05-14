@@ -54,7 +54,7 @@ const NIGHT: Palette = {
   hoverLift:  'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-18px_rgba(255,56,92,0.35)]',
   buttonPrimary:   { bg: '#ffffff', text: '#0a0a0a' },
   buttonSecondary: { bg: 'transparent', border: 'rgba(255,255,255,0.5)', text: '#ffffff' },
-  heroOverlay: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.85) 100%)',
+  heroOverlay: 'linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.88) 55%, rgba(0,0,0,0.98) 100%)',
   ghostPhotoOpacity: 0.25,
 };
 
@@ -76,7 +76,7 @@ const DAYLIGHT: Palette = {
   hoverLift:  'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-18px_rgba(0,0,0,0.18)]',
   buttonPrimary:   { bg: '#0a0a0a', text: '#ffffff' },
   buttonSecondary: { bg: 'rgba(255,255,255,0.6)', border: '#0a0a0a', text: '#0a0a0a' },
-  heroOverlay: 'linear-gradient(180deg, rgba(255,247,232,0.15) 0%, rgba(255,247,232,0.55) 70%, rgba(245,242,236,0.95) 100%)',
+  heroOverlay: 'linear-gradient(180deg, rgba(255,247,232,0.45) 0%, rgba(245,242,236,0.8) 60%, rgba(245,242,236,0.98) 100%)',
   ghostPhotoOpacity: 0.18,
 };
 

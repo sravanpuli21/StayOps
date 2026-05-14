@@ -40,13 +40,13 @@ export function Hero({
           {headline}
         </h1>
         {subhead && (
-          <p className="mt-5 text-base sm:text-lg lg:text-xl"
+          <p className="mt-5 text-base sm:text-lg lg:text-xl whitespace-normal lg:whitespace-pre-line"
             style={{ color: isDark ? 'rgba(255,255,255,0.85)' : P.body, maxWidth: '52ch', lineHeight: 1.55 }}>
             {subhead}
           </p>
         )}
         {supporting && (
-          <p className="mt-3 text-sm sm:text-base"
+          <p className="mt-3 text-sm sm:text-base whitespace-normal lg:whitespace-pre-line"
             style={{ color: isDark ? 'rgba(255,255,255,0.65)' : P.subtle, maxWidth: '52ch' }}>
             {supporting}
           </p>
@@ -151,7 +151,7 @@ export function SectionHeader({
           {eyebrow}
         </p>
       )}
-      <h2 className={eyebrow ? 'mt-3' : ''}
+      <h2 className={`whitespace-normal lg:whitespace-pre-line ${eyebrow ? 'mt-3' : ''}`}
         style={{
           fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.12,
           letterSpacing: '-0.02em', fontWeight: 600, maxWidth: '24ch', color: P.text,
@@ -225,20 +225,31 @@ export function CardGrid({
 export function Bullets({
   palette: P, items, columns = 2,
 }: { palette: Palette; items: readonly string[]; columns?: 1 | 2 }) {
-  const isDark = P.flavor === 'night';
+  // Detect surface darkness from the actual bg, not flavor — the alt palette
+  // for Night keeps flavor:'night' but renders on cream. Use pageBg luminance.
+  const onDark = isDarkHex(P.pageBg);
   return (
     <ul className={`mt-6 grid grid-cols-1 ${columns === 2 ? 'sm:grid-cols-2' : ''} gap-x-6`}>
       {items.map((b) => (
         <li key={b}
-          className={`flex items-start gap-2.5 py-2 -mx-2 px-2 rounded transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-white/60'}`}>
-          {isDark
+          className={`flex items-start gap-2.5 py-2 -mx-2 px-2 rounded transition-colors ${onDark ? 'hover:bg-white/[0.03]' : 'hover:bg-white/60'}`}>
+          {onDark
             ? <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: P.brand }} />
             : <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: P.brand }} />}
-          <span className="text-sm" style={{ color: isDark ? '#e3e3e3' : P.text }}>{b}</span>
+          <span className="text-sm" style={{ color: P.text }}>{b}</span>
         </li>
       ))}
     </ul>
   );
+}
+
+function isDarkHex(hex: string): boolean {
+  const h = hex.replace('#', '');
+  if (h.length !== 6) return false;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b < 128;
 }
 
 /* ─── Section wrapper — handles bg, alternation, padding ─────────────────── */

@@ -10,7 +10,9 @@ import {
 import {
   PortfolioMock, OwnerKpiMock, RegionalMock, ReportMock,
   MaintenanceAppMock, HousekeepingAppMock, EmployeeAppMock, MobileAppTriptych,
+  MdDashboardIpadMock,
 } from './_mocks';
+import { CoreValueScroll } from './_corevalue-scroll';
 import {
   HERO, PROBLEM, CORE_VALUE, OWNER_LENS, REGIONAL_LENS, PRODUCT_GLIMPSE,
   DRILL_DOWN, REPORTS, AI_ALERTS, HOW_IT_WORKS, FINAL_CTA,
@@ -64,15 +66,29 @@ export function HomePage({ flavor }: { flavor: Flavor }) {
         <CardGrid palette={P} items={[...PROBLEM.cards]} columns={2} icon="dot" />
       </Section>
 
-      {/* Core Value */}
-      <Section palette={P} alt>
-        <SectionHeader palette={Pa}
-          eyebrow="What StayOps does"
-          headline={CORE_VALUE.headline}
-          body={CORE_VALUE.body}
+      {/* Core Value — pinned scrollytelling section (no Section wrapper because
+          overflow-hidden on Section breaks position: sticky) */}
+      <section style={{ background: P.sectionAlt, color: Pa.text }}>
+        {/* Mobile-only intro — desktop renders intro inside the pinned area */}
+        <div className="lg:hidden mx-auto max-w-6xl px-5 sm:px-8 pt-20 sm:pt-28">
+          <SectionHeader palette={Pa}
+            eyebrow="What StayOps does"
+            headline={CORE_VALUE.headline}
+            body={CORE_VALUE.body}
+          />
+        </div>
+        <CoreValueScroll
+          palette={Pa}
+          intro={{ eyebrow: 'What StayOps does', headline: CORE_VALUE.headline, body: CORE_VALUE.body }}
+          cards={CORE_VALUE.cards}
         />
-        <CardGrid palette={Pa} items={[...CORE_VALUE.cards]} columns={4} icon="check" />
-      </Section>
+        <div className="lg:hidden pb-20 sm:pb-28" />
+      </section>
+
+      {/* Brand integrations — horizontal logo marquee */}
+      <BrandLogosSection palette={P} flavor={flavor} />
+
+
 
       {/* Owner Lens */}
       <Section palette={P} photo={photos.secondary}>
@@ -765,4 +781,85 @@ function MockResolver({ mock }: { mock: MockKey }) {
     case 'employeeApp':     return <EmployeeAppMock />;
     case 'mobileTriptych':  return <MobileAppTriptych />;
   }
+}
+
+/* ─── Brand logos — infinite horizontal marquee ─────────────────────────── */
+const BRAND_LOGOS = [
+  { name: 'Marriott',     src: '/brand-logos/logo-marriott.webp'      },
+  { name: 'Hilton',       src: '/brand-logos/logo-hilton.webp'        },
+  { name: 'IHG',          src: '/brand-logos/logo-ihg.webp'           },
+  { name: 'Hyatt',        src: '/brand-logos/logo-hyatt.webp'         },
+  { name: 'Choice',       src: '/brand-logos/logo-choice-hotels.webp' },
+  { name: 'Wyndham',      src: '/brand-logos/logo-wyndham.webp'       },
+  { name: 'Best Western', src: '/brand-logos/logo-best-western.webp'  },
+];
+
+function BrandLogosSection({ palette: P, flavor }: { palette: Palette; flavor: Flavor }) {
+  const isDark = P.flavor === 'night';
+  // Doubled list so the marquee loop is seamless
+  const loopList = [...BRAND_LOGOS, ...BRAND_LOGOS];
+  return (
+    <section style={{ background: P.pageBg, color: P.text }}>
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-20 sm:pt-28 pb-10 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: P.brand }}>
+          Integrations
+        </p>
+        <h2 className="mt-3 mx-auto"
+          style={{
+            fontSize: 'clamp(1.75rem, 3.4vw, 2.75rem)',
+            lineHeight: 1.12,
+            letterSpacing: '-0.02em',
+            fontWeight: 600,
+            color: P.text,
+            maxWidth: '24ch',
+          }}>
+          Works with the hotel brands you already operate.
+        </h2>
+        <p className="mt-4 mx-auto text-base sm:text-lg"
+          style={{ color: P.body, lineHeight: 1.6, maxWidth: '60ch' }}>
+          No replacement, no migration.
+        </p>
+        <div className="mt-7 flex justify-center">
+          <PrimaryButton palette={P} label="Integrate today" href={fp(flavor, '/website/contact')} />
+        </div>
+      </div>
+
+      {/* Marquee strip */}
+      <div className="relative pb-20 sm:pb-28">
+        {/* edge fades */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-20 sm:bottom-28 w-16 sm:w-24 z-10"
+          style={{
+            background: `linear-gradient(to right, ${P.pageBg}, ${P.pageBg}00)`,
+          }} />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-20 sm:bottom-28 w-16 sm:w-24 z-10"
+          style={{
+            background: `linear-gradient(to left, ${P.pageBg}, ${P.pageBg}00)`,
+          }} />
+
+        <div className="overflow-hidden">
+          <div className="so-logo-marquee flex items-center w-max">
+            {loopList.map((logo, i) => (
+              <div key={`${logo.name}-${i}`}
+                className="flex-shrink-0 mx-3 sm:mx-4 flex items-center justify-center rounded-2xl"
+                style={{
+                  width: 200,
+                  height: 96,
+                  background: isDark ? '#ffffff' : '#ffffff',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : P.border}`,
+                  boxShadow: isDark
+                    ? '0 10px 30px -15px rgba(0,0,0,0.5)'
+                    : '0 6px 24px -12px rgba(0,0,0,0.08)',
+                }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo.src} alt={logo.name}
+                  className="max-h-12 max-w-[140px] object-contain"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

@@ -327,3 +327,11 @@
 /* Hide scrollbar for horizontal carousels if needed */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* Logo marquee — infinite horizontal scroll */
+@keyframes so-logo-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.so-logo-marquee { animation: so-logo-marquee 40s linear infinite; }
+.so-logo-marquee:hover { animation-play-state: paused; }
