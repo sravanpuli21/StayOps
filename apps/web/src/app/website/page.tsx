@@ -50,7 +50,7 @@ function Hero() {
           }}
         >
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ff385c' }} />
-          Built inside a 16-hotel operator&apos;s office
+          For independent ownership groups
         </span>
         <h1
           className="mt-5"
@@ -69,7 +69,7 @@ function Hero() {
           style={{ color: 'rgba(255,255,255,0.85)', maxWidth: '44ch', lineHeight: 1.5 }}
         >
           Rooms turn. Repairs queue. Audits age. Handovers drift. By the time the owner asks,
-          the answer is gone. StayOps keeps it.
+          the answer is gone. StayOps gives the hotel a memory.
         </p>
         <div className="mt-8 flex items-center gap-3 flex-wrap">
           <Link
@@ -110,8 +110,11 @@ function QuoteStrip() {
         &ldquo;I didn&apos;t need another dashboard. I needed the hotel to remember what
         happened yesterday.&rdquo;
       </p>
-      <p className="mt-6 text-sm" style={{ color: '#6a6a6a' }}>
-        — 16-hotel AAHOA operator · customer zero
+      <p
+        className="mt-6 text-sm uppercase tracking-[0.16em]"
+        style={{ color: '#929292', fontWeight: 500 }}
+      >
+        — what we kept hearing from operators
       </p>
     </section>
   );
@@ -197,6 +200,51 @@ function ThreeScenes() {
           That&apos;s four untracked hours, one moved guest, one lost revenue night, and a
           pattern the owner will never hear about.
         </p>
+
+        {/* Resolution — same morning, with StayOps */}
+        <div
+          className="mt-10 rounded-2xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+            border: '1px solid rgba(255,56,92,0.25)',
+            boxShadow: '0 0 0 1px rgba(255,56,92,0.08), 0 20px 60px -20px rgba(255,56,92,0.25)',
+          }}
+        >
+          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 md:gap-8 items-center">
+            <span
+              className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+              style={{
+                background: 'rgba(255,56,92,0.12)',
+                border: '1px solid rgba(255,56,92,0.4)',
+                color: '#ff6b85',
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#ff385c' }} />
+              Same morning · with StayOps
+            </span>
+            <div>
+              <p
+                className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: '#ff385c' }}
+              >
+                6:14 AM, Wednesday
+              </p>
+              <p
+                className="mt-2 text-lg sm:text-xl font-semibold"
+                style={{ color: '#fff', lineHeight: 1.35, letterSpacing: '-0.01em' }}
+              >
+                You open the app. Last night&apos;s AC ticket is at the top.
+              </p>
+              <p
+                className="mt-2 text-sm sm:text-base"
+                style={{ color: '#a8a8a8', lineHeight: 1.6 }}
+              >
+                Room 214 is already blocked from sale. Maintenance lead is assigned. By 8 AM
+                the room is back online, and the moved guest has an apology waiting.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -214,7 +262,7 @@ function OperatorsNote() {
       />
       <div className="relative mx-auto max-w-4xl px-5 sm:px-8 py-20 sm:py-28">
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: '#b64a3f' }}>
-          A note from the operators
+          Why we built it
         </p>
         <h2
           className="mt-3 font-semibold"
@@ -225,15 +273,16 @@ function OperatorsNote() {
             letterSpacing: '-0.02em',
           }}
         >
-          We built this tool because we needed it. Then other owners asked for it.
+          Hotels track revenue. They don&apos;t track the gaps that quietly drain it.
         </h2>
         <p
           className="mt-5 text-base sm:text-lg"
           style={{ color: '#3f3f3f', lineHeight: 1.65, maxWidth: '56ch' }}
         >
-          StayOps started in a 16-hotel family operator&apos;s office — second generation, AAHOA,
-          multi-brand. The problem wasn&apos;t software. The problem was that nothing kept
-          track of what happened. We fixed that for ourselves first. Now it&apos;s here for you.
+          The PMS shows occupancy and ADR. Payroll shows hours. Neither remembers the AC
+          that broke at 11 PM, the audit that&apos;s been overdue for six weeks, or the OTA
+          channel quietly taking 18% on cancellations. StayOps closes those gaps — across
+          every property, every shift, every team — so the loss stops being invisible.
         </p>
       </div>
     </section>

@@ -1,4 +1,6 @@
+'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const COLS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
   {
@@ -20,6 +22,8 @@ const COLS: Array<{ title: string; links: Array<{ label: string; href: string }>
 ];
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname.startsWith('/website/trail/newcontent/')) return null;
   return (
     <footer
       style={{

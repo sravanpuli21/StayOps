@@ -108,6 +108,94 @@
 .stayops-cta-ghost:hover { background: var(--so-cream); }
 
 /* -----------------------------------------------------------
+ * Top-nav link — subtle Rausch underline grows in on hover
+ * --------------------------------------------------------- */
+.so-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.1rem;
+  color: var(--so-ink-muted);
+  font-weight: 500;
+  transition: color 180ms ease;
+}
+.so-nav-link:hover { color: var(--so-ink); }
+.so-nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 0;
+  height: 2px;
+  background: #ff385c;
+  transform: translateX(-50%);
+  transition: width 200ms ease;
+  border-radius: 2px;
+}
+.so-nav-link:hover::after,
+.so-nav-link.is-active::after { width: 100%; }
+.so-nav-link.is-active { color: var(--so-ink); }
+
+/* Mobile-menu version: pill background instead of underline */
+.so-nav-link-mobile {
+  display: block;
+  padding: 0.75rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--so-ink-muted);
+  transition: background 150ms ease, color 150ms ease;
+}
+.so-nav-link-mobile:hover {
+  background: var(--so-canvas-soft);
+  color: var(--so-ink);
+}
+.so-nav-link-mobile.is-active {
+  background: var(--so-cream);
+  color: var(--so-ink);
+}
+
+/* -----------------------------------------------------------
+ * Flavored nav links — same Rausch underline animation as
+ * .so-nav-link, but driven by CSS vars so night/daylight can
+ * each set their own colours via inline style.
+ * --------------------------------------------------------- */
+.flavor-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.1rem;
+  color: var(--fnav-color, #6b6b6b);
+  font-weight: 500;
+  transition: color 180ms ease;
+}
+.flavor-nav-link:hover { color: var(--fnav-hover, #0a0a0a); }
+.flavor-nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 0;
+  height: 2px;
+  background: var(--fnav-accent, #ff385c);
+  transform: translateX(-50%);
+  transition: width 200ms ease;
+  border-radius: 2px;
+}
+.flavor-nav-link:hover::after,
+.flavor-nav-link.is-active::after { width: 100%; }
+.flavor-nav-link.is-active { color: var(--fnav-hover, #0a0a0a); }
+
+/* Dropdown menu item hover bg — driven by var so we can tint
+ * differently in night vs daylight without two CSS classes. */
+.flavor-menu-item {
+  transition: background 150ms ease;
+}
+.flavor-menu-item:hover {
+  background: var(--fmenu-hover-bg, rgba(0,0,0,0.04));
+}
+
+/* -----------------------------------------------------------
  * Gradient blob card — the signature Handhold visual
  * Usage:
  *   <div class="blob-card blob-amber">
