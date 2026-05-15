@@ -18,20 +18,36 @@ declare global {
   var __stayopsDb: ReturnType<typeof postgres> | undefined;
 }
 
-function makeClient() {
+function getClient(): ReturnType<typeof postgres> {
+  if (globalThis.__stayopsDb) return globalThis.__stayopsDb;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL env var is missing');
-  return postgres(url, {
+  globalThis.__stayopsDb = postgres(url, {
     ssl: 'require',
     prepare: false,
     max: 5,
     idle_timeout: 20,
     connect_timeout: 10,
   });
+  return globalThis.__stayopsDb;
 }
 
-export const db: ReturnType<typeof postgres> =
-  globalThis.__stayopsDb ?? (globalThis.__stayopsDb = makeClient());
+// Lazy proxy: defer client creation (and the DATABASE_URL check) to first
+// actual use. Lets Next.js page-data collection at build time import this
+// module without needing DATABASE_URL set in the build environment.
+const lazyTarget = function () {} as unknown as ReturnType<typeof postgres>;
+export const db: ReturnType<typeof postgres> = new Proxy(lazyTarget, {
+  apply(_target, thisArg, args) {
+    return Reflect.apply(
+      getClient() as unknown as (...a: unknown[]) => unknown,
+      thisArg,
+      args,
+    );
+  },
+  get(_target, prop, receiver) {
+    return Reflect.get(getClient(), prop, receiver);
+  },
+}) as ReturnType<typeof postgres>;
 
 let cachedTenantId: string | null = null;
 
