@@ -25,7 +25,7 @@ export const HERO = {
 export const PROBLEM = {
   headline: 'Running 15 hotels shouldn’t feel\nlike running 15 separate businesses.',
   body:
-    'Your hotels may be under Marriott, Hilton, IHG, Choice, Hyatt, Wyndham, or independent brands. But every property has its own systems, reports, managers, tickets, schedules, audits, and daily issues. Leadership spends too much time switching between portals, calling managers, collecting reports, and still not seeing the full picture.',
+    'Different brands, different systems, different reports. Leadership ends up stitching the picture together by hand.',
   cards: [
     { title: 'Too many systems',         body: 'Revenue, payroll, tickets, audits, rooms, schedules, and reports live in different places.' },
     { title: 'Too much manual reporting', body: 'Teams spend hours stitching together spreadsheets before decisions can be made.' },
@@ -80,6 +80,40 @@ export const REGIONAL_LENS = {
   cta: { label: 'See regional manager solution', href: '/website/solutions/regional' },
 } as const;
 
+export const ROOM_DEEP_DIVE = {
+  eyebrow:  'Drill into any room',
+  headline: 'Every hotel. Every room.\nEvery dollar spent.',
+  body:
+    'Pick a hotel. See the live floor map. Click any room. You get status, active ticket, every repair to date, the last audit, and what each asset has cost over its life.',
+  bullets: [
+    'Live floor map for every property',
+    'Room status — ready, dirty, inspecting, OOO, occupied, blocked',
+    'Open tickets, vendor, and age per room',
+    'Repair history and cost per asset',
+    'Audit findings tied to the room',
+    'Photo proof on every inspection',
+    'Switch hotels in one click',
+  ],
+  cta: { label: 'See it for your portfolio', href: '/website/contact' },
+} as const;
+
+export const AUDITS_INSPECTIONS = {
+  eyebrow:  'Audits & inspections',
+  headline: 'Every safety check.\nEvery FF&E count. One ledger.',
+  body:
+    'Audit schedules, photos, findings, follow-ups...\nall in one searchable record across every property.',
+  bullets: [
+    'FF&E audits — furniture, fixtures, equipment, condition',
+    'Compliance & safety inspection schedules',
+    'Photo proof on every line item',
+    'Open findings aging tracker',
+    'Audit history per property — searchable, exportable',
+    'Inspector and vendor record',
+    'Owner-facing audit summaries',
+  ],
+  cta: { label: 'See it for your portfolio', href: '/website/contact' },
+} as const;
+
 export const PRODUCT_GLIMPSE = {
   headline: 'Everything leadership needs to see. Connected to the work happening on the floor.',
   body:
@@ -106,9 +140,9 @@ export const DRILL_DOWN = {
 } as const;
 
 export const REPORTS = {
-  headline: 'Reports in one click, not after hours of work.',
+  headline: 'Printable reports in seconds. Built by AI.',
   body:
-    'Create daily, weekly, monthly, and custom reports for revenue, labour, operations, audits, maintenance, rooms, and assets — without rebuilding spreadsheets every time.',
+    'Type the question or pick a template. StayOps assembles the report from your live operations and hands you a clean, printable PDF — in seconds. No spreadsheet stitching.',
   reportTypes: [
     'Daily owner summary',
     'Revenue and occupancy report',
@@ -140,22 +174,17 @@ export const AI_ALERTS = {
 export const HOW_IT_WORKS = {
   headline: 'Built around the way hotel groups already work.',
   steps: [
-    { n: 1, title: 'Bring in your existing reports and data',
-      body: 'StayOps is designed to work with hotel reports, exports, payroll data, audit files, ticket workflows, and property-level systems.' },
-    { n: 2, title: 'See every hotel in one dashboard',
-      body: 'View revenue, occupancy, labour, rooms, tickets, audits, and reports across your full portfolio.' },
-    { n: 3, title: 'Compare and drill down',
-      body: 'Find the property, department, room, ticket, asset, or cost that needs attention.' },
-    { n: 4, title: 'Send work to teams',
-      body: 'Property teams can see assigned work, update tickets, complete audits, and submit proof.' },
-    { n: 5, title: 'Generate reports',
-      body: 'Create owner-ready reports without manual spreadsheet work.' },
+    { n: 1, title: 'Bring in your existing reports and data', body: '' },
+    { n: 2, title: 'See every hotel in one dashboard',         body: '' },
+    { n: 3, title: 'Compare and drill down',                   body: '' },
+    { n: 4, title: 'Send work to teams',                       body: '' },
+    { n: 5, title: 'Generate reports',                         body: '' },
   ],
   cta: { label: 'See how it works', href: '/website/products' },
 } as const;
 
 export const FINAL_CTA = {
-  headline: 'Ready to see your hotels in one place?',
+  headline: 'Ready to see all your hotels in one place?',
   body:
     'StayOps is built for hotel ownership and regional operations teams managing multiple properties across different brands, systems, and locations.',
   cta:       { label: 'Book a Demo', href: '/website/contact' },

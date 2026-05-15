@@ -10,12 +10,13 @@ import {
 import {
   PortfolioMock, OwnerKpiMock, RegionalMock, ReportMock,
   MaintenanceAppMock, HousekeepingAppMock, EmployeeAppMock, MobileAppTriptych,
-  MdDashboardIpadMock,
+  MdDashboardIpadMock, MaintenanceSpendMock, FfeAuditMock, RoomDrillMock,
 } from './_mocks';
 import { CoreValueScroll } from './_corevalue-scroll';
 import {
   HERO, PROBLEM, CORE_VALUE, OWNER_LENS, REGIONAL_LENS, PRODUCT_GLIMPSE,
   DRILL_DOWN, REPORTS, AI_ALERTS, HOW_IT_WORKS, FINAL_CTA,
+  ROOM_DEEP_DIVE, AUDITS_INSPECTIONS,
 } from './_content';
 import {
   PRODUCT_LIST, SOLUTION_LIST, PRODUCT_SUBPAGES, SOLUTION_SUBPAGES,
@@ -88,29 +89,59 @@ export function HomePage({ flavor }: { flavor: Flavor }) {
       {/* Brand integrations — horizontal logo marquee */}
       <BrandLogosSection palette={P} flavor={flavor} />
 
-
-
-      {/* Owner Lens */}
-      <Section palette={P} photo={photos.secondary}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 items-center">
-          <div>
-            <SectionHeader palette={P} eyebrow={OWNER_LENS.eyebrow} headline={OWNER_LENS.headline} body={OWNER_LENS.body} />
-            <Bullets palette={P} items={OWNER_LENS.bullets} />
-            <div className="mt-8"><PrimaryButton palette={P} {...cta(flavor, OWNER_LENS.cta)} /></div>
-          </div>
-          <OwnerKpiMock />
+      {/* Room deep-dive — full-width iPad mock (alt cream bg) */}
+      <Section palette={P} alt>
+        <CenteredHeader palette={Pa}
+          eyebrow={ROOM_DEEP_DIVE.eyebrow}
+          headline={
+            <>
+              Every hotel. Every room.{'\n'}Every{' '}
+              <span style={{
+                background: Pa.brand,
+                color: '#ffffff',
+                padding: '0.02em 0.18em',
+                borderRadius: 4,
+              }}>dollar</span>{' '}spent.
+            </>
+          }
+          body={ROOM_DEEP_DIVE.body}
+        />
+        <div className="mt-12">
+          <RoomDrillMock />
+        </div>
+        <FeatureChips palette={Pa} items={ROOM_DEEP_DIVE.bullets} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={Pa} {...cta(flavor, ROOM_DEEP_DIVE.cta)} />
         </div>
       </Section>
 
-      {/* Regional Lens */}
+      {/* Audits & inspections — full-width iPad mock (regular dark bg) */}
+      <Section palette={P}>
+        <CenteredHeader palette={P} {...AUDITS_INSPECTIONS} />
+        <div className="mt-12">
+          <FfeAuditMock />
+        </div>
+        <FeatureChips palette={P} items={AUDITS_INSPECTIONS.bullets} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={P} {...cta(flavor, AUDITS_INSPECTIONS.cta)} />
+        </div>
+      </Section>
+
+
+
+      {/* Owner Lens — full-width iPad mock with MD home dashboard */}
       <Section palette={P} alt>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 items-center">
-          <RegionalMock />
-          <div>
-            <SectionHeader palette={Pa} eyebrow={REGIONAL_LENS.eyebrow} headline={REGIONAL_LENS.headline} body={REGIONAL_LENS.body} />
-            <Bullets palette={Pa} items={REGIONAL_LENS.bullets} />
-            <div className="mt-8"><PrimaryButton palette={Pa} {...cta(flavor, REGIONAL_LENS.cta)} /></div>
-          </div>
+        <CenteredHeader palette={Pa}
+          eyebrow={OWNER_LENS.eyebrow}
+          headline={OWNER_LENS.headline}
+          body={OWNER_LENS.body}
+        />
+        <div className="mt-12">
+          <MdDashboardIpadMock />
+        </div>
+        <FeatureChips palette={Pa} items={OWNER_LENS.bullets} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={Pa} {...cta(flavor, OWNER_LENS.cta)} />
         </div>
       </Section>
 
@@ -129,19 +160,12 @@ export function HomePage({ flavor }: { flavor: Flavor }) {
         <div className="mt-12 flex justify-center"><PrimaryButton palette={P} {...cta(flavor, PRODUCT_GLIMPSE.cta)} /></div>
       </Section>
 
-      {/* Drill Down */}
-      <Section palette={P} alt>
-        <SectionHeader palette={Pa} headline={DRILL_DOWN.headline} body={DRILL_DOWN.body} />
-        <DrillPath palette={Pa} path={DRILL_DOWN.path} />
-        <StrongLine palette={Pa}>{DRILL_DOWN.strongLine}</StrongLine>
-      </Section>
-
       {/* Reports */}
       <Section palette={P}>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: P.brand }}>
-              <FileText className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" /> Reports
+              <Sparkles className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" /> Reports · AI-built
             </p>
             <h2 className="mt-3" style={{
               fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.12,
@@ -159,37 +183,14 @@ export function HomePage({ flavor }: { flavor: Flavor }) {
         </div>
       </Section>
 
-      {/* AI Alerts */}
-      <Section palette={P} alt>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] inline-flex items-center gap-1.5" style={{ color: Pa.brand }}>
-          <BellRing className="w-3.5 h-3.5" /> Alerts
-        </p>
-        <h2 className="mt-3" style={{
-          fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)', lineHeight: 1.12,
-          letterSpacing: '-0.02em', fontWeight: 600, maxWidth: '24ch', color: Pa.text,
-        }}>
-          {AI_ALERTS.headline}
-        </h2>
-        <p className="mt-5 text-base sm:text-lg" style={{ color: Pa.body, lineHeight: 1.65, maxWidth: '64ch' }}>
-          {AI_ALERTS.body}
-        </p>
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-3">
-          {AI_ALERTS.alerts.map((a) => (
-            <div key={a} className={`rounded-xl p-4 flex items-start gap-3 ${Pa.hoverLift}`}
-              style={{ background: Pa.card, border: `1px solid ${Pa.border}` }}>
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0"
-                style={{ background: '#fffbeb' }}>
-                <Sparkles className="w-3.5 h-3.5" style={{ color: Pa.accent }} />
-              </span>
-              <span className="text-sm pt-0.5" style={{ color: Pa.text, lineHeight: 1.5 }}>{a}</span>
-            </div>
-          ))}
-        </div>
-      </Section>
 
       {/* How It Works */}
       <Section palette={P}>
-        <SectionHeader palette={P} headline={HOW_IT_WORKS.headline} />
+        <CenteredHeader palette={P}
+          eyebrow="How it works"
+          headline={HOW_IT_WORKS.headline}
+          body="Five steps. No replatforming, no migrations. StayOps fits the way ownership groups already run."
+        />
         <NumberedSteps palette={P} steps={HOW_IT_WORKS.steps} />
         <div className="mt-12 flex justify-center"><PrimaryButton palette={P} {...cta(flavor, HOW_IT_WORKS.cta)} /></div>
       </Section>
@@ -781,6 +782,56 @@ function MockResolver({ mock }: { mock: MockKey }) {
     case 'employeeApp':     return <EmployeeAppMock />;
     case 'mobileTriptych':  return <MobileAppTriptych />;
   }
+}
+
+/* ─── Centered section header (eyebrow + headline + body, all centered) ─── */
+function CenteredHeader({
+  palette: P, eyebrow, headline, body,
+}: { palette: Palette; eyebrow: string; headline: React.ReactNode; body: string }) {
+  return (
+    <div className="text-center max-w-3xl mx-auto">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: P.brand }}>
+        {eyebrow}
+      </p>
+      <h2 className="mt-3 mx-auto whitespace-normal lg:whitespace-pre-line"
+        style={{
+          fontSize: 'clamp(1.75rem, 3.4vw, 2.75rem)',
+          lineHeight: 1.12,
+          letterSpacing: '-0.02em',
+          fontWeight: 600,
+          color: P.text,
+          maxWidth: '24ch',
+        }}>
+        {headline}
+      </h2>
+      <p className="mt-4 mx-auto text-base sm:text-lg whitespace-normal lg:whitespace-pre-line"
+        style={{ color: P.body, lineHeight: 1.6, maxWidth: '60ch' }}>
+        {body}
+      </p>
+    </div>
+  );
+}
+
+/* ─── Feature chip row — bullets rendered as a compact horizontal pill row ─── */
+function FeatureChips({
+  palette: P, items,
+}: { palette: Palette; items: readonly string[] }) {
+  return (
+    <ul className="mt-10 flex flex-wrap items-center justify-center gap-2">
+      {items.map((b) => (
+        <li key={b}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm"
+          style={{
+            background: 'transparent',
+            border: `1px solid ${P.border}`,
+            color: P.body,
+          }}>
+          <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: P.brand }} />
+          {b}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /* ─── Brand logos — infinite horizontal marquee ─────────────────────────── */

@@ -273,8 +273,8 @@ export function Section({
             style={{ opacity: photoOpacity ?? effective.ghostPhotoOpacity }} />
           <div className="absolute inset-0" style={{
             background: alt
-              ? 'linear-gradient(135deg, rgba(245,242,236,0.85) 0%, rgba(245,242,236,0.7) 100%)'
-              : 'linear-gradient(135deg, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.55) 100%)',
+              ? 'linear-gradient(135deg, rgba(245,242,236,0.95) 0%, rgba(245,242,236,0.85) 100%)'
+              : 'linear-gradient(135deg, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0.82) 100%)',
           }} />
         </>
       )}
@@ -367,19 +367,43 @@ export function NumberedSteps({
   steps: readonly { n: number; title: string; body: string }[];
 }) {
   return (
-    <ol className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-      {steps.map((s) => (
-        <li key={s.n} className={`rounded-2xl p-5 ${P.hoverLift}`}
-          style={{ background: P.card, border: `1px solid ${P.border}` }}>
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold"
-            style={{ background: 'rgba(255,56,92,0.12)', color: P.brandSoft }}>
-            {s.n}
-          </span>
-          <p className="mt-4 text-base font-semibold" style={{ color: P.text }}>{s.title}</p>
-          <p className="mt-2 text-sm" style={{ color: P.body, lineHeight: 1.55 }}>{s.body}</p>
-        </li>
-      ))}
-    </ol>
+    <div className="mt-14 relative">
+      {/* Horizontal connector line — runs through the row of numbered nodes on lg+ */}
+      <div className="hidden lg:block absolute left-[8%] right-[8%] h-px"
+        style={{
+          top: 28,
+          background: `linear-gradient(to right, transparent 0%, ${P.borderSoft} 8%, ${P.borderSoft} 92%, transparent 100%)`,
+        }} />
+
+      <ol className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-x-4 gap-y-10 relative">
+        {steps.map((s) => (
+          <li key={s.n} className="text-center px-2">
+            {/* Numbered node */}
+            <span className="relative z-10 inline-flex items-center justify-center w-14 h-14 rounded-full mx-auto"
+              style={{
+                background: P.card,
+                border: `1px solid ${P.border}`,
+                boxShadow: `0 0 0 5px ${P.pageBg}, 0 6px 18px -8px rgba(0,0,0,0.18)`,
+              }}>
+              <span className="text-base font-bold tracking-tight" style={{ color: P.brand }}>
+                {s.n.toString().padStart(2, '0')}
+              </span>
+            </span>
+
+            <p className="mt-5 text-base font-semibold leading-snug"
+              style={{ color: P.text, letterSpacing: '-0.01em' }}>
+              {s.title}
+            </p>
+            {s.body && (
+              <p className="mt-2 text-sm mx-auto"
+                style={{ color: P.body, lineHeight: 1.55, maxWidth: '22ch' }}>
+                {s.body}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
