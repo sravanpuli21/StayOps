@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none" role="img" aria-label="StayOps">
+  <!-- Light variant: for dark backgrounds. Charcoal swapped to white, Rausch unchanged. -->
+  <g>
+    <rect x="0"  y="4"  width="14" height="14" rx="3" fill="#FFFFFF"/>
+    <rect x="18" y="4"  width="14" height="14" rx="3" fill="#FFFFFF"/>
+    <rect x="0"  y="22" width="14" height="14" rx="3" fill="#FFFFFF"/>
+    <rect x="18" y="22" width="14" height="14" rx="3" fill="#FF385C"/>
+  </g>
+  <text x="42" y="28" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" letter-spacing="-0.025em">
+    <tspan fill="#FFFFFF">Stay</tspan><tspan fill="#FF385C">Ops</tspan>
+  </text>
+</svg>

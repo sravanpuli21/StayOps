@@ -186,7 +186,7 @@ export const HOW_IT_WORKS = {
 export const FINAL_CTA = {
   headline: 'Ready to see all your hotels in one place?',
   body:
-    'StayOps is built for hotel ownership and regional operations teams managing multiple properties across different brands, systems, and locations.',
+    'See how StayOps can help your ownership and regional operations teams bring every property, report, room, and issue into one dashboard.',
   cta:       { label: 'Book a Demo', href: '/website/contact' },
   smallText: "No commitment. We'll show how it can work with your current portfolio and reports.",
 } as const;

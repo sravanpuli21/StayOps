@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="StayOps mark">
+  <!-- Mark only: portfolio/grid icon. Three charcoal tiles + one Rausch tile (bottom-right). -->
+  <rect x="0"  y="0"  width="14" height="14" rx="3" fill="#0F172A"/>
+  <rect x="18" y="0"  width="14" height="14" rx="3" fill="#0F172A"/>
+  <rect x="0"  y="18" width="14" height="14" rx="3" fill="#0F172A"/>
+  <rect x="18" y="18" width="14" height="14" rx="3" fill="#FF385C"/>
+</svg>

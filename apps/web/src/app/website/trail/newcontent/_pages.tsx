@@ -11,6 +11,7 @@ import {
   PortfolioMock, OwnerKpiMock, RegionalMock, ReportMock,
   MaintenanceAppMock, HousekeepingAppMock, EmployeeAppMock, MobileAppTriptych,
   MdDashboardIpadMock, MaintenanceSpendMock, FfeAuditMock, RoomDrillMock,
+  LabourMiniMock, TicketsMiniMock, AssetMiniMock,
 } from './_mocks';
 import { CoreValueScroll } from './_corevalue-scroll';
 import {
@@ -226,18 +227,130 @@ export function ProductOverviewPage({ flavor }: { flavor: Flavor }) {
         secondaryCta={{ label: 'See it in action', href: '#modules' }}
       />
 
-      {/* Platform Summary — three pillars */}
+      {/* Product glimpses — one section per module. Hero modules use the
+          centered iPad pattern, the rest use compact 2-col side-by-side. */}
+
+      {/* 1. Portfolio Dashboard — full iPad */}
       <Section palette={P} alt>
-        <SectionHeader palette={Pa}
-          eyebrow="Platform summary"
-          headline="See the business. Track the work. Report faster."
-          body="StayOps gives leadership a clear portfolio view while helping property teams complete the work that keeps hotels running."
+        <CenteredHeader palette={Pa}
+          eyebrow={PRODUCT_SUBPAGES['portfolio-dashboard'].eyebrow}
+          headline={PRODUCT_SUBPAGES['portfolio-dashboard'].label}
+          body={PRODUCT_SUBPAGES['portfolio-dashboard'].subhead}
         />
-        <CardGrid palette={Pa} columns={3} icon="check" items={[
-          { title: 'Portfolio Visibility', body: 'See revenue, occupancy, labour, room status, and property performance across every hotel.' },
-          { title: 'Operational Control',  body: 'Track tickets, audits, maintenance, housekeeping, scheduling, and daily issues.' },
-          { title: 'Reports & Alerts',     body: 'Generate reports and catch problems earlier with AI-supported alerts and summaries.' },
-        ]} />
+        <div className="mt-12">
+          <MdDashboardIpadMock />
+        </div>
+        <FeatureChips palette={Pa} items={PRODUCT_SUBPAGES['portfolio-dashboard'].whatYouSee} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={Pa}
+            label="Explore Portfolio Dashboard"
+            href={fp(flavor, '/products/portfolio-dashboard')}
+          />
+        </div>
+      </Section>
+
+      {/* 2. Revenue & Occupancy — compact 2-col */}
+      <Section palette={P}>
+        <ProductGlimpse2Col palette={P} flavor={flavor}
+          slug="revenue-occupancy" mockOnRight
+          mock={<OwnerKpiMock />} />
+      </Section>
+
+      {/* 3. Labour Control — compact 2-col, mock on left */}
+      <Section palette={P} alt>
+        <ProductGlimpse2Col palette={Pa} flavor={flavor}
+          slug="labour-control" mockOnRight={false}
+          mock={<LabourMiniMock />} />
+      </Section>
+
+      {/* 4. Operations — full iPad */}
+      <Section palette={P}>
+        <CenteredHeader palette={P}
+          eyebrow={PRODUCT_SUBPAGES['operations'].eyebrow}
+          headline={PRODUCT_SUBPAGES['operations'].label}
+          body={PRODUCT_SUBPAGES['operations'].subhead}
+        />
+        <div className="mt-12">
+          <RoomDrillMock />
+        </div>
+        <FeatureChips palette={P} items={PRODUCT_SUBPAGES['operations'].whatYouSee} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={P}
+            label="Explore Operations"
+            href={fp(flavor, '/products/operations')}
+          />
+        </div>
+      </Section>
+
+      {/* 5. Audits — full iPad */}
+      <Section palette={P} alt>
+        <CenteredHeader palette={Pa}
+          eyebrow={PRODUCT_SUBPAGES['audits'].eyebrow}
+          headline={PRODUCT_SUBPAGES['audits'].label}
+          body={PRODUCT_SUBPAGES['audits'].subhead}
+        />
+        <div className="mt-12">
+          <FfeAuditMock />
+        </div>
+        <FeatureChips palette={Pa} items={PRODUCT_SUBPAGES['audits'].whatYouSee} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={Pa}
+            label="Explore Audits"
+            href={fp(flavor, '/products/audits')}
+          />
+        </div>
+      </Section>
+
+      {/* 6. Maintenance & Tickets — compact 2-col, mock on right */}
+      <Section palette={P}>
+        <ProductGlimpse2Col palette={P} flavor={flavor}
+          slug="maintenance-tickets" mockOnRight
+          mock={<TicketsMiniMock />} />
+      </Section>
+
+      {/* 7. Assets & Room History — compact 2-col, mock on left */}
+      <Section palette={P} alt>
+        <ProductGlimpse2Col palette={Pa} flavor={flavor}
+          slug="assets-room-history" mockOnRight={false}
+          mock={<AssetMiniMock />} />
+      </Section>
+
+      {/* 8. Reports — full iPad */}
+      <Section palette={P}>
+        <CenteredHeader palette={P}
+          eyebrow={PRODUCT_SUBPAGES['reports'].eyebrow}
+          headline={PRODUCT_SUBPAGES['reports'].label}
+          body={PRODUCT_SUBPAGES['reports'].subhead}
+        />
+        <div className="mt-12">
+          <ReportMock />
+        </div>
+        <FeatureChips palette={P} items={PRODUCT_SUBPAGES['reports'].whatYouSee} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={P}
+            label="Explore Reports"
+            href={fp(flavor, '/products/reports')}
+          />
+        </div>
+      </Section>
+
+      {/* 9. Mobile Team App — full width triptych */}
+      <Section palette={P} alt>
+        <CenteredHeader palette={Pa}
+          eyebrow={PRODUCT_SUBPAGES['mobile-team-app'].eyebrow}
+          headline={PRODUCT_SUBPAGES['mobile-team-app'].label}
+          body={PRODUCT_SUBPAGES['mobile-team-app'].subhead}
+        />
+        <div className="mt-12">
+          <MobileAppTriptych />
+        </div>
+        <FeatureChips palette={Pa} items={PRODUCT_SUBPAGES['mobile-team-app'].whatYouSee} />
+        <div className="mt-8 flex justify-center">
+          <PrimaryButton palette={Pa}
+            label="Explore Mobile Team App"
+            href={fp(flavor, '/products/mobile-team-app')}
+          />
+        </div>
       </Section>
 
       {/* Modules */}
@@ -831,6 +944,63 @@ function FeatureChips({
         </li>
       ))}
     </ul>
+  );
+}
+
+/* ─── Compact 2-col product glimpse: text + bullets + CTA on one side, mock on the other ─── */
+function ProductGlimpse2Col({
+  palette: P, flavor, slug, mock, mockOnRight = true,
+}: {
+  palette: Palette;
+  flavor: Flavor;
+  slug: string;
+  mock: React.ReactNode;
+  mockOnRight?: boolean;
+}) {
+  const sub = PRODUCT_SUBPAGES[slug];
+  if (!sub) return null;
+  const text = (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: P.brand }}>
+        {sub.label}
+      </p>
+      <h2 className="mt-3"
+        style={{
+          fontSize: 'clamp(1.5rem, 2.8vw, 2.25rem)',
+          lineHeight: 1.15,
+          letterSpacing: '-0.02em',
+          fontWeight: 600,
+          color: P.text,
+          maxWidth: '22ch',
+        }}>
+        {sub.headline}
+      </h2>
+      <p className="mt-4 text-base" style={{ color: P.body, lineHeight: 1.6, maxWidth: '50ch' }}>
+        {sub.subhead}
+      </p>
+      <Bullets palette={P} items={sub.whatYouSee.slice(0, 6)} />
+      <div className="mt-6">
+        <PrimaryButton palette={P}
+          label={`Explore ${sub.label}`}
+          href={fp(flavor, `/products/${sub.slug}`)}
+        />
+      </div>
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 items-center">
+      {mockOnRight ? (
+        <>
+          {text}
+          <div>{mock}</div>
+        </>
+      ) : (
+        <>
+          <div>{mock}</div>
+          {text}
+        </>
+      )}
+    </div>
   );
 }
 

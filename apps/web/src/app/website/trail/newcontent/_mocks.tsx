@@ -1199,6 +1199,146 @@ export function MdDashboardIpadMock() {
 }
 
 /* ============================================================
+ *  LabourMiniMock — 4 KPIs for the Labour Control product glimpse
+ * ============================================================ */
+export function LabourMiniMock() {
+  return (
+    <ScreenFrame label="Labour Control · This Month">
+      <div className="grid grid-cols-2 gap-3 p-4 sm:p-5" style={{ background: '#f7f7f7' }}>
+        <MiniKpi label="Labour Cost" value="28.6%" subtext="of revenue · −0.8pp" />
+        <MiniKpi label="OT Hours"    value="142"   subtext="+12 vs target" alert />
+        <MiniKpi label="Scheduled"   value="1,840" subtext="hrs across 16 hotels" />
+        <MiniKpi label="Clocked"     value="1,956" subtext="+116 hrs variance" />
+      </div>
+      <div className="px-4 sm:px-5 py-3" style={{ background: '#fff', borderTop: '1px solid #f0f0f0' }}>
+        <p className="text-xs font-semibold" style={{ color: '#222' }}>Variance by department</p>
+        <div className="mt-2 flex flex-col gap-1.5">
+          {[
+            { dept: 'Housekeeping', v: '+62', pct: 60, tone: '#d97706' },
+            { dept: 'Front desk',   v: '+38', pct: 40, tone: '#f59e0b' },
+            { dept: 'F&B',          v: '+16', pct: 18, tone: '#16a34a' },
+          ].map((d) => (
+            <div key={d.dept} className="flex items-center gap-2 text-[11px]" style={{ color: '#3f3f3f' }}>
+              <span className="w-24 flex-shrink-0">{d.dept}</span>
+              <div className="flex-1 h-1.5 rounded-full" style={{ background: '#f1f5f9' }}>
+                <div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: d.tone }} />
+              </div>
+              <span className="w-10 text-right font-semibold" style={{ color: d.tone }}>{d.v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+/* ============================================================
+ *  TicketsMiniMock — open tickets list for Maintenance & Tickets glimpse
+ * ============================================================ */
+export function TicketsMiniMock() {
+  const tickets = [
+    { title: 'AC condenser failure',    room: 'Hilton Garden · Rm 214',  age: '6d', tone: '#dc2626', label: 'Aging · High' },
+    { title: 'Faucet leak',              room: 'Cotton Sail · Rm 312',     age: '3d', tone: '#d97706', label: 'Open' },
+    { title: 'TV remote replacement',    room: 'Home2 Baton Rouge · 105',  age: '2d', tone: '#d97706', label: 'Open' },
+    { title: 'Door lock',                room: 'Hilton Midtown · Rm 410',  age: '1d', tone: '#16a34a', label: 'In progress' },
+  ];
+  return (
+    <ScreenFrame label="Maintenance · Open Tickets · 23">
+      <div className="px-4 py-2.5 flex items-center justify-between"
+        style={{ background: '#f7f7f7', borderBottom: '1px solid #ddd' }}>
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>
+          23 open · 4 aging &gt; 5 days
+        </p>
+        <span className="text-xs font-semibold" style={{ color: '#dc2626' }}>1 urgent</span>
+      </div>
+      <div style={{ background: '#fff' }}>
+        {tickets.map((t, i) => (
+          <div key={t.title} className="px-4 py-3 flex items-center gap-3"
+            style={{ borderBottom: i < tickets.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.tone }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium" style={{ color: '#222' }}>{t.title}</p>
+              <p className="text-xs" style={{ color: '#929292' }}>{t.room}</p>
+            </div>
+            <span className="text-xs font-semibold" style={{ color: t.tone }}>{t.age}</span>
+            <ChevronRight className="w-4 h-4" style={{ color: '#cfcfcf' }} />
+          </div>
+        ))}
+      </div>
+      <div className="px-4 py-2.5" style={{ background: '#f7f7f7', borderTop: '1px solid #ddd' }}>
+        <p className="text-xs" style={{ color: '#6a6a6a' }}>
+          <span className="font-semibold" style={{ color: '#16a34a' }}>18 resolved</span> this week · avg 1.8 days to close
+        </p>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+/* ============================================================
+ *  AssetMiniMock — single asset card for Assets & Room History glimpse
+ * ============================================================ */
+export function AssetMiniMock() {
+  return (
+    <ScreenFrame label="Assets · Room 312 · AC/PTAC Unit">
+      <div className="p-4 sm:p-5" style={{ background: '#fff' }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-bold" style={{ color: '#222' }}>AC/PTAC Unit</p>
+            <p className="text-xs" style={{ color: '#929292' }}>Cotton Sail · Room 312 · since May 2017</p>
+          </div>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+            style={{ background: '#fef2f2', color: '#b91c1c' }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#dc2626' }} />
+            Poor
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[11px]">
+            <span style={{ color: '#6a6a6a' }}>Useful life</span>
+            <span className="font-bold" style={{ color: '#222' }}>90%</span>
+          </div>
+          <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#fee2e2' }}>
+            <div className="h-full" style={{ width: '90%', background: '#dc2626' }} />
+          </div>
+          <p className="text-[10px] mt-0.5" style={{ color: '#929292' }}>End of life: May 2027</p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          {[
+            { v: '2',     label: 'Repairs' },
+            { v: '$260',  label: 'YTD spend', tone: '#dc2626' },
+            { v: '$2,800',label: 'Replace cost' },
+          ].map((s, i) => (
+            <div key={s.label} className="p-2 rounded-lg"
+              style={{ background: '#f7f7f7', border: '1px solid #eee', borderRight: i < 2 ? undefined : undefined }}>
+              <p className="text-base font-bold leading-none" style={{ color: s.tone || '#222' }}>{s.v}</p>
+              <p className="text-[10px] mt-1" style={{ color: '#6a6a6a' }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#929292' }}>Recent</p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {[
+              { dot: '#dc2626', text: 'Jan 16, 2026 · Capacitor replaced · $110' },
+              { dot: '#3b82f6', text: 'Sep 3, 2025 · Annual HVAC check · age-related wear' },
+              { dot: '#929292', text: 'May 31, 2017 · Original installation · $2,800' },
+            ].map((a) => (
+              <li key={a.text} className="text-[11px] flex items-start gap-1.5" style={{ color: '#3f3f3f' }}>
+                <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: a.dot }} />
+                {a.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+/* ============================================================
  *  MobileAppTriptych — three phones side-by-side for the Mobile Team App page.
  * ============================================================ */
 export function MobileAppTriptych() {

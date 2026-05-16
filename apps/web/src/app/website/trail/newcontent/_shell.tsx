@@ -362,27 +362,6 @@ export function FlavoredSiteFooter({ palette: P, flavor }: { palette: Palette; f
       borderTop: `1px solid ${P.border}`,
       color: P.text,
     }}>
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 py-16 sm:py-20 text-center"
-        style={{ borderBottom: `1px solid ${P.border}` }}>
-        <h3 style={{
-          fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', lineHeight: 1.15,
-          letterSpacing: '-0.02em', fontWeight: 600, color: P.text, maxWidth: '24ch', margin: '0 auto',
-        }}>
-          Ready to see your hotels in one place?
-        </h3>
-        <p className="mt-4 text-sm sm:text-base mx-auto" style={{ color: P.body, maxWidth: '52ch' }}>
-          See how StayOps can help your ownership and regional operations teams bring every property,
-          report, room, and issue into one dashboard.
-        </p>
-        <div className="mt-6">
-          <Link href={fp(flavor, '/contact')}
-            className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:scale-[1.03] hover:shadow-lg"
-            style={{ background: P.buttonPrimary.bg, color: P.buttonPrimary.text }}>
-            Book a demo <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-
       <div className="mx-auto max-w-7xl px-5 sm:px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 text-sm">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] mb-3" style={{ color: P.muted }}>Product</p>
