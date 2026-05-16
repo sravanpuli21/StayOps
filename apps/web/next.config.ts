@@ -11,6 +11,23 @@ const NIGHT_BASE = "/website/trail/newcontent/night";
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(process.cwd(), "../.."),
 
+  /**
+   * The Expo mobile app is built into apps/web/public/mobile-app/ at deploy
+   * time. Static files (index.html, _expo/static/**, assets/**) are served
+   * directly. Any deep route (e.g. /mobile-app/dashboard) that doesn't have
+   * a matching static file falls back to index.html so Expo Router handles
+   * it on the client.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [],
+      afterFiles: [],
+      fallback: [
+        { source: "/mobile-app/:path*", destination: "/mobile-app/index.html" },
+      ],
+    };
+  },
+
   async redirects() {
     return [
       // Home

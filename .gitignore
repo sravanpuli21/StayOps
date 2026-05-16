@@ -19,6 +19,9 @@ coverage/
 # Expo build artifacts
 apps/mobile/.expo/
 
+# Expo web export — built into the website's public dir at deploy time
+apps/web/public/mobile-app/
+
 # Exported conversation transcripts
 20??-??-??-*-*.txt
 
