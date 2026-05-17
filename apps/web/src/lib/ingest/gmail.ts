@@ -1,7 +1,7 @@
 import 'server-only';
 import { ImapFlow, type ImapFlowOptions } from 'imapflow';
 import { simpleParser } from 'mailparser';
-import { db, getHosTenantId } from '@/lib/db/client';
+import { db, requireHosTenantId } from '@/lib/db/client';
 import { classifyForParser, runParser } from '@/lib/parsers/registry';
 import { applyParseResult } from '@/lib/parsers/apply';
 
@@ -28,7 +28,22 @@ export interface PollOutcome {
   durationMs: number;
 }
 
-export async function pollGmailInbox(): Promise<PollOutcome> {
+export type GmailProgressEvent =
+  | { name: 'connecting'; data: { host: string; mailbox: string } }
+  | { name: 'connected'; data: { mailbox: string; messageCount?: number } }
+  | { name: 'scanned'; data: { newMessages: number } }
+  | { name: 'message-start'; data: { uid: number; subject?: string; from?: string } }
+  | { name: 'message-parsed'; data: { uid: number; filename?: string; parser?: string; rows?: Record<string, number> } }
+  | { name: 'message-duplicate'; data: { uid: number; messageId: string } }
+  | { name: 'message-failed'; data: { uid: number; reason: string } }
+  | { name: 'message-applied'; data: { uid: number; rows: number; ms: number } }
+  | { name: 'done'; data: PollOutcome };
+
+export interface PollOptions {
+  onProgress?: (event: GmailProgressEvent) => void;
+}
+
+export async function pollGmailInbox(opts: PollOptions = {}): Promise<PollOutcome> {
   const start = Date.now();
   const out: PollOutcome = {
     connected: false,
@@ -61,15 +76,18 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
     logger: false,
   };
   const client = new ImapFlow(imapOpts);
+  const emit = opts.onProgress ?? (() => { /* no-op */ });
 
   try {
+    emit({ name: 'connecting', data: { host: 'imap.gmail.com', mailbox: ingestLabel } });
     await client.connect();
     out.connected = true;
 
     const mbox = await client.mailboxOpen(ingestLabel);
     if (!mbox) throw new Error(`Label "${ingestLabel}" not found in Gmail`);
+    emit({ name: 'connected', data: { mailbox: ingestLabel, messageCount: (mbox as { exists?: number }).exists } });
 
-    const tenantId = await getHosTenantId();
+    const tenantId = await requireHosTenantId();
 
     const uids: number[] = [];
     for await (const msg of client.fetch('1:*', { uid: true, envelope: true, labels: true, source: false })) {
@@ -78,8 +96,10 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
       if (labels.has(processedLabel)) continue;
       uids.push(msg.uid);
     }
+    emit({ name: 'scanned', data: { newMessages: uids.length } });
 
     for (const uid of uids) {
+      const msgStart = Date.now();
       try {
         const source = await client.download(String(uid), undefined, { uid: true });
         if (!source?.content) { out.failedMessages++; continue; }
@@ -93,6 +113,7 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
         const subject  = parsed.subject ?? '(no subject)';
         const fromAddr = parsed.from?.value?.[0]?.address ?? '(unknown)';
         const fromDomain = fromAddr.split('@')[1]?.toLowerCase() ?? '';
+        emit({ name: 'message-start', data: { uid, subject, from: fromAddr } });
 
         // Dedupe by message-id
         const existing = await db<{ id: string }[]>`
@@ -100,6 +121,7 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
         `;
         if (existing.length > 0) {
           out.skippedDuplicates++;
+          emit({ name: 'message-duplicate', data: { uid, messageId } });
           try { await (client as unknown as { messageMove: (u: string, l: string, o: object) => Promise<void> })
             .messageMove(String(uid), processedLabel, { uid: true }); } catch { /* ignore */ }
           continue;
@@ -142,15 +164,39 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
             where id = ${batch.id}
           `;
           out.failedMessages++;
+          emit({ name: 'message-failed', data: { uid, reason } });
           try { await (client as unknown as { messageMove: (u: string, l: string, o: object) => Promise<void> })
             .messageMove(String(uid), processedLabel, { uid: true }); } catch { /* ignore */ }
           continue;
         }
 
         const result = await runParser(parser, { buffer: att.content as Buffer, filename: att.filename });
+        emit({
+          name: 'message-parsed',
+          data: {
+            uid,
+            filename: att.filename,
+            parser: parser.id,
+            rows: {
+              revenue:    result.daily_revenue?.length        ?? 0,
+              occupancy:  result.daily_occupancy?.length      ?? 0,
+              rooms:      result.room_snapshots?.length       ?? 0,
+              arrivals:   result.reservation_arrivals?.length ?? 0,
+              highBalance: result.high_balance_alerts?.length ?? 0,
+              paymentMix: result.payment_method_mix?.length   ?? 0,
+              marketSeg:  result.market_segment_mix?.length   ?? 0,
+              tax:        result.tax_breakdown?.length        ?? 0,
+              ledger:     result.ledger_balances?.length      ?? 0,
+            },
+          },
+        });
         const applied = await applyParseResult(result, { batchId: batch.id, source: 'email' });
         const rowCount = applied.revenueRowsUpserted + applied.occupancyRowsUpserted +
-                         applied.labourPeriodsUpserted + applied.labourDeptRowsUpserted;
+                         applied.labourPeriodsUpserted + applied.labourDeptRowsUpserted +
+                         applied.paymentMixUpserted + applied.marketSegmentUpserted +
+                         applied.taxBreakdownUpserted + applied.ledgerBalancesUpserted +
+                         applied.roomSnapshotsUpserted + applied.reservationArrivalsUpserted +
+                         applied.highBalanceAlertsUpserted;
 
         await db`
           update upload_batches set
@@ -161,8 +207,13 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
             completed_at = now()
           where id = ${batch.id}
         `;
-        if (applied.errors.length > 0) out.failedMessages++;
-        else out.processedMessages++;
+        if (applied.errors.length > 0) {
+          out.failedMessages++;
+          emit({ name: 'message-failed', data: { uid, reason: applied.errors.join('; ') } });
+        } else {
+          out.processedMessages++;
+          emit({ name: 'message-applied', data: { uid, rows: rowCount, ms: Date.now() - msgStart } });
+        }
 
         try { await (client as unknown as { messageMove: (u: string, l: string, o: object) => Promise<void> })
           .messageMove(String(uid), processedLabel, { uid: true }); } catch (e) {
@@ -170,7 +221,9 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
         }
       } catch (perMsgErr) {
         out.failedMessages++;
-        out.errors.push(`uid=${uid}: ${perMsgErr instanceof Error ? perMsgErr.message : String(perMsgErr)}`);
+        const reason = perMsgErr instanceof Error ? perMsgErr.message : String(perMsgErr);
+        out.errors.push(`uid=${uid}: ${reason}`);
+        emit({ name: 'message-failed', data: { uid, reason } });
       }
     }
 
@@ -182,5 +235,6 @@ export async function pollGmailInbox(): Promise<PollOutcome> {
   }
 
   out.durationMs = Date.now() - start;
+  emit({ name: 'done', data: out });
   return out;
 }

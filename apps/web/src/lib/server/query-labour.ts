@@ -21,6 +21,7 @@ export async function queryLabourAggregates(
 ): Promise<ApiLabourMetrics[]> {
   if (hotelCodes !== null && hotelCodes.length === 0) return [];
   const tenantId = await getHosTenantId();
+  if (!tenantId) return [];
   const codeFilter = hotelCodes && hotelCodes.length > 0 ? hotelCodes : null;
 
   type Row = {

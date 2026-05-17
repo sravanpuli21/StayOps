@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { db, getHosTenantId } from '@/lib/db/client';
+import { db, requireHosTenantId } from '@/lib/db/client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'hotelCode required' }, { status: 400 });
   }
   const limit = Math.min(500, Math.max(1, Number(req.nextUrl.searchParams.get('limit') ?? '100')));
-  const tenantId = await getHosTenantId();
+  const tenantId = await requireHosTenantId();
 
   const rows = await db<Array<{
     id: string; code: string; rate_plan: string;
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid stay-date range' }, { status: 400 });
   }
 
-  const tenantId = await getHosTenantId();
+  const tenantId = await requireHosTenantId();
   const [hotel] = await db<{ id: string }[]>`
     select id from hotels where tenant_id = ${tenantId} and code = ${hotelCode} limit 1
   `;

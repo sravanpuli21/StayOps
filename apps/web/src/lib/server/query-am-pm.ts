@@ -44,6 +44,14 @@ export async function queryAmPmReport(
   hotelCode: string | null,
 ): Promise<QueryAmPmReport> {
   const tenantId = await getHosTenantId();
+  if (!tenantId) {
+    return {
+      slot,
+      generatedAt: new Date().toISOString(),
+      label: slot === 'AM' ? '9:00 AM Snapshot' : '9:00 PM Snapshot',
+      rows: [],
+    };
+  }
 
   // For each hotel, pick the most recent snapshot for the requested slot.
   const snapshots = await db<Array<{

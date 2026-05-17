@@ -13,7 +13,11 @@ export type ReportType =
   | 'am_snapshot'
   | 'pm_snapshot'
   | 'reservation_activity'
-  | 'rate_update';
+  | 'rate_update'
+  | 'onq_final_audit'
+  | 'onq_room_details'
+  | 'onq_arrivals'
+  | 'onq_high_balance';
 
 export interface ParsedDailyRevenue {
   hotelCode: string;
@@ -100,12 +104,127 @@ export interface ParsedAmPmSnapshot {
   }>;
 }
 
+// --- Hilton OnQ extras (Phase 2) ---------------------------------------------
+
+export interface ParsedPaymentMethodMix {
+  hotelCode: string;
+  date: string;
+  method: string;
+  amount_today: number;
+  amount_mtd: number;
+  amount_ytd: number;
+}
+
+export interface ParsedMarketSegmentMix {
+  hotelCode: string;
+  date: string;
+  segment: string;
+  rooms_today: number;
+  rooms_mtd: number;
+  rooms_ytd: number;
+  revenue_today: number;
+  revenue_mtd: number;
+  revenue_ytd: number;
+}
+
+export interface ParsedTaxBreakdown {
+  hotelCode: string;
+  date: string;
+  tax_type: string;
+  amount_today: number;
+  amount_mtd: number;
+  amount_ytd: number;
+}
+
+export interface ParsedLedgerBalance {
+  hotelCode: string;
+  date: string;
+  ledger_name: string;
+  opening_balance: number;
+  net_change: number;
+  closing_balance: number;
+}
+
+export interface ParsedRoomSnapshot {
+  hotelCode: string;
+  captured_at: string;  // ISO timestamp
+  room_number: string;
+  room_type_code?: string;
+  occ_status?: string;
+  hsk_status?: string;
+  guest_name?: string;
+  addn_guests?: string;
+  honors_tier?: string;
+  arrival_date?: string;
+  departure_date?: string;
+  rate_plan?: string;
+  reservation_status?: string;
+  pending_status?: string;
+  maintenance?: string;
+  last_occupied?: string;
+}
+
+export interface ParsedReservationArrival {
+  hotelCode: string;
+  confirmation_number: string;
+  arrival_date?: string;
+  departure_date?: string;
+  guest_name?: string;
+  addn_guests?: string;
+  room_type?: string;
+  room_number?: string;
+  rate_plan?: string;
+  adults?: number;
+  children?: number;
+  company?: string;
+  avg_room_rate?: number;
+  avg_room_taxes?: number;
+  fee?: number;
+  honors_tier?: string;
+  vip_guest?: string;
+  guest_tier?: string;
+  guarantee_type?: string;
+  arrival_time?: string;
+  digital_check_in?: string;
+  add_on?: string;
+  stay_requests?: string;
+  booking_remarks?: string;
+  stay_remarks?: string;
+  virtual_cc?: string;
+}
+
+export interface ParsedHighBalanceAlert {
+  hotelCode: string;
+  captured_at: string;
+  folio_name: string;
+  room_number?: string;
+  guest_name?: string;
+  guest_tier?: string;
+  arrival_date?: string;
+  departure_date?: string;
+  room_rate?: number;
+  folio_balance?: number;
+  credit_balance?: number;
+  outstanding_balance?: number;
+  payment_method?: string;
+  available_credit_limit?: number;
+  auto_top_off_status?: string;
+}
+
 export interface ParseResult {
   daily_revenue?: ParsedDailyRevenue[];
   daily_occupancy?: ParsedDailyOccupancy[];
   labour_periods?: ParsedLabourPeriod[];
   labour_departments?: ParsedLabourDepartment[];
   am_pm_snapshots?: ParsedAmPmSnapshot[];   // parsed but not persisted in 1.A
+  // OnQ extras (Phase 2)
+  payment_method_mix?: ParsedPaymentMethodMix[];
+  market_segment_mix?: ParsedMarketSegmentMix[];
+  tax_breakdown?: ParsedTaxBreakdown[];
+  ledger_balances?: ParsedLedgerBalance[];
+  room_snapshots?: ParsedRoomSnapshot[];
+  reservation_arrivals?: ParsedReservationArrival[];
+  high_balance_alerts?: ParsedHighBalanceAlert[];
   warnings: string[];
   errors: string[];
 }

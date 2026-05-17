@@ -7,6 +7,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const tenantId = await getHosTenantId();
+  if (!tenantId) {
+    const body = GetHotelsResponseSchema.parse({ hotels: [] });
+    return NextResponse.json(body);
+  }
   const rows = await db<Array<{
     code: string; name: string; short_name: string;
     total_rooms: number; brand: string; city: string; state: string;

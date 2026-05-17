@@ -15,6 +15,7 @@ import { csatTier } from '@/lib/csat';
 import { usePropertyScoped } from '@/lib/use-property-scoped';
 import { DashboardSkeleton } from '@/components/common/Skeleton';
 import { ErrorBanner } from '@/components/common/ErrorBanner';
+import { EmptyState } from '@/components/common/EmptyState';
 
 const HOTEL_ID = 'BTRCI';
 
@@ -25,19 +26,37 @@ export default function RishabDashboard() {
   const lab = scoped.labour;
   const dm = scoped.daily;
   const period = scoped.period;
+
+  // Hooks must run unconditionally — call them BEFORE any early returns.
+  const allRedFlags = useRedFlags();
+  const allAnomalies = useAnomalies();
+
   if (scoped.error) return (
     <div className="p-6">
       <ErrorBanner error={scoped.error} />
     </div>
   );
-  if (!rev || !lab || !dm) return <DashboardSkeleton kpiCount={4} large />;
+  if (scoped.loading) return <DashboardSkeleton kpiCount={4} large />;
+  if (!rev || !lab || !dm) {
+    return (
+      <div className="p-6">
+        <EmptyState
+          icon="inbox"
+          title="No data for Home2 Baton Rouge yet"
+          message="Your property dashboard populates when BTRCI's Hilton OnQ exports arrive. Drop today's final-audit CSV manually to verify the pipeline."
+          ctaHref="/web/admin/uploads"
+          ctaLabel="Upload CSV"
+        />
+      </div>
+    );
+  }
   const score = computeHotelScore(HOTEL_ID);
   const employees = getEmployeesForHotel(HOTEL_ID);
   const activeTickets = getActiveTicketsForHotel(HOTEL_ID);
   const opsSummary = getPropertyOpsSummary(HOTEL_ID);
   const auditSummary = getHotelAuditSummary(HOTEL_ID);
-  const flags = useRedFlags().filter((f) => f.hotelId === HOTEL_ID);
-  const anomalies = useAnomalies().filter((a) => a.hotelId === HOTEL_ID);
+  const flags = allRedFlags.filter((f) => f.hotelId === HOTEL_ID);
+  const anomalies = allAnomalies.filter((a) => a.hotelId === HOTEL_ID);
 
   const payrollPct = (lab.payrollCost / rev.totalRevenue) * 100;
   const callouts = employees.filter((e) => e.status === 'callout').length;

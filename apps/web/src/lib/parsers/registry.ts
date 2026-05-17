@@ -2,9 +2,19 @@ import type { ParserDef, ParseInput, ParseResult } from './types';
 import { hosDailyRevenueParser } from './hos-daily-revenue';
 import { hosLabourParser } from './hos-labour';
 import { stayopsAmPmCsvParser } from './stayops-am-pm-csv';
+import { onqFinalAuditParser } from './onq-final-audit';
+import { onqRoomDetailsParser } from './onq-room-details';
+import { onqArrivalsParser } from './onq-arrivals';
+import { onqHighBalanceParser } from './onq-high-balance';
 
 /** Registered parsers. Add new ones here as brands come online. */
 export const PARSERS: ParserDef[] = [
+  // Hilton OnQ (Phase 2 — real PMS exports)
+  onqFinalAuditParser,
+  onqRoomDetailsParser,
+  onqArrivalsParser,
+  onqHighBalanceParser,
+  // Legacy simplified CSVs (still useful for hand-crafted test files)
   hosDailyRevenueParser,
   hosLabourParser,
   stayopsAmPmCsvParser,

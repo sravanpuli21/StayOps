@@ -16,6 +16,7 @@ export async function queryAssets(
   category: string | null = null,
 ): Promise<Array<Record<string, unknown>>> {
   const tenantId = await getHosTenantId();
+  if (!tenantId) return [];
   const rows = await db<{ data: unknown }[]>`
     select a.data from assets a
     join hotels h on h.id = a.hotel_id
@@ -32,6 +33,7 @@ export async function queryAssetSummaries(
 ): Promise<Array<Record<string, unknown>>> {
   if (hotelCodes !== null && hotelCodes.length === 0) return [];
   const tenantId = await getHosTenantId();
+  if (!tenantId) return [];
   const codeFilter = hotelCodes && hotelCodes.length > 0 ? hotelCodes : null;
   const rows = await db<{ data: unknown }[]>`
     select s.data from asset_hotel_summaries s

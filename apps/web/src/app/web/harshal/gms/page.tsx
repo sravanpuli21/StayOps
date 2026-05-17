@@ -41,20 +41,21 @@ function getCommitments(hotelId: string) {
 export default function HarshalGMs() {
   const { hotels, scopeSub, revenueRows, labourRows, dailyRows } = useScopedData();
 
-  const gmRows = hotels.map((hotel) => {
-    const rev = revenueRows.find((r) => r.hotelId === hotel.id)!;
-    const lab = labourRows.find((l) => l.hotelId === hotel.id)!;
-    const dm = dailyRows.find((d) => d.hotelId === hotel.id)!;
-    const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id)!;
+  const gmRows = hotels.flatMap((hotel) => {
+    const rev = revenueRows.find((r) => r.hotelId === hotel.id);
+    const lab = labourRows.find((l) => l.hotelId === hotel.id);
+    const dm = dailyRows.find((d) => d.hotelId === hotel.id);
+    const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id);
+    // Need all four to render a GM card; partial reporters are skipped.
+    if (!rev || !lab || !dm || !gm) return [];
     const score = computeHotelScore(hotel.id);
     const commitments = getCommitments(hotel.id);
     const completionPct = commitments.open > 0
       ? Math.round((commitments.ontrack / commitments.open) * 100)
       : 100;
-    const payrollPct = rev && rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
-    return { hotel, rev, lab, dm, gm, score, commitments, completionPct, payrollPct };
-  }).filter((r) => r.gm) // only hotels with a GM in roster
-    .sort((a, b) => b.score.composite - a.score.composite);
+    const payrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
+    return [{ hotel, rev, lab, dm, gm, score, commitments, completionPct, payrollPct }];
+  }).sort((a, b) => b.score.composite - a.score.composite);
 
   // Top 3 aggregate stats — computed across the filtered GM set
   const avgResponse = gmRows.length > 0

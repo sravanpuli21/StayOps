@@ -51,11 +51,22 @@ export const db: ReturnType<typeof postgres> = new Proxy(lazyTarget, {
 
 let cachedTenantId: string | null = null;
 
-/** Single-tenant helper: HOS Management is the only tenant in Phase 1. */
-export async function getHosTenantId(): Promise<string> {
+/**
+ * Single-tenant helper. Returns `null` when the `tenants` table has no `hos`
+ * row — read-only callers should treat that as "no data, show empty state";
+ * writers should throw a clear error (use `requireHosTenantId` below).
+ */
+export async function getHosTenantId(): Promise<string | null> {
   if (cachedTenantId) return cachedTenantId;
   const rows = await db`select id from tenants where slug = 'hos' limit 1`;
-  if (rows.length === 0) throw new Error("Tenant 'hos' not found — run db/seed.mjs");
+  if (rows.length === 0) return null;
   cachedTenantId = rows[0].id as string;
   return cachedTenantId;
+}
+
+/** Variant for writers: throws if the tenant row is missing. */
+export async function requireHosTenantId(): Promise<string> {
+  const id = await getHosTenantId();
+  if (!id) throw new Error("Tenant 'hos' not found — run db/seed-master.mjs");
+  return id;
 }

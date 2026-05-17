@@ -8,6 +8,7 @@ import type { AuditTask } from '@hos/shared';
  */
 export async function queryAuditTasks(hotelCode: string | null): Promise<AuditTask[]> {
   const tenantId = await getHosTenantId();
+  if (!tenantId) return [];
 
   const rows = await db<Array<{
     legacy_id: string | null;
@@ -66,6 +67,7 @@ export interface AuditSummary {
 
 export async function queryAuditSummary(hotelCode: string): Promise<AuditSummary | null> {
   const tenantId = await getHosTenantId();
+  if (!tenantId) return null;
   const [hotel] = await db<{ id: string; total_rooms: number }[]>`
     select id, total_rooms from hotels
     where tenant_id = ${tenantId} and code = ${hotelCode}

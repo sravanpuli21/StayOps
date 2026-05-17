@@ -10,6 +10,7 @@ import type { MaintenanceTicket } from '@hos/shared';
  */
 export async function queryTickets(hotelCode: string | null, activeOnly = true): Promise<MaintenanceTicket[]> {
   const tenantId = await getHosTenantId();
+  if (!tenantId) return [];
 
   const rows = await db<Array<{
     legacy_id: string | null;

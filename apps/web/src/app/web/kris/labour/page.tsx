@@ -20,21 +20,24 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function LabourPage() {
   const { hotels, hotelIdSet, scopeSub, labourRows, revenueRows, period } = useScopedData();
 
-  const breakdown = hotels.map((hotel) => {
-    const labour = labourRows.find((l) => l.hotelId === hotel.id)!;
-    const revenue = revenueRows.find((r) => r.hotelId === hotel.id)!;
-    return {
+  // Filter hotels to those with labour data; revenue is optional (used only for payroll %).
+  const breakdown = hotels.flatMap((hotel) => {
+    const labour = labourRows.find((l) => l.hotelId === hotel.id);
+    if (!labour) return [];
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    return [{
       hotel,
       labour,
       revenueTotalForPayrollPct: revenue?.totalRevenue ?? 0,
-    };
+    }];
   });
 
-  const efficiency = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-    labour: labourRows.find((l) => l.hotelId === hotel.id)!,
-  }));
+  const efficiency = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    const labour = labourRows.find((l) => l.hotelId === hotel.id);
+    if (!revenue || !labour) return [];
+    return [{ hotel, revenue, labour }];
+  });
 
   const labourAnomalies = useAnomalies().filter(
     (a) => a.module === 'labour' && hotelIdSet.has(a.hotelId),

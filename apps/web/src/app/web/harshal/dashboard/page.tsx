@@ -14,6 +14,7 @@ import { RedFlagsPanel } from '@/components/common/RedFlagsPanel';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { DashboardSkeleton } from '@/components/common/Skeleton';
 import { ErrorBanner } from '@/components/common/ErrorBanner';
+import { EmptyState } from '@/components/common/EmptyState';
 import { csatTier } from '@/lib/csat';
 import { useScopedData } from '@/lib/use-scoped-data';
 import { KpiDrawer } from './_components/KpiDrawer';
@@ -35,6 +36,10 @@ export default function HarshalDashboard() {
 
   const [openKpi, setOpenKpi] = useState<KpiKey>(null);
 
+  // All hooks must be called unconditionally — React's rules-of-hooks. We
+  // filter to scope further down (after `hotelIdSet` is known).
+  const allRedFlags = useRedFlags();
+
   if (error) return (
     <div className="flex flex-col gap-6">
       <div>
@@ -45,6 +50,26 @@ export default function HarshalDashboard() {
     </div>
   );
   if (loading) return <DashboardSkeleton kpiCount={5} large />;
+
+  // Fresh deploy / post-wipe: show empty state instead of zero-value KPIs.
+  if (revenueRows.length === 0 && labourRows.length === 0 && dailyRows.length === 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+        </div>
+        <EmptyState
+          icon="inbox"
+          title="No regional data yet"
+          message="Your 8-hotel region populates as Hilton OnQ exports arrive at hos.stayops@gmail.com. Drop a final-audit CSV manually to verify the pipeline before email is wired."
+          ctaHref="/web/admin/uploads"
+          ctaLabel="Upload CSV"
+        />
+      </div>
+    );
+  }
+
   const scoped = {
     hotels, revenueRows, labourRows, dailyRows,
     periodDays: period.days,
@@ -67,22 +92,26 @@ export default function HarshalDashboard() {
     ? dailyRows.reduce((s, d) => s + d.avgCustomerRating, 0) / dailyRows.length
     : 0;
 
-  // Per-hotel rows (using filtered data)
-  const rows = hotels.map((hotel) => {
-    const rev = revenueRows.find((r) => r.hotelId === hotel.id)!;
-    const lab = labourRows.find((l) => l.hotelId === hotel.id)!;
-    const dm = dailyRows.find((d) => d.hotelId === hotel.id)!;
+  // Per-hotel rows — filter to hotels that have data in ALL three queries.
+  // A hotel that's only reported revenue but not labour shouldn't render with
+  // crash-prone undefined fields. Each query returns rows independently; this
+  // intersection guarantees `rev`/`lab`/`dm` are defined for every entry.
+  const rows = hotels.flatMap((hotel) => {
+    const rev = revenueRows.find((r) => r.hotelId === hotel.id);
+    const lab = labourRows.find((l) => l.hotelId === hotel.id);
+    const dm  = dailyRows.find((d) => d.hotelId === hotel.id);
+    if (!rev || !lab || !dm) return [];
     const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id);
     const score = computeHotelScore(hotel.id);
-    const hotelPayrollPct = rev && rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
-    return { hotel, rev, lab, dm, gm, score, hotelPayrollPct };
+    const hotelPayrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
+    return [{ hotel, rev, lab, dm, gm, score, hotelPayrollPct }];
   }).sort((a, b) => a.score.composite - b.score.composite);
 
   // Weakest 2 hotels — only shown in multi-hotel scopes
   const weakest = hotels.length > 1 ? rows.slice(0, 2) : [];
 
-  // Red flags filtered to scope
-  const regionalFlags = useRedFlags().filter((f) => hotelIdSet.has(f.hotelId));
+  // Red flags filtered to scope (hook was called at the top of the component)
+  const regionalFlags = allRedFlags.filter((f) => hotelIdSet.has(f.hotelId));
 
   // Regional score — use viewer's region unless viewing a different regional specifically
   const regionalIdForScore =

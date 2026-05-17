@@ -22,20 +22,23 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function RevenuePage() {
   const { hotels, hotelIdSet, scopeSub, revenueRows, labourRows, dailyRows, period } = useScopedData();
 
-  const revRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-  }));
-  const efficiencyRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-    labour: labourRows.find((l) => l.hotelId === hotel.id)!,
-  }));
-  const leakageRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-    daily: dailyRows.find((d) => d.hotelId === hotel.id)!,
-  }));
+  const revRows = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    if (!revenue) return [];
+    return [{ hotel, revenue }];
+  });
+  const efficiencyRows = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    const labour = labourRows.find((l) => l.hotelId === hotel.id);
+    if (!revenue || !labour) return [];
+    return [{ hotel, revenue, labour }];
+  });
+  const leakageRows = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    const daily = dailyRows.find((d) => d.hotelId === hotel.id);
+    if (!revenue || !daily) return [];
+    return [{ hotel, revenue, daily }];
+  });
 
   const revenueAnomalies = useAnomalies().filter(
     (a) => a.module === 'revenue' && hotelIdSet.has(a.hotelId),

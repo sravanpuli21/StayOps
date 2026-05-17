@@ -6,6 +6,7 @@ import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
 import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
 import { DashboardSkeleton } from '@/components/common/Skeleton';
 import { ErrorBanner } from '@/components/common/ErrorBanner';
+import { EmptyState } from '@/components/common/EmptyState';
 import { useScopedData } from '@/lib/use-scoped-data';
 
 export default function DashboardPage() {
@@ -25,6 +26,28 @@ export default function DashboardPage() {
     </div>
   );
   if (loading) return <DashboardSkeleton kpiCount={4} large />;
+
+  // No data anywhere — fresh deploy or post-wipe. Show a helpful empty state
+  // instead of a sea of zero-value KPI tiles.
+  const hasAnyData = revenueRows.length > 0 || labourRows.length > 0 || dailyRows.length > 0;
+  if (!hasAnyData) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+        </div>
+        <EmptyState
+          icon="inbox"
+          title="No data yet"
+          message="Dashboards populate as Hilton OnQ exports arrive. Email today's final-audit / room-details / arrivals / high-balance CSVs to hos.stayops@gmail.com, or drop them manually below."
+          ctaHref="/web/admin/uploads"
+          ctaLabel="Upload CSV"
+          hint="Once one property reports in, its tile lights up here."
+        />
+      </div>
+    );
+  }
 
   const totalRooms = hotels.reduce((s, h) => s + h.rooms, 0);
   const totalRoomCapacity = totalRooms * period.days;

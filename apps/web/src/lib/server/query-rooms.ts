@@ -9,6 +9,7 @@ import type { Room } from '@hos/shared';
  */
 export async function queryRooms(hotelCode: string | null): Promise<Room[]> {
   const tenantId = await getHosTenantId();
+  if (!tenantId) return [];
 
   const rows = await db<Array<{
     code: string;

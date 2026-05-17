@@ -37,33 +37,38 @@ export default function HarshalRevenue() {
     revenueRows, labourRows, dailyRows,
   } = useScopedData();
 
-  // GM-annotated rows for the ranking table at the bottom
-  const rankingRows = hotels.map((hotel) => {
-    const rev = revenueRows.find((r) => r.hotelId === hotel.id)!;
-    const lab = labourRows.find((l) => l.hotelId === hotel.id)!;
+  // GM-annotated rows for the ranking table at the bottom. Filter to hotels
+  // that have both revenue and labour — partial reporters are skipped.
+  const rankingRows = hotels.flatMap((hotel) => {
+    const rev = revenueRows.find((r) => r.hotelId === hotel.id);
+    const lab = labourRows.find((l) => l.hotelId === hotel.id);
+    if (!rev || !lab) return [];
     const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id);
-    return {
+    return [{
       hotel, rev, gm,
       payrollPct: rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0,
       adrVsMarket: rev.adr - rev.marketAdr,
-    };
+    }];
   }).sort((a, b) => b.rev.revPar - a.rev.revPar);
 
   // Row shapes expected by the shared Kris-flavored tables
-  const revRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-  }));
-  const efficiencyRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-    labour: labourRows.find((l) => l.hotelId === hotel.id)!,
-  }));
-  const leakageRows = hotels.map((hotel) => ({
-    hotel,
-    revenue: revenueRows.find((r) => r.hotelId === hotel.id)!,
-    daily: dailyRows.find((d) => d.hotelId === hotel.id)!,
-  }));
+  const revRows = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    if (!revenue) return [];
+    return [{ hotel, revenue }];
+  });
+  const efficiencyRows = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    const labour = labourRows.find((l) => l.hotelId === hotel.id);
+    if (!revenue || !labour) return [];
+    return [{ hotel, revenue, labour }];
+  });
+  const leakageRows = hotels.flatMap((hotel) => {
+    const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
+    const daily = dailyRows.find((d) => d.hotelId === hotel.id);
+    if (!revenue || !daily) return [];
+    return [{ hotel, revenue, daily }];
+  });
 
   // Portfolio KPIs
   const totalRevenue = rankingRows.reduce((s, r) => s + r.rev.totalRevenue, 0);
