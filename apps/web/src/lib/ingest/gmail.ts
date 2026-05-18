@@ -33,9 +33,9 @@ export type GmailProgressEvent =
   | { name: 'connected'; data: { mailbox: string; messageCount?: number } }
   | { name: 'scanned'; data: { newMessages: number } }
   | { name: 'message-start'; data: { uid: number; subject?: string; from?: string } }
-  | { name: 'message-parsed'; data: { uid: number; filename?: string; parser?: string; rows?: Record<string, number> } }
-  | { name: 'message-duplicate'; data: { uid: number; messageId: string } }
-  | { name: 'message-failed'; data: { uid: number; reason: string } }
+  | { name: 'message-parsed'; data: { uid: number; filename?: string; parser?: string; attachment?: string; rows?: Record<string, number> } }
+  | { name: 'message-duplicate'; data: { uid: number; messageId: string; attachment?: string } }
+  | { name: 'message-failed'; data: { uid: number; reason: string; attachment?: string } }
   | { name: 'message-applied'; data: { uid: number; rows: number; ms: number } }
   | { name: 'done'; data: PollOutcome };
 
@@ -115,54 +115,38 @@ export async function pollGmailInbox(opts: PollOptions = {}): Promise<PollOutcom
         const fromDomain = fromAddr.split('@')[1]?.toLowerCase() ?? '';
         emit({ name: 'message-start', data: { uid, subject, from: fromAddr } });
 
-        // Dedupe by message-id
-        const existing = await db<{ id: string }[]>`
-          select id from upload_batches where source_email_message_id = ${messageId} limit 1
-        `;
-        if (existing.length > 0) {
-          out.skippedDuplicates++;
-          emit({ name: 'message-duplicate', data: { uid, messageId } });
-          try { await (client as unknown as { messageMove: (u: string, l: string, o: object) => Promise<void> })
-            .messageMove(String(uid), processedLabel, { uid: true }); } catch { /* ignore */ }
-          continue;
-        }
-
-        const att = (parsed.attachments ?? []).find((a) =>
+        // Hilton's "Report Package" emails carry 3-4 CSV attachments (final-audit,
+        // room-details, arrivals, high-balance-reports). Process every spreadsheet
+        // attachment, not just the first — and dedupe per `(message_id, filename)`
+        // so a re-poll of a partially-processed email picks up whatever's missing.
+        const attachments = (parsed.attachments ?? []).filter((a) =>
           /\.(xlsx|xls|csv)$/i.test(a.filename ?? '') ||
           a.contentType?.includes('spreadsheet') ||
           a.contentType?.includes('csv') ||
           a.contentType?.includes('excel'),
         );
 
-        const parser = classifyForParser({
-          subject,
-          filename: att?.filename,
-          senderEmail: fromAddr,
-        });
-
-        const [batch] = await db<{ id: string }[]>`
-          insert into upload_batches (
-            tenant_id, source, source_filename, source_email_from, source_email_subject,
-            source_email_message_id, report_type, parser_id, status
-          )
-          values (
-            ${tenantId}, 'email', ${att?.filename ?? null}, ${fromAddr}, ${subject},
-            ${messageId}, ${parser?.reportType ?? null}, ${parser?.id ?? null}, 'pending'
-          )
-          returning id
-        `;
-        out.batchIds.push(batch.id);
-
-        if (!att || !parser) {
-          const reason = !att
-            ? 'No spreadsheet attachment found'
-            : `No parser matched sender=${fromDomain} subject="${subject}"`;
+        if (attachments.length === 0) {
+          // Whole-email failure: no spreadsheet attachments at all.
+          const [batch] = await db<{ id: string }[]>`
+            insert into upload_batches (
+              tenant_id, source, source_filename, source_email_from, source_email_subject,
+              source_email_message_id, report_type, parser_id, status
+            )
+            values (
+              ${tenantId}, 'email', ${null}, ${fromAddr}, ${subject},
+              ${messageId}, ${null}, ${null}, 'failed'
+            )
+            returning id
+          `;
+          const reason = 'No spreadsheet attachment found';
           await db`
-            update upload_batches set status='failed',
+            update upload_batches set
               errors = ${JSON.stringify([reason])}::jsonb,
               completed_at = now()
             where id = ${batch.id}
           `;
+          out.batchIds.push(batch.id);
           out.failedMessages++;
           emit({ name: 'message-failed', data: { uid, reason } });
           try { await (client as unknown as { messageMove: (u: string, l: string, o: object) => Promise<void> })
@@ -170,49 +154,128 @@ export async function pollGmailInbox(opts: PollOptions = {}): Promise<PollOutcom
           continue;
         }
 
-        const result = await runParser(parser, { buffer: att.content as Buffer, filename: att.filename });
-        emit({
-          name: 'message-parsed',
-          data: {
-            uid,
-            filename: att.filename,
-            parser: parser.id,
-            rows: {
-              revenue:    result.daily_revenue?.length        ?? 0,
-              occupancy:  result.daily_occupancy?.length      ?? 0,
-              rooms:      result.room_snapshots?.length       ?? 0,
-              arrivals:   result.reservation_arrivals?.length ?? 0,
-              highBalance: result.high_balance_alerts?.length ?? 0,
-              paymentMix: result.payment_method_mix?.length   ?? 0,
-              marketSeg:  result.market_segment_mix?.length   ?? 0,
-              tax:        result.tax_breakdown?.length        ?? 0,
-              ledger:     result.ledger_balances?.length      ?? 0,
-            },
-          },
-        });
-        const applied = await applyParseResult(result, { batchId: batch.id, source: 'email' });
-        const rowCount = applied.revenueRowsUpserted + applied.occupancyRowsUpserted +
-                         applied.labourPeriodsUpserted + applied.labourDeptRowsUpserted +
-                         applied.paymentMixUpserted + applied.marketSegmentUpserted +
-                         applied.taxBreakdownUpserted + applied.ledgerBalancesUpserted +
-                         applied.roomSnapshotsUpserted + applied.reservationArrivalsUpserted +
-                         applied.highBalanceAlertsUpserted;
+        // Track per-message aggregates so the overall outcome reflects the email,
+        // not a single attachment.
+        let anyApplied = false;
+        let anyFailed = false;
+        let messageRowCount = 0;
+        let messageSkippedDup = 0;
 
-        await db`
-          update upload_batches set
-            status = ${applied.errors.length > 0 ? 'failed' : 'parsed'},
-            row_count = ${rowCount},
-            warnings = ${JSON.stringify(applied.warnings)}::jsonb,
-            errors   = ${JSON.stringify(applied.errors)}::jsonb,
-            completed_at = now()
-          where id = ${batch.id}
-        `;
-        if (applied.errors.length > 0) {
-          out.failedMessages++;
-          emit({ name: 'message-failed', data: { uid, reason: applied.errors.join('; ') } });
-        } else {
+        for (const att of attachments) {
+          const attachmentName = att.filename ?? '(unnamed)';
+
+          // Per-attachment dedupe. Skip only if a previous run actually
+          // ingested rows from this exact (message_id, filename). Zero-row
+          // batches (from the old (1)-suffix skip or single-attachment bug)
+          // are treated as not-yet-processed so the next poll fixes them.
+          const existing = await db<{ id: string }[]>`
+            select id from upload_batches
+            where source_email_message_id = ${messageId}
+              and source_filename         = ${attachmentName}
+              and status                  = 'parsed'
+              and coalesce(row_count, 0)  > 0
+            limit 1
+          `;
+          if (existing.length > 0) {
+            messageSkippedDup++;
+            emit({ name: 'message-duplicate', data: { uid, messageId, attachment: attachmentName } });
+            continue;
+          }
+
+          const parser = classifyForParser({
+            subject,
+            filename: attachmentName,
+            senderEmail: fromAddr,
+          });
+
+          const [batch] = await db<{ id: string }[]>`
+            insert into upload_batches (
+              tenant_id, source, source_filename, source_email_from, source_email_subject,
+              source_email_message_id, report_type, parser_id, status
+            )
+            values (
+              ${tenantId}, 'email', ${attachmentName}, ${fromAddr}, ${subject},
+              ${messageId}, ${parser?.reportType ?? null}, ${parser?.id ?? null}, 'pending'
+            )
+            returning id
+          `;
+          out.batchIds.push(batch.id);
+
+          if (!parser) {
+            const reason = `No parser matched filename "${attachmentName}" (sender=${fromDomain})`;
+            await db`
+              update upload_batches set status='failed',
+                errors = ${JSON.stringify([reason])}::jsonb,
+                completed_at = now()
+              where id = ${batch.id}
+            `;
+            anyFailed = true;
+            emit({ name: 'message-failed', data: { uid, reason, attachment: attachmentName } });
+            continue;
+          }
+
+          const result = await runParser(parser, { buffer: att.content as Buffer, filename: attachmentName });
+          emit({
+            name: 'message-parsed',
+            data: {
+              uid,
+              filename: attachmentName,
+              parser: parser.id,
+              rows: {
+                revenue:    result.daily_revenue?.length        ?? 0,
+                occupancy:  result.daily_occupancy?.length      ?? 0,
+                rooms:      result.room_snapshots?.length       ?? 0,
+                arrivals:   result.reservation_arrivals?.length ?? 0,
+                highBalance: result.high_balance_alerts?.length ?? 0,
+                paymentMix: result.payment_method_mix?.length   ?? 0,
+                marketSeg:  result.market_segment_mix?.length   ?? 0,
+                tax:        result.tax_breakdown?.length        ?? 0,
+                ledger:     result.ledger_balances?.length      ?? 0,
+              },
+            },
+          });
+          const applied = await applyParseResult(result, { batchId: batch.id, source: 'email' });
+          const rowCount = applied.revenueRowsUpserted + applied.occupancyRowsUpserted +
+                           applied.labourPeriodsUpserted + applied.labourDeptRowsUpserted +
+                           applied.paymentMixUpserted + applied.marketSegmentUpserted +
+                           applied.taxBreakdownUpserted + applied.ledgerBalancesUpserted +
+                           applied.roomSnapshotsUpserted + applied.reservationArrivalsUpserted +
+                           applied.highBalanceAlertsUpserted;
+          messageRowCount += rowCount;
+
+          await db`
+            update upload_batches set
+              status = ${applied.errors.length > 0 ? 'failed' : 'parsed'},
+              row_count = ${rowCount},
+              warnings = ${JSON.stringify(applied.warnings)}::jsonb,
+              errors   = ${JSON.stringify(applied.errors)}::jsonb,
+              completed_at = now()
+            where id = ${batch.id}
+          `;
+          if (applied.errors.length > 0) {
+            anyFailed = true;
+            emit({ name: 'message-failed', data: { uid, reason: applied.errors.join('; '), attachment: attachmentName } });
+          } else {
+            anyApplied = true;
+          }
+        }
+
+        // Roll up per-email metrics for the overall PollOutcome
+        if (messageSkippedDup === attachments.length) {
+          // Every attachment was already processed — count the email as a duplicate
+          out.skippedDuplicates++;
+        } else if (anyApplied) {
           out.processedMessages++;
-          emit({ name: 'message-applied', data: { uid, rows: rowCount, ms: Date.now() - msgStart } });
+          emit({
+            name: 'message-applied',
+            data: {
+              uid,
+              rows: messageRowCount,
+              ms: Date.now() - msgStart,
+            },
+          });
+        } else if (anyFailed) {
+          out.failedMessages++;
         }
 
         try { await (client as unknown as { messageMove: (u: string, l: string, o: object) => Promise<void> })

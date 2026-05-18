@@ -1,0 +1,51 @@
+name: Hourly Gmail inbox poll
+
+# Hits the Vercel /api/inbox/cron endpoint every hour. Lets us run hourly
+# ingestion on Vercel Hobby (whose own cron is capped at once-per-day).
+#
+# Setup (one-time, after the first Vercel deploy):
+#   1. Repo Settings → Secrets and variables → Actions → New repository secret:
+#        CRON_SECRET  — copy the same value you set in the Vercel project env
+#   2. Repo Settings → Secrets and variables → Actions → Variables tab → New variable:
+#        VERCEL_APP_URL  — your production URL (e.g. "stayops.vercel.app", no protocol)
+#
+# Manual trigger: Actions tab → "Hourly Gmail inbox poll" → "Run workflow"
+# button (uses the same secret + URL).
+
+on:
+  schedule:
+    # At minute 5 of every hour (UTC). The :05 offset avoids the :00 traffic
+    # spike when every cron service in the world fires at once.
+    - cron: '5 * * * *'
+  workflow_dispatch:
+
+# Don't pile up runs if a previous poll is still in flight (rare, but safe).
+concurrency:
+  group: inbox-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Poll /api/inbox/cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_APP_URL: ${{ vars.VERCEL_APP_URL }}
+        run: |
+          if [ -z "$VERCEL_APP_URL" ]; then
+            echo "::error::VERCEL_APP_URL variable is not set. Add it under repo Settings → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET secret is not set. Add it under repo Settings → Secrets and variables → Actions → Secrets."
+            exit 1
+          fi
+          echo "Polling https://$VERCEL_APP_URL/api/inbox/cron"
+          response=$(curl --silent --show-error --fail-with-body \
+            --max-time 65 \
+            --write-out "\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n" \
+            -X GET "https://$VERCEL_APP_URL/api/inbox/cron" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "$response"
