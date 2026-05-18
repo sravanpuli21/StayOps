@@ -25,10 +25,21 @@ export type DateRangeQuery = z.infer<typeof DateRangeQuerySchema>;
  *   - empty value (`?hotelIds=&from=...&to=...`)   → []    → empty scope, rows: []
  *   - csv values  (`?hotelIds=BTRCI,SAVMD&...`)    → ['BTRCI','SAVMD']
  */
+/**
+ * Aggregation mode for revenue queries.
+ *  - 'today': sum each day's value_today across [from, to] (default).
+ *  - 'mtd':   use the latest report_date in range, take its value_mtd column.
+ *             Lines up with the OnQ file's MTD column for "This Month".
+ *  - 'ytd':   ditto but value_ytd. Lines up with "Year-to-Date".
+ */
+export const RevenueAggSchema = z.enum(['today', 'mtd', 'ytd']);
+export type RevenueAgg = z.infer<typeof RevenueAggSchema>;
+
 export const ScopedQuerySchema = z.object({
   hotelIds: z.array(z.string()).nullable(),
   from: IsoDate,
   to: IsoDate,
+  agg: RevenueAggSchema.optional(),
 });
 export type ScopedQuery = z.infer<typeof ScopedQuerySchema>;
 
@@ -89,7 +100,7 @@ export function resolveDateRange(
     case 'month': {
       const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
       const days = Math.round((today.getTime() - start.getTime()) / 86400000) + 1;
-      return { from: fmt(start), to: fmt(today), days, label: 'This Month' };
+      return { from: fmt(start), to: fmt(today), days, label: 'MTD' };
     }
     case 'pay-period': {
       // Rolling 14-day window ending yesterday

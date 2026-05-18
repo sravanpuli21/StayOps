@@ -52,8 +52,8 @@ export default function RishabRevenue() {
         <div className="grid grid-cols-5 gap-4">
           {[
             { label: 'Rooms',  value: rev.revenueMix.room,   color: '#ff385c' },
-            { label: 'F&B',    value: rev.revenueMix.fb,     color: '#f97316' },
-            { label: 'Retail', value: rev.revenueMix.retail, color: '#eab308' },
+            { label: 'Restaurant', value: rev.revenueMix.fb,     color: '#f97316' },
+            { label: 'Market',     value: rev.revenueMix.retail, color: '#eab308' },
             { label: 'Events', value: rev.revenueMix.events, color: '#22c55e' },
             { label: 'Other',  value: rev.revenueMix.other,  color: '#94a3b8' },
           ].map((m) => {

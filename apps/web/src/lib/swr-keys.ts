@@ -6,6 +6,7 @@
 import {
   GetHotelsResponseSchema,
   GetRevenueScopedResponseSchema, GetRevenuePropertyResponseSchema,
+  GetRevenueBreakdownResponseSchema,
   GetLabourScopedResponseSchema,  GetLabourPropertyResponseSchema,
   GetDailyScopedResponseSchema,   GetDailyPropertyResponseSchema,
   GetAnomaliesResponseSchema, GetRedFlagsResponseSchema, GetIntelligenceResponseSchema,
@@ -27,10 +28,12 @@ import { buildUrl } from './api-client';
 export const apiKeys = {
   hotels:                () => ['/api/hotels',                          GetHotelsResponseSchema] as const,
 
-  revenueScoped:  (hotelIds: string[], from: string, to: string) =>
-    [buildUrl('/api/revenue/scoped', { hotelIds, from, to }),            GetRevenueScopedResponseSchema] as const,
+  revenueScoped:  (hotelIds: string[], from: string, to: string, agg?: 'today' | 'mtd' | 'ytd') =>
+    [buildUrl('/api/revenue/scoped', { hotelIds, from, to, agg }),       GetRevenueScopedResponseSchema] as const,
   revenueProperty: (hotelId: string, from: string, to: string) =>
     [buildUrl('/api/revenue/property', { hotelId, from, to }),           GetRevenuePropertyResponseSchema] as const,
+  revenueBreakdown: (hotelIds: string[], from: string, to: string, agg?: 'today' | 'mtd' | 'ytd') =>
+    [buildUrl('/api/revenue/breakdown', { hotelIds, from, to, agg }),    GetRevenueBreakdownResponseSchema] as const,
 
   labourScoped:   (hotelIds: string[], from: string, to: string) =>
     [buildUrl('/api/labour/scoped', { hotelIds, from, to }),             GetLabourScopedResponseSchema] as const,

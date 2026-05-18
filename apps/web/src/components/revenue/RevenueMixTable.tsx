@@ -5,8 +5,8 @@ interface Row { hotel: Hotel; revenue: RevenueSummary }
 
 const MIX_COLS: Array<{ key: keyof RevenueSummary['revenueMix']; label: string; color: string }> = [
   { key: 'room',   label: 'Rooms',   color: '#ff385c' },
-  { key: 'fb',     label: 'F&B',     color: '#f97316' },
-  { key: 'retail', label: 'Retail',  color: '#eab308' },
+  { key: 'fb',     label: 'Restaurant', color: '#f97316' },
+  { key: 'retail', label: 'Market',     color: '#eab308' },
   { key: 'events', label: 'Events',  color: '#22c55e' },
   { key: 'other',  label: 'Other',   color: '#94a3b8' },
 ];

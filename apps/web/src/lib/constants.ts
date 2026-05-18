@@ -89,8 +89,8 @@ export const DATE_RANGE_OPTIONS = [
   { label: 'Today',           value: 'today'      },
   { label: 'Yesterday',       value: 'yesterday'  },
   { label: 'This Week',       value: 'week'       },
-  { label: 'This Month',      value: 'month'      },
   { label: 'Pay Period',      value: 'pay-period' },
+  { label: 'MTD',             value: 'month'      },
   { label: 'YTD',             value: 'ytd'        },
   { label: 'Custom',          value: 'custom'     },
 ] as const;

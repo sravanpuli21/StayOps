@@ -7,7 +7,8 @@ export type ApplyStep =
   | 'labour-periods' | 'labour-departments'
   | 'am-pm-snapshots'
   | 'payment-mix' | 'market-segment' | 'tax-breakdown' | 'ledger-balances'
-  | 'rooms' | 'arrivals' | 'high-balance';
+  | 'rooms' | 'arrivals' | 'high-balance'
+  | 'night-audit-rows';
 
 export interface ApplyContext {
   batchId?: string;
@@ -32,6 +33,7 @@ export interface ApplySummary {
   roomSnapshotsUpserted: number;
   reservationArrivalsUpserted: number;
   highBalanceAlertsUpserted: number;
+  nightAuditRowsInserted: number;
   warnings: string[];
   errors: string[];
 }
@@ -60,6 +62,7 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
     roomSnapshotsUpserted: 0,
     reservationArrivalsUpserted: 0,
     highBalanceAlertsUpserted: 0,
+    nightAuditRowsInserted: 0,
     warnings: [...(result.warnings ?? [])],
     errors: [...(result.errors ?? [])],
   };
@@ -81,6 +84,7 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
     ...(result.room_snapshots?.map((r) => r.hotelCode) ?? []),
     ...(result.reservation_arrivals?.map((r) => r.hotelCode) ?? []),
     ...(result.high_balance_alerts?.map((r) => r.hotelCode) ?? []),
+    ...(result.night_audit_rows?.map((r) => r.hotelCode) ?? []),
   ]);
   if (codes.size === 0) return summary;
 
@@ -279,7 +283,7 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
       }
     }
 
-    // ── OnQ Phase 2: payment_method_mix ─────────────────────────────────
+    // ── OnQ Phase 2: payment_method_mix (now also tagged with method_type) ─
     if (result.payment_method_mix && result.payment_method_mix.length > 0) {
       const t0 = Date.now();
       for (const r of result.payment_method_mix) {
@@ -287,10 +291,15 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
         if (!hid) continue;
         await tx`
           insert into payment_method_mix (
-            hotel_id, date, method, amount_today, amount_mtd, amount_ytd, uploaded_at
+            hotel_id, date, method, method_type,
+            amount_today, amount_mtd, amount_ytd, uploaded_at
           )
-          values (${hid}, ${r.date}::date, ${r.method}, ${r.amount_today}, ${r.amount_mtd}, ${r.amount_ytd}, now())
+          values (
+            ${hid}, ${r.date}::date, ${r.method}, ${r.method_type ?? null},
+            ${r.amount_today}, ${r.amount_mtd}, ${r.amount_ytd}, now()
+          )
           on conflict (hotel_id, date, method) do update set
+            method_type  = excluded.method_type,
             amount_today = excluded.amount_today,
             amount_mtd   = excluded.amount_mtd,
             amount_ytd   = excluded.amount_ytd,
@@ -300,6 +309,7 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
       }
       tStep('payment-mix', summary.paymentMixUpserted, t0);
     }
+
 
     // ── market_segment_mix ──────────────────────────────────────────────
     if (result.market_segment_mix && result.market_segment_mix.length > 0) {
@@ -517,6 +527,48 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
         summary.highBalanceAlertsUpserted++;
       }
       tStep('high-balance', summary.highBalanceAlertsUpserted, t0);
+    }
+
+    // ── night_audit_rows — delete-then-insert by (hotel_id, report_date) ──
+    if (result.night_audit_rows && result.night_audit_rows.length > 0) {
+      const t0 = Date.now();
+      // Group by (hotelCode, reportDate) so each (hotel, date) gets a single
+      // wipe before its rows are inserted.
+      const groups = new Map<string, typeof result.night_audit_rows>();
+      for (const r of result.night_audit_rows) {
+        const key = `${r.hotelCode}|${r.reportDate}`;
+        const arr = groups.get(key) ?? [];
+        arr.push(r);
+        groups.set(key, arr);
+      }
+      for (const [key, rows] of groups) {
+        const [hotelCode, reportDate] = key.split('|');
+        const hid = codeToId.get(hotelCode);
+        if (!hid) {
+          summary.warnings.push(`Unknown hotel_code ${hotelCode} (night_audit_rows)`);
+          continue;
+        }
+        await tx`
+          delete from night_audit_rows
+          where hotel_id = ${hid} and report_date = ${reportDate}::date
+        `;
+        for (const r of rows) {
+          await tx`
+            insert into night_audit_rows (
+              hotel_id, report_date, source_file_name, source_table, source_row_name,
+              category, type, subtype_group, subtype,
+              value_today, value_mtd, value_ytd, match_status
+            )
+            values (
+              ${hid}, ${r.reportDate}::date, ${r.sourceFileName}, ${r.sourceTable}, ${r.sourceRowName},
+              ${r.category}, ${r.type}, ${r.subtypeGroup}, ${r.subtype},
+              ${r.valueToday}, ${r.valueMtd}, ${r.valueYtd}, ${r.matchStatus}
+            )
+          `;
+          summary.nightAuditRowsInserted++;
+        }
+      }
+      tStep('night-audit-rows', summary.nightAuditRowsInserted, t0);
     }
   });
 

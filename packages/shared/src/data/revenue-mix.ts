@@ -17,8 +17,8 @@ export interface MixBucketBreakdown {
 
 export const MIX_BUCKET_LABELS: Record<MixBucket, string> = {
   room:   'Rooms',
-  fb:     'F&B',
-  retail: 'Retail',
+  fb:     'Restaurant',
+  retail: 'Market',
   events: 'Events',
   other:  'Other',
 };

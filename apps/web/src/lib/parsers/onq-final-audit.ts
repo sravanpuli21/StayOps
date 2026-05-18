@@ -5,8 +5,18 @@
  * Citiplace, LA-final-audit.csv" — multi-section, ~20 sections separated by
  * blank lines, each with its own column header.
  *
- * Output: rows for daily_revenue, daily_occupancy, payment_method_mix,
- * market_segment_mix, tax_breakdown, ledger_balances.
+ * Output:
+ *   - night_audit_rows        ← per-row records (12-field schema, the source
+ *                               of truth — Mapped + Needs Review preserved)
+ *   - daily_revenue           ← derived from night_audit_rows + KPI lookups
+ *   - daily_occupancy         ← derived from Mix/Match + ops section
+ *   - payment_method_mix      ← preserved, also tagged with method_type
+ *   - market_segment_mix      ← preserved
+ *   - tax_breakdown           ← preserved
+ *   - ledger_balances         ← preserved
+ *
+ * Resilience: section detection by header NAME, row matching by label NAME.
+ * A blank row inserted anywhere does not shift any output.
  */
 import Papa from 'papaparse';
 import type {
@@ -18,6 +28,7 @@ import type {
   ParsedMarketSegmentMix,
   ParsedTaxBreakdown,
   ParsedLedgerBalance,
+  ParsedNightAuditRow,
   ParserDef,
 } from './types';
 import { parseOnqFilename } from './onq/filename';
@@ -26,11 +37,57 @@ import {
   splitSections,
   findSectionContaining,
   findSectionsByHeader,
+  type OnqSection,
 } from './onq/sections';
+import {
+  CHARGE_MAPPING,
+  UNMAPPED,
+  normaliseLabel,
+  lookupMapping,
+} from './onq/charge-mapping';
+
+type ColumnLayout = 'charge-table' | 'mix-match';
 
 function findRow(rows: string[][], label: string): string[] | undefined {
   const target = label.trim().toUpperCase();
   return rows.find((r) => r[0]?.trim().toUpperCase() === target);
+}
+
+function deriveHealth(occ: number): 'green' | 'amber' | 'red' {
+  if (occ >= 85) return 'green';
+  if (occ >= 75) return 'amber';
+  return 'red';
+}
+
+/**
+ * Charge Type / Tax Type / Payment Method sections: Net Today=col 4 (E),
+ * MTD=col 5 (F), YTD=col 8 (I).
+ * Mix/Match + KPI sections (header='Type'): Today=col 1 (B), MTD=col 2 (C),
+ * YTD=col 4 (E).
+ */
+function extractValues(
+  row: string[],
+  layout: ColumnLayout,
+): { today: number | null; mtd: number | null; ytd: number | null } {
+  if (layout === 'charge-table') {
+    return {
+      today: parseOnqNumber(row[4]),
+      mtd:   parseOnqNumber(row[5]),
+      ytd:   parseOnqNumber(row[8]),
+    };
+  }
+  return {
+    today: parseOnqNumber(row[1]),
+    mtd:   parseOnqNumber(row[2]),
+    ytd:   parseOnqNumber(row[4]),
+  };
+}
+
+function layoutForHeader(header: string): ColumnLayout | null {
+  const h = header.trim();
+  if (h === 'Charge Type' || h === 'Tax Type' || h === 'Payment Method') return 'charge-table';
+  if (h === 'Type') return 'mix-match';
+  return null;
 }
 
 export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult> {
@@ -45,10 +102,6 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
     return { warnings, errors: [`unrecognized OnQ filename pattern: ${input.filename}`] };
   }
   if (meta.dedupSuffix) {
-    // Email systems sometimes append "(1)" to attachment names when the
-    // sender's reports have the same base name. These are real reports for
-    // distinct dates, not browser re-downloads — process them normally and
-    // let the (hotel_id, date) ON CONFLICT handle any actual re-ingestion.
     warnings.push(`filename has suffix "${meta.dedupSuffix.trim()}" — proceeding (idempotent upsert by date)`);
   }
   if (meta.reportType !== 'final-audit') {
@@ -57,15 +110,12 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
 
   const { hotelCode, date } = meta;
 
-  // Parse CSV. The file has unquoted commas inside some labels — Papa with
-  // header:false gives us raw string-cell rows, exactly what splitSections wants.
   const text = input.buffer.toString('utf8');
   const parsed = Papa.parse<string[]>(text, {
     header: false,
-    skipEmptyLines: false,  // we use blank lines as section separators
+    skipEmptyLines: false, // blank lines = section separators
   });
   if (parsed.errors.length > 0) {
-    // Papa errors are usually recoverable (extra delimiter etc.) — warn, don't fail.
     for (const e of parsed.errors.slice(0, 3)) warnings.push(`csv parse: ${e.message} (row ${e.row})`);
   }
   const rows = (parsed.data as string[][]).map((r) => r.map((c) => (c ?? '').toString()));
@@ -75,83 +125,128 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
     return { warnings, errors: ['no recognisable sections found in CSV'] };
   }
 
-  // ── Daily revenue + occupancy from the "Type" rollup section ────────────
-  // Section signature: header "Type" containing rows "Room Revenue", "Other
-  // Room Revenue", "Charges", "Taxes" + a trailing totals row.
-  const rollupSection = findSectionContaining(sections, 'Type', 'Room Revenue');
-  let dailyRevenue: ParsedDailyRevenue | null = null;
-  if (rollupSection) {
-    const roomRev   = findRow(rollupSection.rows, 'Room Revenue');
-    const otherRoom = findRow(rollupSection.rows, 'Other Room Revenue');
-    const charges   = findRow(rollupSection.rows, 'Charges');
-    const total     = rollupSection.totals;
+  // ── 1. Walk every section, emit one ParsedNightAuditRow per row ─────────
+  const night_audit_rows: ParsedNightAuditRow[] = [];
+  /** Last seen night_audit_row by normalised label — used for KPI/Mix lookups. */
+  const rowIndex = new Map<string, ParsedNightAuditRow>();
 
-    if (roomRev && total) {
-      const roomRevenueToday = parseOnqNumberOrZero(roomRev[1]);
-      const totalRevenueToday = parseOnqNumberOrZero(total[1]);
-      const otherRoomToday = parseOnqNumberOrZero(otherRoom?.[1] ?? '0');
-      const chargesToday = parseOnqNumberOrZero(charges?.[1] ?? '0');
-      const nonRoomToday = otherRoomToday + chargesToday;
-      dailyRevenue = {
+  for (const section of sections) {
+    const layout = layoutForHeader(section.header);
+    if (!layout) continue;
+
+    for (const row of section.rows) {
+      const label = (row[0] ?? '').trim();
+      if (!label) continue;
+
+      const { today, mtd, ytd } = extractValues(row, layout);
+
+      // Drop rows where every value is null/zero (placeholder lines).
+      if ((today ?? 0) === 0 && (mtd ?? 0) === 0 && (ytd ?? 0) === 0) continue;
+
+      const mapped = lookupMapping(label);
+      const mapping = mapped ?? UNMAPPED;
+      const matchStatus: 'Mapped' | 'Needs Review' = mapped ? 'Mapped' : 'Needs Review';
+
+      const out: ParsedNightAuditRow = {
         hotelCode,
-        date,
-        total_revenue: totalRevenueToday,
-        room_revenue: roomRevenueToday,
-        non_room_revenue: nonRoomToday,
-        mix_room: roomRevenueToday,
-        mix_fb: 0,        // Hilton OnQ doesn't break out F&B/retail/events separately at this hotel
-        mix_retail: chargesToday,  // Charges = mostly retail / fees in OnQ
-        mix_events: 0,
-        mix_other: otherRoomToday,
-        adr: 0,           // overwritten by the ADR section below
-        revpar: 0,        // overwritten by the RevPAR section below
-        occupancy_pct: 0, // overwritten by the OCCUPANCY section below
+        reportDate: date,
+        sourceFileName: input.filename,
+        sourceTable: section.header,
+        sourceRowName: label,
+        category: mapping.category,
+        type: mapping.type,
+        subtypeGroup: mapping.subtypeGroup,
+        subtype: mapping.subtype,
+        valueToday: today,
+        valueMtd: mtd,
+        valueYtd: ytd,
+        matchStatus,
       };
+      night_audit_rows.push(out);
+      rowIndex.set(normaliseLabel(label), out);
     }
+  }
+
+  // ── 2. Derive daily_revenue from night_audit_rows + KPI rows ────────────
+  const sumWhere = (pred: (r: ParsedNightAuditRow) => boolean): number =>
+    night_audit_rows.filter(pred).reduce((s, r) => s + (r.valueToday ?? 0), 0);
+
+  // Total revenue mirrors the file's Net Today rollup — Revenue category
+  // PLUS Taxes (Hilton presents tax as part of daily revenue total).
+  const totalRevenueOnly = sumWhere((r) => r.category === 'Revenue');
+  const taxesTotal       = sumWhere((r) => r.category === 'Taxes');
+  const totalRevenue     = totalRevenueOnly + taxesTotal;
+
+  // Mix buckets — pure Revenue category (no taxes), grouped by the new
+  // Type / SubtypeGroup taxonomy.
+  const roomRev      = sumWhere((r) => r.type === 'Room Revenue');
+  const noShowRev    = sumWhere((r) => r.type === 'No Show Room Revenue');
+  // F&B SubtypeGroup splits into two display buckets: Restaurant (sit-down /
+  // breakfast) and Front Market (suite shop, vending). The legacy mix_fb +
+  // mix_retail columns are reused here as Restaurant + Market respectively.
+  const restaurantRev= sumWhere((r) => r.type === 'Charges' && r.subtypeGroup === 'F&B' && r.subtype === 'Restaurant');
+  const marketRev    = sumWhere((r) => r.type === 'Charges' && r.subtypeGroup === 'F&B' && r.subtype === 'Front Market');
+  const eventsCharges= sumWhere((r) => r.type === 'Charges' && r.subtypeGroup === 'Events');
+  const addlRoom     = sumWhere((r) => r.type === 'Charges' && r.subtypeGroup === 'Additional Room Charges');
+  const otherCharges = sumWhere((r) => r.type === 'Charges' && r.subtypeGroup === 'Other Charges');
+
+  const totalRoom    = roomRev + noShowRev;
+
+  // KPI rows lookup
+  const occKpi    = rowIndex.get(normaliseLabel('OCCUPANCY INCLUDING DOWN ROOMS AND EXCLUDING COMP, HOUSE USE ROOMS'));
+  const adrKpi    = rowIndex.get(normaliseLabel('ADR INCLUDING COMP, HOUSE USE ROOMS'));
+  const revparKpi =
+    rowIndex.get(normaliseLabel('ROOMS REVPAR WITH OUT OF ORDER ROOMS'))
+    ?? rowIndex.get(normaliseLabel('REVPAR WITH OUT OF ORDER ROOMS'));
+
+  let dailyRevenue: ParsedDailyRevenue | null = null;
+  if (night_audit_rows.length > 0) {
+    const occ = occKpi?.valueToday ?? 0;
+    dailyRevenue = {
+      hotelCode,
+      date,
+      total_revenue:    totalRevenue,
+      room_revenue:     totalRoom,
+      non_room_revenue: Math.max(0, totalRevenue - totalRoom),
+      mix_room:         totalRoom,
+      mix_fb:           restaurantRev, // displayed as "Restaurant"
+      mix_retail:       marketRev,     // displayed as "Market"
+      mix_events:       eventsCharges,
+      mix_other:        addlRoom + otherCharges,
+      adr:              adrKpi?.valueToday    ?? 0,
+      revpar:           revparKpi?.valueToday ?? 0,
+      occupancy_pct:    occ,
+      health:           deriveHealth(occ),
+    };
   } else {
-    warnings.push('no Type/Room Revenue rollup section found — daily_revenue will be skipped');
+    warnings.push('no night-audit rows extracted — daily_revenue will be skipped');
   }
 
-  // Enrich ADR / RevPAR from the ADR section
-  const adrSection = findSectionContaining(sections, 'Type', 'ADR INCLUDING COMP, HOUSE USE ROOMS');
-  if (adrSection && dailyRevenue) {
-    const adrRow    = findRow(adrSection.rows, 'ADR INCLUDING COMP, HOUSE USE ROOMS');
-    const revparRow =
-      findRow(adrSection.rows, 'RevPar Without Out Of Order Rooms') ??
-      findRow(adrSection.rows, 'RevPar With Out Of Order Rooms');
-    if (adrRow) dailyRevenue.adr = parseOnqNumberOrZero(adrRow[1]);
-    if (revparRow) dailyRevenue.revpar = parseOnqNumberOrZero(revparRow[1]);
-  }
+  // ── 3. Derive daily_occupancy from Mix/Match counts + ops section ───────
+  const totalSoldRooms = rowIndex.get(normaliseLabel('TOTAL SOLD ROOMS'));
+  const downRooms      = rowIndex.get(normaliseLabel('DOWN ROOMS'));
+  const noShow         = rowIndex.get(normaliseLabel('NO SHOW'));
 
-  // Enrich occupancy_pct from the OCCUPANCY section
-  const occSection = findSectionContaining(sections, 'Type', 'OCCUPANCY INCLUDING DOWN, COMP, HOUSE USE ROOMS');
-  if (occSection && dailyRevenue) {
-    const occRow = findRow(occSection.rows, 'OCCUPANCY INCLUDING DOWN, COMP, HOUSE USE ROOMS');
-    if (occRow) dailyRevenue.occupancy_pct = parseOnqNumberOrZero(occRow[1]);
-  }
-
-  // ── daily_occupancy from the operational stats section ──────────────────
-  // Section signature: header "Type" containing 'Stayover Rooms', 'TOTAL GUESTS',
-  // 'Total Sold Rooms', 'Down Rooms', 'NO SHOW', 'CANCELLED', etc.
-  const opsSection = findSectionContaining(sections, 'Type', 'Total Sold Rooms');
   let dailyOccupancy: ParsedDailyOccupancy | null = null;
-  if (opsSection) {
-    const roomsSold     = findRow(opsSection.rows, 'Total Sold Rooms');
-    const downRooms     = findRow(opsSection.rows, 'Down Rooms');
-    const noShow        = findRow(opsSection.rows, 'NO SHOW');
-    const cancelled     = findRow(opsSection.rows, 'CANCELLED');
-    const stayover      = findRow(opsSection.rows, 'Stayover Rooms');
-    const sameDay       = findRow(opsSection.rows, 'Same Day Bookings');
-    const checkedIn     = findRow(opsSection.rows, 'Checked In Reservations');
-    const departed      = findRow(opsSection.rows, 'Departed Reservations');
+
+  const opsSection: OnqSection | null = findSectionContaining(sections, 'Type', 'Stayover Rooms');
+  const opsRow = (label: string): string[] | undefined =>
+    opsSection ? findRow(opsSection.rows, label) : undefined;
+
+  if (totalSoldRooms || downRooms || opsSection) {
+    const stayover  = opsRow('Stayover Rooms');
+    const sameDay   = opsRow('Same Day Bookings');
+    const cancelled = opsRow('CANCELLED');
+    const checkedIn = opsRow('Checked In Reservations');
+    const departed  = opsRow('Departed Reservations');
 
     dailyOccupancy = {
       hotelCode,
       date,
-      rooms_sold:     parseOnqNumberOrZero(roomsSold?.[1]),
-      rooms_ooo:      parseOnqNumberOrZero(downRooms?.[1]),
+      rooms_sold:     totalSoldRooms?.valueToday ?? parseOnqNumberOrZero(opsRow('Total Sold Rooms')?.[1]),
+      rooms_ooo:      downRooms?.valueToday      ?? parseOnqNumberOrZero(opsRow('Down Rooms')?.[1]),
       walk_ins:       parseOnqNumberOrZero(sameDay?.[1]),
-      no_shows:       parseOnqNumberOrZero(noShow?.[1]),
+      no_shows:       noShow?.valueToday         ?? parseOnqNumberOrZero(opsRow('NO SHOW')?.[1]),
       cancellations:  parseOnqNumberOrZero(cancelled?.[1]),
       arrivals:       parseOnqNumberOrZero(checkedIn?.[1]),
       departures:     parseOnqNumberOrZero(departed?.[1]),
@@ -160,35 +255,34 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
       review_count:   0,
     };
   } else {
-    warnings.push('no Type/operational-stats section found — daily_occupancy will be skipped');
+    warnings.push('no Mix/Match nor ops section found — daily_occupancy will be skipped');
   }
 
-  // ── payment_method_mix from "Payment Method" section ───────────────────
-  const paymentSections = findSectionsByHeader(sections, 'Payment Method');
+  // ── 4. payment_method_mix — preserve old behaviour, add method_type ─────
+  const paymentSection = findSectionsByHeader(sections, 'Payment Method')[0];
   const payment_method_mix: ParsedPaymentMethodMix[] = [];
-  // Use the first (most detailed) Payment Method section
-  const paymentSection = paymentSections[0];
   if (paymentSection) {
     for (const row of paymentSection.rows) {
       const method = row[0]?.trim();
       if (!method) continue;
-      const today = parseOnqNumber(row[1]);
-      const mtd = parseOnqNumber(row[5]);
-      const ytd = parseOnqNumber(row[8]);
-      // Skip rows that are entirely zero — keeps the table small
+      const today = parseOnqNumber(row[4]);
+      const mtd   = parseOnqNumber(row[5]);
+      const ytd   = parseOnqNumber(row[8]);
       if ((today ?? 0) === 0 && (mtd ?? 0) === 0 && (ytd ?? 0) === 0) continue;
+
+      const mapping = lookupMapping(method);
       payment_method_mix.push({
         hotelCode, date,
         method,
+        method_type: mapping?.type ?? null,
         amount_today: today ?? 0,
-        amount_mtd: mtd ?? 0,
-        amount_ytd: ytd ?? 0,
+        amount_mtd:   mtd ?? 0,
+        amount_ytd:   ytd ?? 0,
       });
     }
   }
 
-  // ── tax_breakdown from "Tax Type" section with rows ─────────────────────
-  // (There are two "Tax Type" sections — one empty, one with the actual breakdown.)
+  // ── 5. tax_breakdown — preserve old behaviour ───────────────────────────
   const taxSections = findSectionsByHeader(sections, 'Tax Type').filter((s) => s.rows.length > 0);
   const tax_breakdown: ParsedTaxBreakdown[] = [];
   const taxSection = taxSections[0];
@@ -199,14 +293,14 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
       tax_breakdown.push({
         hotelCode, date,
         tax_type: taxType,
-        amount_today: parseOnqNumberOrZero(row[1]),
+        amount_today: parseOnqNumberOrZero(row[4]),
         amount_mtd:   parseOnqNumberOrZero(row[5]),
         amount_ytd:   parseOnqNumberOrZero(row[8]),
       });
     }
   }
 
-  // ── ledger_balances from "Ledger Name" section ─────────────────────────
+  // ── 6. ledger_balances — preserve old behaviour ─────────────────────────
   const ledgerSection = findSectionsByHeader(sections, 'Ledger Name')[0];
   const ledger_balances: ParsedLedgerBalance[] = [];
   if (ledgerSection) {
@@ -223,12 +317,7 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
     }
   }
 
-  // ── market_segment_mix from the paired "Type" segment sections ─────────
-  // Two consecutive "Type" sections (after ADR) carry the same segment list:
-  // the first has room counts, the second has revenue. We pair by index.
-  // Identify them by: header "Type", first data row starts with a segment
-  // name like 'BEST AVAILABLE RATE' (not 'Room Revenue', not 'Down Rooms',
-  // not 'OCCUPANCY...', not 'ADR...').
+  // ── 7. market_segment_mix — preserve old behaviour ──────────────────────
   const segmentSections = sections.filter((s) => {
     if (s.header !== 'Type') return false;
     if (s.rows.length === 0) return false;
@@ -241,16 +330,15 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
       !first.startsWith('OCCUPANCY') &&
       !first.startsWith('ADR') &&
       !first.startsWith('REVPAR') &&
-      first !== 'IN HOUSE'  // payments-ledger style
+      first !== 'IN HOUSE' &&
+      !CHARGE_MAPPING[normaliseLabel(first)]
     );
   });
 
   const market_segment_mix: ParsedMarketSegmentMix[] = [];
   if (segmentSections.length >= 2) {
-    const counts = segmentSections[0];
+    const counts   = segmentSections[0];
     const revenues = segmentSections[1];
-    // Group by segment name; OnQ emits two rows per segment (often one empty),
-    // so we aggregate.
     const counted = new Map<string, { rt: number; rm: number; ry: number }>();
     for (const row of counts.rows) {
       const seg = row[0]?.trim();
@@ -296,6 +384,7 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
     market_segment_mix: market_segment_mix.length > 0 ? market_segment_mix : undefined,
     tax_breakdown:      tax_breakdown.length > 0 ? tax_breakdown : undefined,
     ledger_balances:    ledger_balances.length > 0 ? ledger_balances : undefined,
+    night_audit_rows:   night_audit_rows.length > 0 ? night_audit_rows : undefined,
     warnings,
     errors,
   };

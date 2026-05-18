@@ -21,7 +21,7 @@ import { apiKeys } from './swr-keys';
  */
 export function useScopedData() {
   const { selection, viewerRegionalId } = useHotelFilter();
-  const { range } = useDateFilter();
+  const { range, customFrom, customTo } = useDateFilter();
   const meta = DATE_RANGE_META[range];
 
   const selectedHotels = useMemo(() => {
@@ -51,13 +51,25 @@ export function useScopedData() {
   // (matches the server's STAYOPS_FROZEN_TODAY). When unset, defaults to live
   // Date.now() so production picks up the real clock.
   const { from, to } = useMemo(() => {
+    if (range === 'custom') {
+      // Use the dates the user picked in the calendar pickers.
+      const f = customFrom || customTo;
+      const t = customTo   || customFrom;
+      if (f && t) return { from: f, to: t };
+      // Fall through to yesterday if neither is set yet.
+    }
     const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
     const today = frozen ? new Date(`${frozen}T00:00:00Z`) : new Date();
     const kind: DateRangeKind = range;
     return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
-  }, [range]);
+  }, [range, customFrom, customTo]);
 
-  const rev = useApi(apiKeys.revenueScoped(hotelIds, from, to));
+  // 'month' / 'ytd' switch the revenue API into MTD / YTD snapshot mode so
+  // the cards reflect the cumulative numbers from the OnQ file rather than
+  // a partial sum of whichever days have been uploaded.
+  const revAgg: 'today' | 'mtd' | 'ytd' =
+    range === 'month' ? 'mtd' : range === 'ytd' ? 'ytd' : 'today';
+  const rev = useApi(apiKeys.revenueScoped(hotelIds, from, to, revAgg));
   const lab = useApi(apiKeys.labourScoped(hotelIds, from, to));
   const day = useApi(apiKeys.dailyScoped(hotelIds, from, to));
   const an  = useApi(apiKeys.anomalies());

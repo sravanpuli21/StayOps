@@ -110,6 +110,8 @@ export interface ParsedPaymentMethodMix {
   hotelCode: string;
   date: string;
   method: string;
+  /** Bucket from the user's taxonomy: Cash | Card | hilton | DirectBill | adjustments. */
+  method_type?: string | null;
   amount_today: number;
   amount_mtd: number;
   amount_ytd: number;
@@ -143,6 +145,28 @@ export interface ParsedLedgerBalance {
   opening_balance: number;
   net_change: number;
   closing_balance: number;
+}
+
+/**
+ * Per-row record from a Hilton OnQ Final Audit CSV. One emitted per non-blank
+ * non-zero row across all sections (Charge Type, Tax Type, Payment Method,
+ * Type). Unmapped rows surface with category='Unmapped', type='Needs Review',
+ * matchStatus='Needs Review' so we can review them rather than silently drop.
+ */
+export interface ParsedNightAuditRow {
+  hotelCode: string;
+  reportDate: string;            // YYYY-MM-DD
+  sourceFileName: string;
+  sourceTable: string;           // 'Charge Type' | 'Tax Type' | 'Payment Method' | 'Type'
+  sourceRowName: string;         // original label (pre-normalisation)
+  category: string;              // 'Revenue' | 'Taxes' | 'Payment Methods' | 'Room Status' | 'Rooms Availability' | 'Occupancy' | 'KPI' | 'Unmapped'
+  type: string;
+  subtypeGroup: string | null;
+  subtype: string | null;
+  valueToday: number | null;
+  valueMtd: number | null;
+  valueYtd: number | null;
+  matchStatus: 'Mapped' | 'Needs Review';
 }
 
 export interface ParsedRoomSnapshot {
@@ -225,6 +249,7 @@ export interface ParseResult {
   room_snapshots?: ParsedRoomSnapshot[];
   reservation_arrivals?: ParsedReservationArrival[];
   high_balance_alerts?: ParsedHighBalanceAlert[];
+  night_audit_rows?: ParsedNightAuditRow[];
   warnings: string[];
   errors: string[];
 }

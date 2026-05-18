@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  aggregateMixBreakdown, type MixBucket,
-  formatCurrency,
+  formatCurrency, resolveDateRange, type DateRangeKind,
+  type ApiRevenueBreakdown, type ApiRevenueLine,
 } from '@hos/shared';
 
-const BUCKET_COLOR: Record<MixBucket, string> = {
+/** Full currency w/ cents for daily numbers; compact $k for MTD / YTD totals. */
+const formatExact = (v: number): string =>
+  v.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { useApi } from '@/lib/use-api';
+import { apiKeys } from '@/lib/swr-keys';
+import { useDateFilter } from '@/lib/date-filter-context';
+
+type DisplayBucket = 'room' | 'fb' | 'retail' | 'events' | 'other';
+
+const BUCKET_COLOR: Record<DisplayBucket, string> = {
   room:   '#ff385c',
   fb:     '#f97316',
   retail: '#eab308',
@@ -15,27 +24,66 @@ const BUCKET_COLOR: Record<MixBucket, string> = {
   other:  '#94a3b8',
 };
 
+const BUCKET_LABEL: Record<DisplayBucket, string> = {
+  room:   'Rooms',
+  fb:     'Restaurant',
+  retail: 'Market',
+  events: 'Events',
+  other:  'Other',
+};
+
+interface BucketView {
+  bucket: DisplayBucket;
+  label:  string;
+  total:  number;
+  lines:  Array<{ chargeType: string; amount: number }>;
+}
+
 interface Props {
   hotelIds: string[];
   /** Which bucket is open by default. Use `null` to start collapsed. */
-  initialOpen?: MixBucket | null;
-  /** If true, render a compact variant (used inside the dashboard drawer). */
+  initialOpen?: DisplayBucket | null;
+  /** Compact variant (used inside the dashboard drawer). */
   compact?: boolean;
-  /** Number of days in the active date window. Baseline mix is ~1 day. */
+  /** Days in the active window — kept for back-compat with callers. */
   days?: number;
 }
 
 /**
- * Revenue mix by source — 5 bucket cards (Rooms / F&B / Retail / Events / Other)
- * with inline expansion to show individual OnQ charge-type line items.
- * Used by both the Total Revenue drawer on the dashboard and the Revenue page.
+ * Revenue mix by source — 5 bucket cards (Rooms / Restaurant / Market /
+ * Events / Other) with inline expansion to show individual OnQ source-row
+ * line items. Reads live data from `/api/revenue/breakdown`, which aggregates
+ * `night_audit_rows` for the active scope+window.
  */
 export function RevenueMixBreakdown({
-  hotelIds, initialOpen = 'room', compact = false, days = 1,
+  hotelIds, initialOpen = null, compact = false,
 }: Props) {
-  const [openBucket, setOpenBucket] = useState<MixBucket | null>(initialOpen);
-  const buckets = aggregateMixBreakdown(hotelIds, days);
+  const { range, customFrom, customTo } = useDateFilter();
+  const sortedIds = useMemo(() => [...hotelIds].sort(), [hotelIds]);
+
+  const { from, to } = useMemo(() => {
+    if (range === 'custom') {
+      const f = customFrom || customTo;
+      const t = customTo   || customFrom;
+      if (f && t) return { from: f, to: t };
+    }
+    const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+    const today = frozen ? new Date(`${frozen}T00:00:00Z`) : new Date();
+    const kind: DateRangeKind = range;
+    return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
+  }, [range, customFrom, customTo]);
+
+  const agg: 'today' | 'mtd' | 'ytd' =
+    range === 'month' ? 'mtd' : range === 'ytd' ? 'ytd' : 'today';
+  const isCumulative = agg !== 'today';
+  const fmt = (v: number): string => (isCumulative ? formatCurrency(v, true) : formatExact(v));
+  const { data } = useApi(apiKeys.revenueBreakdown(sortedIds, from, to, agg));
+  const portfolio = data?.portfolio ?? null;
+
+  const buckets = useMemo(() => mapToBuckets(portfolio), [portfolio]);
   const total = buckets.reduce((s, b) => s + b.total, 0);
+
+  const [openBucket, setOpenBucket] = useState<DisplayBucket | null>(initialOpen);
 
   return (
     <div className="flex flex-col gap-2">
@@ -68,7 +116,7 @@ export function RevenueMixBreakdown({
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold tabular-nums" style={{ color: '#222' }}>
-                  {formatCurrency(b.total, true)}
+                  {fmt(b.total)}
                 </p>
                 <p className="text-xs" style={{ color: '#929292' }}>{pct.toFixed(0)}% of total</p>
               </div>
@@ -78,6 +126,11 @@ export function RevenueMixBreakdown({
             </button>
             {open && (
               <div style={{ borderTop: '1px solid #f0f0f0', background: '#fafafa' }}>
+                {b.lines.length === 0 && (
+                  <div className="px-4 py-3 text-xs italic" style={{ color: '#929292' }}>
+                    No line items in this window.
+                  </div>
+                )}
                 {b.lines.map((line) => {
                   const linePct = b.total > 0 ? (line.amount / b.total) * 100 : 0;
                   return (
@@ -89,7 +142,7 @@ export function RevenueMixBreakdown({
                       <p className="text-sm" style={{ color: '#3f3f3f' }}>{line.chargeType}</p>
                       <div className="text-right">
                         <p className="text-sm font-semibold tabular-nums" style={{ color: '#222' }}>
-                          {formatCurrency(line.amount, true)}
+                          {fmt(line.amount)}
                         </p>
                         <p className="text-[10px]" style={{ color: '#929292' }}>
                           {linePct.toFixed(0)}% of {b.label}
@@ -105,4 +158,60 @@ export function RevenueMixBreakdown({
       })}
     </div>
   );
+}
+
+/**
+ * Project the 4-level taxonomy returned by /api/revenue/breakdown into the
+ * existing 5 display buckets:
+ *   - Rooms       = Room Revenue + No Show Room Revenue   (all lines)
+ *   - Restaurant  = Charges / F&B / Restaurant            (lines)
+ *   - Market      = Charges / F&B / Front Market          (lines)
+ *   - Events      = Charges / Events                      (lines)
+ *   - Other       = Charges / Additional Room Charges + Other Charges (lines)
+ */
+function mapToBuckets(portfolio: ApiRevenueBreakdown | null): BucketView[] {
+  const empty = (bucket: DisplayBucket): BucketView => ({
+    bucket, label: BUCKET_LABEL[bucket], total: 0, lines: [],
+  });
+  const buckets: Record<DisplayBucket, BucketView> = {
+    room:   empty('room'),
+    fb:     empty('fb'),
+    retail: empty('retail'),
+    events: empty('events'),
+    other:  empty('other'),
+  };
+  if (!portfolio) return Object.values(buckets);
+
+  const pushLines = (b: DisplayBucket, lines: ApiRevenueLine[]) => {
+    for (const l of lines) {
+      buckets[b].total += l.amount;
+      const existing = buckets[b].lines.find((x) => x.chargeType === l.label);
+      if (existing) existing.amount += l.amount;
+      else buckets[b].lines.push({ chargeType: l.label, amount: l.amount });
+    }
+  };
+
+  for (const t of portfolio.types) {
+    if (t.type === 'Room Revenue' || t.type === 'No Show Room Revenue') {
+      for (const g of t.groups) pushLines('room', g.lines);
+      continue;
+    }
+    if (t.type === 'Charges') {
+      for (const g of t.groups) {
+        if (g.group === 'Events') {
+          pushLines('events', g.lines);
+        } else if (g.group === 'F&B') {
+          pushLines('fb',     g.lines.filter((l) => l.subtype === 'Restaurant'));
+          pushLines('retail', g.lines.filter((l) => l.subtype === 'Front Market'));
+        } else if (g.group === 'Additional Room Charges' || g.group === 'Other Charges') {
+          pushLines('other', g.lines);
+        }
+      }
+    }
+  }
+
+  // Sort each bucket's line items by amount desc for a stable, scan-friendly view.
+  for (const b of Object.values(buckets)) b.lines.sort((a, b) => b.amount - a.amount);
+
+  return Object.values(buckets);
 }

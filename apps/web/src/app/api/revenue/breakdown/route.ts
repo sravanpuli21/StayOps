@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { GetRevenueScopedResponseSchema, ScopedQuerySchema, RevenueAggSchema, resolveDateRange } from '@hos/shared';
-import { queryRevenueAggregates } from '@/lib/server/query-revenue';
+import { GetRevenueBreakdownResponseSchema, ScopedQuerySchema, RevenueAggSchema, resolveDateRange } from '@hos/shared';
+import { queryRevenueBreakdown } from '@/lib/server/query-revenue-breakdown';
 import { frozenToday } from '@/lib/server/frozen-today';
 import { readHotelIds } from '@/lib/server/parse-query';
 
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     agg:  aggParam ? RevenueAggSchema.parse(aggParam) : undefined,
   });
   const range = resolveDateRange('custom', today, { from: q.from, to: q.to });
-  const rows = await queryRevenueAggregates(q.hotelIds, q.from, q.to, q.agg ?? 'today');
-  const body = GetRevenueScopedResponseSchema.parse({ rows, range });
+  const { portfolio, perHotel } = await queryRevenueBreakdown(q.hotelIds, q.from, q.to, q.agg ?? 'today');
+  const body = GetRevenueBreakdownResponseSchema.parse({ portfolio, perHotel, range });
   return NextResponse.json(body);
 }

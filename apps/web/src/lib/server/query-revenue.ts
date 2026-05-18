@@ -1,6 +1,6 @@
 import 'server-only';
 import { db, getHosTenantId } from '@/lib/db/client';
-import type { ApiRevenueSummary } from '@hos/shared';
+import type { ApiRevenueSummary, RevenueAgg } from '@hos/shared';
 
 function deriveHealth(occPct: number): 'green' | 'amber' | 'red' {
   if (occPct >= 85) return 'green';
@@ -9,9 +9,13 @@ function deriveHealth(occPct: number): 'green' | 'amber' | 'red' {
 }
 
 /**
- * Aggregate daily_revenue + daily_occupancy across [from, to] for the given
- * hotel codes (tenant=hos). Returns one row per hotel with summed accumulators
- * and room-night-weighted ADR / occupancy.
+ * Aggregate revenue across [from, to] for the given hotel codes.
+ *
+ *  - agg='today' (default): sum each day's `value_today` from daily_revenue
+ *    (matches single-day Today / Yesterday / Week / Pay-Period behaviour).
+ *  - agg='mtd': use the latest report_date in range, take its `value_mtd`
+ *    column from night_audit_rows. Aligns with the OnQ file's MTD column.
+ *  - agg='ytd': same shape but using `value_ytd`. Aligns with YTD.
  *
  * `hotelCodes` semantics (tri-state):
  *   - `null`        → no filter (all hotels in tenant)
@@ -22,14 +26,18 @@ export async function queryRevenueAggregates(
   hotelCodes: string[] | null,
   from: string,
   to: string,
+  agg: RevenueAgg = 'today',
 ): Promise<ApiRevenueSummary[]> {
   if (hotelCodes !== null && hotelCodes.length === 0) return [];
   const tenantId = await getHosTenantId();
   if (!tenantId) return [];
   const codeFilter = hotelCodes && hotelCodes.length > 0 ? hotelCodes : null;
 
-  // Window-aggregated revenue per hotel. Joining via daily_occupancy so the
-  // ADR weighting uses real room-night counts instead of arithmetic mean.
+  if (agg === 'mtd' || agg === 'ytd') {
+    return queryRevenueAggregatesCumulative(tenantId, codeFilter, from, to, agg);
+  }
+
+  // agg === 'today' — legacy behaviour.
   const rows = await db<Array<{
     code: string;
     market_adr: number | null;
@@ -86,6 +94,89 @@ export async function queryRevenueAggregates(
       nonRoomRevenue: Math.round(Number(r.non_room_revenue ?? 0)),
       revenueMix: {
         room:   Math.round(Number(r.mix_room   ?? 0)),
+        fb:     Math.round(Number(r.mix_fb     ?? 0)),
+        retail: Math.round(Number(r.mix_retail ?? 0)),
+        events: Math.round(Number(r.mix_events ?? 0)),
+        other:  Math.round(Number(r.mix_other ?? 0)),
+      },
+      marketAdr: r.market_adr == null ? Math.round(adr) : Number(r.market_adr),
+      health: deriveHealth(occ),
+    };
+  });
+}
+
+/**
+ * MTD / YTD path — pulls cumulative numbers straight from the most recent
+ * night_audit_rows snapshot in the date window. The OnQ file already does
+ * the cumulative arithmetic, so we just project the right column.
+ */
+async function queryRevenueAggregatesCumulative(
+  tenantId: string,
+  codeFilter: string[] | null,
+  from: string,
+  to: string,
+  agg: 'mtd' | 'ytd',
+): Promise<ApiRevenueSummary[]> {
+  const valueCol = agg === 'mtd' ? db`nar.value_mtd` : db`nar.value_ytd`;
+
+  const rows = await db<Array<{
+    code: string;
+    market_adr: number | null;
+    revenue_only:    string | null;
+    taxes:           string | null;
+    mix_room:        string | null;
+    mix_fb:          string | null;
+    mix_retail:      string | null;
+    mix_events:      string | null;
+    mix_other:       string | null;
+    occupancy_pct:   string | null;
+    adr:             string | null;
+    revpar:          string | null;
+  }>>`
+    with latest as (
+      select nar.hotel_id, max(nar.report_date) as rd
+        from night_audit_rows nar
+        join hotels h on h.id = nar.hotel_id
+       where h.tenant_id = ${tenantId}
+         and nar.report_date between ${from}::date and ${to}::date
+         ${codeFilter ? db`and h.code = any(${codeFilter})` : db``}
+       group by nar.hotel_id
+    )
+    select
+      h.code, h.market_adr,
+      coalesce(sum(${valueCol}) filter (where nar.category = 'Revenue'), 0)::text as revenue_only,
+      coalesce(sum(${valueCol}) filter (where nar.category = 'Taxes'), 0)::text   as taxes,
+      coalesce(sum(${valueCol}) filter (where nar.type = 'Room Revenue' or nar.type = 'No Show Room Revenue'), 0)::text as mix_room,
+      coalesce(sum(${valueCol}) filter (where nar.type = 'Charges' and nar.subtype_group = 'F&B' and nar.subtype = 'Restaurant'), 0)::text as mix_fb,
+      coalesce(sum(${valueCol}) filter (where nar.type = 'Charges' and nar.subtype_group = 'F&B' and nar.subtype = 'Front Market'), 0)::text as mix_retail,
+      coalesce(sum(${valueCol}) filter (where nar.type = 'Charges' and nar.subtype_group = 'Events'), 0)::text as mix_events,
+      coalesce(sum(${valueCol}) filter (where nar.type = 'Charges' and nar.subtype_group in ('Additional Room Charges','Other Charges')), 0)::text as mix_other,
+      max(${valueCol}) filter (where nar.category = 'KPI' and nar.type = 'Occupancy %')::text as occupancy_pct,
+      max(${valueCol}) filter (where nar.category = 'KPI' and nar.type = 'ADR')::text         as adr,
+      max(${valueCol}) filter (where nar.category = 'KPI' and nar.type = 'RevPar')::text      as revpar
+    from latest l
+    join night_audit_rows nar on nar.hotel_id = l.hotel_id and nar.report_date = l.rd
+    join hotels h on h.id = l.hotel_id
+    group by h.id, h.code, h.market_adr
+    order by h.code
+  `;
+
+  return rows.map((r) => {
+    const occ    = r.occupancy_pct == null ? 0 : Number(r.occupancy_pct);
+    const adr    = r.adr           == null ? 0 : Number(r.adr);
+    const revpar = r.revpar        == null ? Math.round(adr * (occ / 100)) : Number(r.revpar);
+    const total  = Number(r.revenue_only ?? 0) + Number(r.taxes ?? 0);
+    const room   = Number(r.mix_room ?? 0);
+    return {
+      hotelId:        r.code,
+      occupancyPct:   Math.round(occ * 10) / 10,
+      adr:            Math.round(adr),
+      revPar:         Math.round(revpar),
+      totalRevenue:   Math.round(total),
+      roomRevenue:    Math.round(room),
+      nonRoomRevenue: Math.max(0, Math.round(total - room)),
+      revenueMix: {
+        room,
         fb:     Math.round(Number(r.mix_fb     ?? 0)),
         retail: Math.round(Number(r.mix_retail ?? 0)),
         events: Math.round(Number(r.mix_events ?? 0)),

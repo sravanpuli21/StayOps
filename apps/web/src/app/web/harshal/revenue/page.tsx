@@ -33,9 +33,14 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 
 export default function HarshalRevenue() {
   const {
-    hotels, hotelIdSet, scopeLabel, scopeSub, period,
+    hotels, hotelIdSet, scopeLabel, scopeSub, period, range,
     revenueRows, labourRows, dailyRows,
   } = useScopedData();
+  const isCumulative = range === 'month' || range === 'ytd';
+  const formatTotal = (v: number): string =>
+    isCumulative
+      ? formatCurrency(v, true)
+      : v.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // GM-annotated rows for the ranking table at the bottom. Filter to hotels
   // that have both revenue and labour — partial reporters are skipped.
@@ -92,7 +97,12 @@ export default function HarshalRevenue() {
 
       {/* Portfolio KPIs */}
       <div className="grid grid-cols-5 gap-4">
-        <KpiCard label="Total Revenue" value={formatCurrency(totalRevenue, true)} subtext={`All revenue · ${period.label}`} size="large" />
+        <KpiCard
+          label="Total Revenue"
+          value={formatTotal(totalRevenue)}
+          subtext={`All revenue · ${period.label}`}
+          size="large"
+        />
         <KpiCard label="Avg Occupancy" value={formatPct(avgOcc, 1)} subtext={hotels.length > 1 ? `Across ${hotels.length} hotels` : 'This property'} size="large" />
         <KpiCard label="Avg ADR"       value={formatCurrency(avgAdr)} subtext="Daily rate" size="large" />
         <KpiCard label="Avg RevPAR"    value={formatCurrency(avgRevPar)} subtext="Per available room" size="large" />
@@ -105,9 +115,6 @@ export default function HarshalRevenue() {
           size="large"
         />
       </div>
-
-      {/* Forecast — from Kris's view */}
-      {revenueForecast && <ForecastWidget forecast={revenueForecast} />}
 
       {/* Hotel Revenue Breakdown — Kris's table */}
       <div>
@@ -209,6 +216,9 @@ export default function HarshalRevenue() {
       {revenueAnomalies.length > 0 && (
         <AIFlagsPanel findings={revenueAnomalies} title="Revenue AI Findings" />
       )}
+
+      {/* Forecast & What-If — pushed to the bottom of the page */}
+      {revenueForecast && <ForecastWidget forecast={revenueForecast} />}
     </div>
   );
 }
