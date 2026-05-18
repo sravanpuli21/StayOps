@@ -1,47 +1,71 @@
 /**
- * Hilton OnQ "room-details" parser — one row per room snapshot.
+ * Hilton OnQ "room-details" parser — one record per room per snapshot.
  * Filename e.g. "May 17, 2026-BTRCI-...-room-details.csv".
+ *
+ * Per the user's RoomStatus spec, only the following are persisted:
+ *   - Room Number
+ *   - OCC STATUS         (kept verbatim as raw_occ_status; not used for display)
+ *   - Reservation Status (kept verbatim as raw_reservation_status; drives `type`)
+ *
+ * `type` mapping from Reservation Status:
+ *   IN HOUSE     → 'Occupied'
+ *   Arrival      → 'Assigned'
+ *   blank/empty  → 'Available'
+ *   CHECKED OUT  → 'Dirty'
+ *   anything else → raw value, match_status='Needs Review'
+ *
+ * Guest Name, ADDN GUESTS, and HONORS TIER are intentionally NOT extracted.
  */
 import Papa from 'papaparse';
 import type {
-  ParseInput,
-  ParseResult,
-  ParsedRoomSnapshot,
-  ParserDef,
+  ParseInput, ParseResult, ParsedRoomSnapshot, ParserDef,
 } from './types';
 import { parseOnqFilename } from './onq/filename';
 
-const DATE_RE = /^[A-Z][a-z]+ \d{1,2}, \d{4}$/;
+interface RawRow {
+  'Room Number'?: string;
+  'OCC STATUS'?: string;
+  'Reservation Status'?: string;
+  'Departure Date'?: string;
+}
+
+const DEPART_DATE_RE = /^([A-Z][a-z]+) (\d{1,2}), (\d{4})$/;
 const MONTHS: Record<string, string> = {
   jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
   jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
 };
 
-function toIsoDate(humanDate: string): string | undefined {
-  if (!humanDate) return undefined;
-  if (!DATE_RE.test(humanDate.trim())) return undefined;
-  const m = humanDate.trim().match(/^([A-Z][a-z]+) (\d{1,2}), (\d{4})$/);
-  if (!m) return undefined;
+/** Convert "May 19, 2026" → "2026-05-19". Returns null if format unrecognised. */
+function toIsoDate(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const m = raw.trim().match(DEPART_DATE_RE);
+  if (!m) return null;
   const month = MONTHS[m[1].slice(0, 3).toLowerCase()];
-  if (!month) return undefined;
+  if (!month) return null;
   return `${m[3]}-${month}-${m[2].padStart(2, '0')}`;
 }
 
-interface RawRow {
-  'Room Number'?: string;
-  'Room Type'?: string;
-  'Guest Name'?: string;
-  'ADDN GUESTS'?: string;
-  'HONORS TIER'?: string;
-  'Arrival Date'?: string;
-  'Departure Date'?: string;
-  'OCC STATUS'?: string;
-  'HSK STATUS'?: string;
-  'Rate Plan'?: string;
-  'Reservation Status'?: string;
-  'Pending Status'?: string;
-  'Maintenance'?: string;
-  'Last Occupied'?: string;
+/**
+ * Reservation Status → display Type. `capturedDate` is the snapshot's date
+ * (YYYY-MM-DD). When status is IN HOUSE and the departure date is later than
+ * the snapshot date, the guest is mid-stay → 'Stayover' overrides 'Occupied'.
+ */
+function deriveType(
+  rawReservationStatus: string | null,
+  capturedDate: string,
+  departureIso: string | null,
+): { type: string; matchStatus: 'Mapped' | 'Needs Review' } {
+  const raw = (rawReservationStatus ?? '').trim();
+  const upper = raw.toUpperCase();
+  if (upper === '')            return { type: 'Available', matchStatus: 'Mapped' };
+  if (upper === 'IN HOUSE') {
+    const isStayover = !!departureIso && departureIso > capturedDate;
+    return { type: isStayover ? 'Stayover' : 'Occupied', matchStatus: 'Mapped' };
+  }
+  if (upper === 'ARRIVAL')     return { type: 'Assigned', matchStatus: 'Mapped' };
+  if (upper === 'CHECKED OUT') return { type: 'Dirty',    matchStatus: 'Mapped' };
+  // Surface unknown values for review — preserve the raw label as the type.
+  return { type: raw, matchStatus: 'Needs Review' };
 }
 
 export async function parseOnqRoomDetails(input: ParseInput): Promise<ParseResult> {
@@ -70,27 +94,32 @@ export async function parseOnqRoomDetails(input: ParseInput): Promise<ParseResul
     for (const e of parsed.errors.slice(0, 3)) warnings.push(`csv parse: ${e.message} (row ${e.row})`);
   }
 
+  // Multiple rows can appear for the same room (split reservations, etc.).
+  // Keep the first one we see — `applyParseResult` upserts by (hotel,
+  // captured_at, room_number) and would otherwise hit the PK constraint.
+  const seen = new Set<string>();
   const room_snapshots: ParsedRoomSnapshot[] = [];
   for (const row of parsed.data) {
     const roomNumber = row['Room Number']?.trim();
     if (!roomNumber) continue;
+    if (seen.has(roomNumber)) continue;
+    seen.add(roomNumber);
+
+    const rawOcc   = row['OCC STATUS']?.trim() ?? '';
+    const rawResv  = row['Reservation Status']?.trim() ?? '';
+    const departureIso = toIsoDate(row['Departure Date']);
+    const { type, matchStatus } = deriveType(rawResv, meta.date, departureIso);
+
     room_snapshots.push({
       hotelCode: meta.hotelCode,
       captured_at: capturedAt,
       room_number: roomNumber,
-      room_type_code:     row['Room Type']?.trim() || undefined,
-      occ_status:         row['OCC STATUS']?.trim() || undefined,
-      hsk_status:         row['HSK STATUS']?.trim() || undefined,
-      guest_name:         row['Guest Name']?.trim() || undefined,
-      addn_guests:        row['ADDN GUESTS']?.trim() || undefined,
-      honors_tier:        row['HONORS TIER']?.trim() || undefined,
-      arrival_date:       toIsoDate(row['Arrival Date'] ?? ''),
-      departure_date:     toIsoDate(row['Departure Date'] ?? ''),
-      rate_plan:          row['Rate Plan']?.trim() || undefined,
-      reservation_status: row['Reservation Status']?.trim() || undefined,
-      pending_status:     row['Pending Status']?.trim() || undefined,
-      maintenance:        row['Maintenance']?.trim() || undefined,
-      last_occupied:      toIsoDate(row['Last Occupied'] ?? ''),
+      raw_occ_status: rawOcc || null,
+      raw_reservation_status: rawResv || null,
+      category: 'RoomStatus',
+      type,
+      subtype: null,
+      match_status: matchStatus,
     });
   }
 

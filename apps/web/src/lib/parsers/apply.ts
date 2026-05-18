@@ -386,7 +386,7 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
       tStep('ledger-balances', summary.ledgerBalancesUpserted, t0);
     }
 
-    // ── room_snapshots (one row per room per upload) ────────────────────
+    // ── room_snapshots (one row per room per upload, RoomStatus shape) ──
     if (result.room_snapshots && result.room_snapshots.length > 0) {
       const t0 = Date.now();
       for (const r of result.room_snapshots) {
@@ -394,35 +394,23 @@ export async function applyParseResult(result: ParseResult, ctx: ApplyContext): 
         if (!hid) continue;
         await tx`
           insert into room_snapshots (
-            hotel_id, captured_at, room_number, room_type_code,
-            occ_status, hsk_status, guest_name, addn_guests, honors_tier,
-            arrival_date, departure_date, rate_plan, reservation_status,
-            pending_status, maintenance, last_occupied, uploaded_at
+            hotel_id, captured_at, room_number,
+            raw_occ_status, raw_reservation_status,
+            category, type, subtype, match_status, uploaded_at
           )
           values (
-            ${hid}, ${r.captured_at}::timestamptz, ${r.room_number}, ${r.room_type_code ?? null},
-            ${r.occ_status ?? null}, ${r.hsk_status ?? null}, ${r.guest_name ?? null},
-            ${r.addn_guests ?? null}, ${r.honors_tier ?? null},
-            ${r.arrival_date ?? null}::date, ${r.departure_date ?? null}::date,
-            ${r.rate_plan ?? null}, ${r.reservation_status ?? null},
-            ${r.pending_status ?? null}, ${r.maintenance ?? null},
-            ${r.last_occupied ?? null}::date, now()
+            ${hid}, ${r.captured_at}::timestamptz, ${r.room_number},
+            ${r.raw_occ_status ?? null}, ${r.raw_reservation_status ?? null},
+            ${r.category}, ${r.type}, ${r.subtype ?? null}, ${r.match_status}, now()
           )
           on conflict (hotel_id, captured_at, room_number) do update set
-            room_type_code = excluded.room_type_code,
-            occ_status     = excluded.occ_status,
-            hsk_status     = excluded.hsk_status,
-            guest_name     = excluded.guest_name,
-            addn_guests    = excluded.addn_guests,
-            honors_tier    = excluded.honors_tier,
-            arrival_date   = excluded.arrival_date,
-            departure_date = excluded.departure_date,
-            rate_plan      = excluded.rate_plan,
-            reservation_status = excluded.reservation_status,
-            pending_status = excluded.pending_status,
-            maintenance    = excluded.maintenance,
-            last_occupied  = excluded.last_occupied,
-            uploaded_at    = now()
+            raw_occ_status         = excluded.raw_occ_status,
+            raw_reservation_status = excluded.raw_reservation_status,
+            category               = excluded.category,
+            type                   = excluded.type,
+            subtype                = excluded.subtype,
+            match_status           = excluded.match_status,
+            uploaded_at            = now()
         `;
         summary.roomSnapshotsUpserted++;
       }

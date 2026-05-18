@@ -33,6 +33,31 @@ export const UNMAPPED: ChargeMapping = {
   subtype: null,
 };
 
+/**
+ * Operational rows from the Mix/Match ("Type" header) section that the user
+ * has explicitly told us to skip — they exist in the file but aren't part of
+ * the current data model. Listed verbatim so future requests to track any of
+ * them can just delete the entry.
+ */
+export const IGNORED_LABELS: ReadonlySet<string> = new Set([
+  'SAME DAY BOOKINGS',
+  'DAY USE ROOMS',
+  'STAYOVER ROOMS',
+  'TOTAL GUESTS',
+  'CHILDREN',
+  'ADULTS',
+  'TOTAL GUEST CERTIFIED',
+  'TOTAL GRATIS',
+  'HOUSE ROOMS',
+  'DEPARTED RESERVATIONS',
+  'CHECKED IN RESERVATIONS',
+  'CANCELLED',
+].map(normaliseLabel));
+
+export function isIgnoredLabel(raw: string): boolean {
+  return IGNORED_LABELS.has(normaliseLabel(raw));
+}
+
 export const CHARGE_MAPPING: Record<string, ChargeMapping> = {
   // ── Revenue / Room Revenue ───────────────────────────────────────────────
   'EXTRA NO SHOW ROOM REVENUE':      { category: 'Revenue', type: 'Room Revenue', subtypeGroup: 'Not Applicable', subtype: 'Direct Room Revenue' },

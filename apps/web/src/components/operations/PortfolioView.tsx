@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { HOTELS, MAINTENANCE_TICKETS, getPropertyOpsSummary } from '@hos/shared';
+import { HOTELS, MAINTENANCE_TICKETS } from '@hos/shared';
 import type { MaintenanceTicket, TicketType } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { TicketTypeBadge, PriorityDot, TicketStatusBadge } from './OpsBadges';
 import { AlertTriangle } from 'lucide-react';
+import { useApi } from '@/lib/use-api';
+import { apiKeys } from '@/lib/swr-keys';
 
 interface Props {
   onHotelClick: (hotelId: string) => void;
@@ -36,17 +38,23 @@ export function PortfolioView({ onHotelClick, onTicketClick, hotelIds }: Props) 
 
   const scopedHotels = hotelIds ? HOTELS.filter((h) => hotelIds.includes(h.id)) : HOTELS;
 
-  const summaries = scopedHotels.map((h) => getPropertyOpsSummary(h.id));
+  // Live per-hotel ops summary from room_snapshots.
+  const { data: portfolioData } = useApi(apiKeys.opsPortfolio(scopedHotels.map((h) => h.id)));
+  const portfolioRows = portfolioData?.rows ?? [];
+  const summaryByHotel = new Map(portfolioRows.map((r) => [r.hotelId, r]));
 
-  const totalReady = summaries.reduce((s, x) => s + x.readyRooms, 0);
-  const totalRooms = scopedHotels.reduce((s, h) => s + h.rooms, 0);
-  const totalOoo = summaries.reduce((s, x) => s + x.oooRooms, 0);
-  const totalBlocked = summaries.reduce((s, x) => s + x.blockedRooms, 0);
+  // Portfolio KPIs (sum across the API rows).
+  const totalRooms     = portfolioRows.reduce((s, r) => s + r.totalRooms, 0);
+  const totalAvailable = portfolioRows.reduce((s, r) => s + r.available, 0);
+  const totalOccupied  = portfolioRows.reduce((s, r) => s + r.occupied + r.stayover, 0);
+  const totalDirty     = portfolioRows.reduce((s, r) => s + r.dirty, 0);
+  const totalAssigned  = portfolioRows.reduce((s, r) => s + r.assigned, 0);
+
+  // Maintenance queue stays on mock for now (no DB rows yet).
   const activeTickets = MAINTENANCE_TICKETS.filter((t) =>
     t.status !== 'resolved' && (!hotelIds || hotelIds.includes(t.hotelId))
   );
   const urgentTickets = activeTickets.filter((t) => t.priority === 'urgent');
-  const avgAuditRate = Math.round(summaries.reduce((s, x) => s + x.auditPassRate, 0) / summaries.length);
 
   const filteredTickets = activeTickets.filter((t) => {
     if (urgentOnly && t.priority !== 'urgent') return false;
@@ -56,32 +64,31 @@ export function PortfolioView({ onHotelClick, onTicketClick, hotelIds }: Props) 
 
   return (
     <div className="flex flex-col gap-6">
-      {/* KPI cards */}
+      {/* KPI cards — sourced from room_snapshots */}
       <div className="grid grid-cols-4 gap-4">
         <KpiCard
-          label="Rooms Ready"
-          value={`${totalReady} / ${totalRooms}`}
-          subtext={`${((totalReady / totalRooms) * 100).toFixed(1)}% portfolio ready`}
+          label="Available"
+          value={`${totalAvailable} / ${totalRooms}`}
+          subtext={totalRooms > 0 ? `${((totalAvailable / totalRooms) * 100).toFixed(1)}% ready to assign` : 'no snapshots yet'}
           size="large"
         />
         <KpiCard
-          label="Rooms Out of Order"
-          value={totalOoo.toString()}
-          subtext={`+ ${totalBlocked} blocked by maintenance`}
-          alert={totalOoo > 20}
+          label="Occupied"
+          value={totalOccupied.toString()}
+          subtext={`incl. ${portfolioRows.reduce((s, r) => s + r.stayover, 0)} stayover`}
           size="large"
         />
         <KpiCard
-          label="Open Tickets"
-          value={activeTickets.length.toString()}
-          subtext={`${urgentTickets.length} urgent`}
-          alert={urgentTickets.length > 3}
+          label="Dirty"
+          value={totalDirty.toString()}
+          subtext="awaiting housekeeping"
+          alert={totalRooms > 0 && totalDirty / totalRooms > 0.15}
           size="large"
         />
         <KpiCard
-          label="Audit Pass Rate"
-          value={`${avgAuditRate}%`}
-          subtext="across completed audits"
+          label="Assigned"
+          value={totalAssigned.toString()}
+          subtext="arriving today"
           size="large"
         />
       </div>
@@ -99,19 +106,22 @@ export function PortfolioView({ onHotelClick, onTicketClick, hotelIds }: Props) 
             <thead>
               <tr style={{ background: '#f7f7f7', borderBottom: '1px solid #dddddd' }}>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Property</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Ready</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>OOO</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Blocked</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Tickets</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Audit %</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Available</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Occupied</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Stayover</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Assigned</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Dirty</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {scopedHotels.map((hotel, i) => {
-                const s = summaries.find((x) => x.hotelId === hotel.id)!;
-                const readyPct = Math.round((s.readyRooms / hotel.rooms) * 100);
-                const hasIssue = s.urgentTickets > 0 || s.oooRooms > 3 || s.auditPassRate < 85;
+                const s = summaryByHotel.get(hotel.id);
+                const total = s?.totalRooms ?? hotel.rooms;
+                const available = s?.available ?? 0;
+                const availablePct = total > 0 ? Math.round((available / total) * 100) : 0;
+                const dirtyPct    = total > 0 ? (s?.dirty ?? 0) / total : 0;
+                const hasIssue    = !s || dirtyPct > 0.15;
                 return (
                   <tr
                     key={hotel.id}
@@ -126,52 +136,34 @@ export function PortfolioView({ onHotelClick, onTicketClick, hotelIds }: Props) 
                         )}
                         <div>
                           <p className="font-semibold" style={{ color: '#222222' }}>{hotel.shortName}</p>
-                          <p className="text-xs" style={{ color: '#929292' }}>{hotel.city}, {hotel.state} · {hotel.brand}</p>
+                          <p className="text-xs" style={{ color: '#929292' }}>
+                            {hotel.city}, {hotel.state} · {hotel.brand}
+                            {!s && ' · no snapshot yet'}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-3 py-3 text-center">
                       <div>
-                        <p className="font-semibold" style={{ color: readyPct < 10 ? '#c0392b' : '#222222' }}>
-                          {s.readyRooms}
-                        </p>
-                        <p className="text-xs" style={{ color: '#929292' }}>{readyPct}%</p>
+                        <p className="font-semibold" style={{ color: '#222222' }}>{available}</p>
+                        {s && <p className="text-xs" style={{ color: '#929292' }}>{availablePct}%</p>}
                       </div>
                     </td>
                     <td className="px-3 py-3 text-center">
-                      <span
-                        className="font-semibold"
-                        style={{ color: s.oooRooms > 3 ? '#c0392b' : '#222222' }}
-                      >
-                        {s.oooRooms}
-                      </span>
+                      <span className="font-semibold" style={{ color: '#222222' }}>{s?.occupied ?? 0}</span>
+                    </td>
+                    <td className="px-3 py-3 text-center">
+                      <span className="font-semibold" style={{ color: '#222222' }}>{s?.stayover ?? 0}</span>
+                    </td>
+                    <td className="px-3 py-3 text-center">
+                      <span className="font-semibold" style={{ color: '#222222' }}>{s?.assigned ?? 0}</span>
                     </td>
                     <td className="px-3 py-3 text-center">
                       <span
                         className="font-semibold"
-                        style={{ color: s.blockedRooms > 0 ? '#d97706' : '#222222' }}
+                        style={{ color: dirtyPct > 0.15 ? '#c0392b' : '#222222' }}
                       >
-                        {s.blockedRooms}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <div>
-                        <span className="font-semibold" style={{ color: s.openTickets > 0 ? '#222222' : '#929292' }}>
-                          {s.openTickets}
-                        </span>
-                        {s.urgentTickets > 0 && (
-                          <span className="ml-1 text-xs font-bold" style={{ color: '#c0392b' }}>
-                            ({s.urgentTickets} urg)
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <span
-                        className="font-semibold"
-                        style={{ color: s.auditPassRate < 85 ? '#c0392b' : s.auditPassRate < 95 ? '#d97706' : '#15803d' }}
-                      >
-                        {s.auditPassRate}%
+                        {s?.dirty ?? 0}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">

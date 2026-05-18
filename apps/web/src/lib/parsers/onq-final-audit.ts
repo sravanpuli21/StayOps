@@ -44,6 +44,7 @@ import {
   UNMAPPED,
   normaliseLabel,
   lookupMapping,
+  isIgnoredLabel,
 } from './onq/charge-mapping';
 
 type ColumnLayout = 'charge-table' | 'mix-match';
@@ -137,6 +138,10 @@ export async function parseOnqFinalAudit(input: ParseInput): Promise<ParseResult
     for (const row of section.rows) {
       const label = (row[0] ?? '').trim();
       if (!label) continue;
+
+      // User-defined skip list (Same Day Bookings, Stayover Rooms, guest
+      // counts, etc.) — never persisted, never surfaced as Needs Review.
+      if (isIgnoredLabel(label)) continue;
 
       const { today, mtd, ytd } = extractValues(row, layout);
 

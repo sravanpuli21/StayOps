@@ -169,23 +169,23 @@ export interface ParsedNightAuditRow {
   matchStatus: 'Mapped' | 'Needs Review';
 }
 
+/**
+ * Slim room snapshot, derived from the OnQ room-details CSV per user spec.
+ * The CSV's `Reservation Status` column drives the final `type`; OCC STATUS
+ * is preserved as `raw_occ_status` for reference but does NOT determine the
+ * displayed status (unless `Reservation Status` was unmappable).
+ */
 export interface ParsedRoomSnapshot {
   hotelCode: string;
-  captured_at: string;  // ISO timestamp
+  captured_at: string;            // ISO timestamp
   room_number: string;
-  room_type_code?: string;
-  occ_status?: string;
-  hsk_status?: string;
-  guest_name?: string;
-  addn_guests?: string;
-  honors_tier?: string;
-  arrival_date?: string;
-  departure_date?: string;
-  rate_plan?: string;
-  reservation_status?: string;
-  pending_status?: string;
-  maintenance?: string;
-  last_occupied?: string;
+  raw_occ_status: string | null;
+  raw_reservation_status: string | null;
+  category: 'RoomStatus';
+  /** Mapped: Occupied | Assigned | Available | Dirty. Unmapped: raw value. */
+  type: string;
+  subtype: string | null;
+  match_status: 'Mapped' | 'Needs Review';
 }
 
 export interface ParsedReservationArrival {

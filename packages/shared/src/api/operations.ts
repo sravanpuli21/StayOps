@@ -59,3 +59,71 @@ export const GetInventoryResponseSchema = z.object({
   items: asArray<RoomInventoryItem>(),
 });
 export type GetInventoryResponse = z.infer<typeof GetInventoryResponseSchema>;
+
+// ── Property operational stats from night_audit_rows ───────────────────────
+// Drives the status pills at the top of the operations property view.
+
+export const OpsStatMetricSchema = z.object({
+  /** Bucket key, e.g. 'OOO', 'Dirty', 'Clean', 'Rooms Vacant', 'Rooms Sold', etc. */
+  type:  z.string(),
+  today: z.number(),
+  mtd:   z.number(),
+  ytd:   z.number(),
+});
+export type ApiOpsStatMetric = z.infer<typeof OpsStatMetricSchema>;
+
+export const PropertyOpsStatsSchema = z.object({
+  hotelId:    z.string(),
+  /** Latest report_date used for these counts, or null if there's no data. */
+  reportDate: z.string().nullable(),
+  metrics:    z.array(OpsStatMetricSchema),
+});
+export type ApiPropertyOpsStats = z.infer<typeof PropertyOpsStatsSchema>;
+
+export const GetPropertyOpsStatsResponseSchema = z.object({
+  stats: PropertyOpsStatsSchema.nullable(),
+});
+export type GetPropertyOpsStatsResponse = z.infer<typeof GetPropertyOpsStatsResponseSchema>;
+
+// ── Per-room snapshot rows (drives the room grid) ──────────────────────────
+export const RoomSnapshotRowSchema = z.object({
+  hotelId:           z.string(),
+  roomNumber:        z.string(),
+  /** Derived from the leading digits of roomNumber (e.g. "215" → 2). */
+  floor:             z.number().int(),
+  /** Mapped status: Occupied | Stayover | Assigned | Available | Dirty | OOO | raw label. */
+  type:              z.string(),
+  rawOccStatus:      z.string().nullable(),
+  rawReservationStatus: z.string().nullable(),
+  matchStatus:       z.enum(['Mapped', 'Needs Review']),
+  capturedAt:        z.string(),
+});
+export type ApiRoomSnapshotRow = z.infer<typeof RoomSnapshotRowSchema>;
+
+export const GetPropertyRoomsResponseSchema = z.object({
+  rooms: z.array(RoomSnapshotRowSchema),
+});
+export type GetPropertyRoomsResponse = z.infer<typeof GetPropertyRoomsResponseSchema>;
+
+// ── Portfolio-level ops summary (one row per hotel) ────────────────────────
+export const PortfolioOpsRowSchema = z.object({
+  hotelId:   z.string(),
+  /** Total rooms with at least one snapshot. */
+  totalRooms: z.number().int().nonnegative(),
+  /** Buckets — sum across all rooms in latest snapshot per room. */
+  occupied:  z.number().int().nonnegative(),
+  stayover:  z.number().int().nonnegative(),
+  assigned:  z.number().int().nonnegative(),
+  available: z.number().int().nonnegative(),
+  dirty:     z.number().int().nonnegative(),
+  /** Anything that didn't match the spec — surfaced for review. */
+  needsReview: z.number().int().nonnegative(),
+  /** ISO timestamp of the most recent captured_at across this hotel's rooms. */
+  latestCapturedAt: z.string().nullable(),
+});
+export type ApiPortfolioOpsRow = z.infer<typeof PortfolioOpsRowSchema>;
+
+export const GetPortfolioOpsResponseSchema = z.object({
+  rows: z.array(PortfolioOpsRowSchema),
+});
+export type GetPortfolioOpsResponse = z.infer<typeof GetPortfolioOpsResponseSchema>;

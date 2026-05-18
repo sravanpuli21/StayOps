@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   HOTELS, getRoomsForHotel, getActiveTicketsForHotel, getAuditTasksForHotel,
+  resolveDateRange, type DateRangeKind,
 } from '@hos/shared';
 import type { Room, MaintenanceTicket, TicketType } from '@hos/shared';
-import { TicketTypeBadge, PriorityDot, TicketStatusBadge, AuditStatusBadge, ROOM_STATUS_STYLES } from './OpsBadges';
+import { TicketTypeBadge, PriorityDot, TicketStatusBadge, AuditStatusBadge } from './OpsBadges';
 import { ChevronLeft } from 'lucide-react';
+import { useApi } from '@/lib/use-api';
+import { apiKeys } from '@/lib/swr-keys';
+import { useDateFilter } from '@/lib/date-filter-context';
 
 interface Props {
   hotelId: string;
@@ -15,7 +19,36 @@ interface Props {
   onTicketClick: (ticket: MaintenanceTicket) => void;
 }
 
-const STATUS_ORDER = ['ready', 'inspecting', 'dirty', 'blocked', 'ooo', 'occupied'] as const;
+/**
+ * Project the new RoomStatus type values onto the grid's 6-status visual
+ * buckets so existing tile colors keep working unchanged.
+ */
+function statusFromType(t: string): Room['status'] {
+  if (t === 'Occupied' || t === 'Stayover') return 'occupied';
+  if (t === 'Available') return 'ready';
+  if (t === 'Dirty')     return 'dirty';
+  if (t === 'Assigned')  return 'inspecting';
+  if (t === 'OOO')       return 'ooo';
+  return 'occupied';
+}
+
+/**
+ * Per-room "Final Room Status" pills from room_snapshots.reservation_status:
+ *   IN HOUSE    → Occupied
+ *   Arrival     → Assigned
+ *   blank/empty → Available
+ *   CHECKED OUT → Dirty
+ */
+const OPS_PILLS: Array<{
+  type: string; label: string;
+  bg: string; border: string; color: string; dot: string;
+}> = [
+  { type: 'Room.Occupied',  label: 'Occupied',  bg: '#f3f4f6', border: '#d1d5db', color: '#374151', dot: '#94a3b8' },
+  { type: 'Room.Stayover',  label: 'Stayover',  bg: '#fff7ed', border: '#fdba74', color: '#9a3412', dot: '#fb923c' },
+  { type: 'Room.Assigned',  label: 'Assigned',  bg: '#dbeafe', border: '#93c5fd', color: '#1e40af', dot: '#3b82f6' },
+  { type: 'Room.Available', label: 'Available', bg: '#dcfce7', border: '#86efac', color: '#15803d', dot: '#22c55e' },
+  { type: 'Room.Dirty',     label: 'Dirty',     bg: '#fef9c3', border: '#fde047', color: '#854d0e', dot: '#f59e0b' },
+];
 
 const TYPE_FILTERS: { label: string; value: TicketType | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -41,9 +74,50 @@ function fmtDate(dateStr: string): string {
 export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Props) {
   const [ticketFilter, setTicketFilter] = useState<TicketType | 'all'>('all');
   const hotel = HOTELS.find((h) => h.id === hotelId)!;
-  const rooms = getRoomsForHotel(hotelId);
   const tickets = getActiveTicketsForHotel(hotelId);
   const auditTasks = getAuditTasksForHotel(hotelId);
+
+  // ── Live operational counts (status pills) — driven by night_audit_rows ──
+  // The room grid + tickets + audits below stay on mock helpers for now;
+  // this hook only powers the pill row.
+  const { range, customFrom, customTo } = useDateFilter();
+  const { from, to } = useMemo(() => {
+    if (range === 'custom') {
+      const f = customFrom || customTo;
+      const t = customTo   || customFrom;
+      if (f && t) return { from: f, to: t };
+    }
+    const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+    const today = frozen ? new Date(`${frozen}T00:00:00Z`) : new Date();
+    const kind: DateRangeKind = range;
+    return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
+  }, [range, customFrom, customTo]);
+  const { data: opsStatsData } = useApi(apiKeys.opsPropertyStats(hotelId, from, to));
+  const opsStats = opsStatsData?.stats ?? null;
+
+  // ── Live room grid — from room_snapshots (OnQ room-details upload) ──────
+  // Each API row carries its derived `type` (Occupied / Stayover / Assigned /
+  // Available / Dirty / raw-for-review). We project that onto the grid's
+  // existing 6-status visual buckets so the design stays unchanged. If there
+  // are no snapshots for this hotel yet, we fall back to mock rooms so the
+  // grid never goes empty.
+  const { data: roomsData } = useApi(apiKeys.opsPropertyRooms(hotelId));
+  const apiRooms = roomsData?.rooms ?? [];
+  const rooms: Room[] = apiRooms.length > 0
+    ? apiRooms.map((r) => ({
+        id:               `${r.hotelId}-${r.roomNumber}`,
+        hotelId:          r.hotelId,
+        number:           r.roomNumber,
+        floor:            r.floor,
+        type:             'King',                 // placeholder; not in spec
+        status:           statusFromType(r.type),
+        hkStatus:         'clean',
+        lastCleaned:      null,
+        lastInspected:    null,
+        hasOpenTicket:    false,
+        oooReason:        r.matchStatus === 'Needs Review' ? `Raw: ${r.type}` : undefined,
+      }))
+    : getRoomsForHotel(hotelId);
 
   // Group rooms by floor, sort floors descending
   const floorMap: Record<number, Room[]> = {};
@@ -104,20 +178,20 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
         </p>
       </div>
 
-      {/* Status summary pills */}
+      {/* Status summary pills — sourced from night_audit_rows operational counts */}
       <div className="flex items-center gap-2 flex-wrap">
-        {STATUS_ORDER.map((status) => {
-          const count = counts[status] ?? 0;
+        {OPS_PILLS.map((pill) => {
+          const m = opsStats?.metrics.find((x) => x.type === pill.type);
+          const count = m?.today ?? 0;
           if (count === 0) return null;
-          const s = ROOM_STATUS_STYLES[status];
           return (
             <div
-              key={status}
+              key={pill.type}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
-              style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color }}
+              style={{ background: pill.bg, border: `1px solid ${pill.border}`, color: pill.color }}
             >
-              <span className="w-2 h-2 rounded-full" style={{ background: ROOM_COLORS[status] }} />
-              {count} {status.charAt(0).toUpperCase() + status.slice(1)}
+              <span className="w-2 h-2 rounded-full" style={{ background: pill.dot }} />
+              {count} {pill.label}
             </div>
           );
         })}
