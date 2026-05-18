@@ -1,7 +1,9 @@
-name: Hourly Gmail inbox poll
+name: Daily Gmail inbox poll
 
-# Hits the Vercel /api/inbox/cron endpoint every hour. Lets us run hourly
-# ingestion on Vercel Hobby (whose own cron is capped at once-per-day).
+# Hits the Vercel /api/inbox/cron endpoint once per day (every 24h).
+# Hilton's "Report Package" emails arrive around 05:48 UTC each night, so we
+# poll at 11:00 UTC (~06:00 ET / 04:00 MT / 03:00 PT) to give the night audit
+# time to finish landing before we read.
 #
 # Setup (one-time, after the first Vercel deploy):
 #   1. Repo Settings → Secrets and variables → Actions → New repository secret:
@@ -9,14 +11,16 @@ name: Hourly Gmail inbox poll
 #   2. Repo Settings → Secrets and variables → Actions → Variables tab → New variable:
 #        VERCEL_APP_URL  — your production URL (e.g. "stayops.vercel.app", no protocol)
 #
-# Manual trigger: Actions tab → "Hourly Gmail inbox poll" → "Run workflow"
+# Manual trigger: Actions tab → "Daily Gmail inbox poll" → "Run workflow"
 # button (uses the same secret + URL).
 
 on:
   schedule:
-    # At minute 5 of every hour (UTC). The :05 offset avoids the :00 traffic
-    # spike when every cron service in the world fires at once.
-    - cron: '5 * * * *'
+    # 11:00 UTC daily — five minutes after Vercel's own 11:00 cron, so the two
+    # serve as redundancy (Vercel first, GitHub Actions as backup if Vercel
+    # missed it for any reason). GitHub Actions schedules can drift up to 15
+    # minutes during peak load; that's fine for daily ingestion.
+    - cron: '5 11 * * *'
   workflow_dispatch:
 
 # Don't pile up runs if a previous poll is still in flight (rare, but safe).
