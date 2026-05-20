@@ -15,12 +15,17 @@ const PRIORITY_STYLES: Record<TicketPriority, { color: string; label: string }> 
 };
 
 const STATUS_STYLES: Record<TicketStatus, { bg: string; color: string; label: string }> = {
-  open:         { bg: '#fff1f1', color: '#c0392b', label: 'Open' },
-  in_progress:  { bg: '#eff6ff', color: '#1d6fa4', label: 'In Progress' },
-  pending_part: { bg: '#fffbeb', color: '#b45309', label: 'Pending Part' },
-  resolved:     { bg: '#f0fdf4', color: '#16a34a', label: 'Resolved' },
-  escalated:    { bg: '#fff3e0', color: '#b45309', label: 'Escalated' },
-  scheduled:    { bg: '#f3f4f6', color: '#6a6a6a', label: 'Scheduled' },
+  open:             { bg: '#fff1f1', color: '#c0392b', label: 'Open' },
+  assigned:         { bg: '#eff6ff', color: '#1d6fa4', label: 'Assigned' },
+  in_progress:      { bg: '#eff6ff', color: '#1d6fa4', label: 'In Progress' },
+  completed:        { bg: '#f0fdf4', color: '#16a34a', label: 'Completed' },
+  callback_pending: { bg: '#fff7ed', color: '#9a3412', label: 'Callback Pending' },
+  closed:           { bg: '#f3f4f6', color: '#6a6a6a', label: 'Closed' },
+  reopened:         { bg: '#fff1f1', color: '#c0392b', label: 'Reopened' },
+  pending_part:     { bg: '#fffbeb', color: '#b45309', label: 'Pending Part' },
+  resolved:         { bg: '#f0fdf4', color: '#16a34a', label: 'Resolved' },
+  escalated:        { bg: '#fff3e0', color: '#b45309', label: 'Escalated' },
+  scheduled:        { bg: '#f3f4f6', color: '#6a6a6a', label: 'Scheduled' },
 };
 
 const ROOM_STATUS_STYLES: Record<RoomStatus, { bg: string; border: string; color: string; label: string }> = {

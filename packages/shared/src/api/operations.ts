@@ -127,3 +127,83 @@ export const GetPortfolioOpsResponseSchema = z.object({
   rows: z.array(PortfolioOpsRowSchema),
 });
 export type GetPortfolioOpsResponse = z.infer<typeof GetPortfolioOpsResponseSchema>;
+
+// ── Front-desk: log a guest-request / maintenance ticket ──────────────────
+export const CreateTicketRequestSchema = z.object({
+  hotelCode:   z.string().min(1),
+  roomNumber:  z.string().min(1).optional(),
+  area:        z.string().min(1).optional(),
+  type:        z.enum(['reactive', 'preventive', 'audit', 'escalation']).default('reactive'),
+  priority:    z.enum(['urgent', 'high', 'normal', 'low']).default('normal'),
+  title:       z.string().min(1),
+  description: z.string().optional(),
+  reportedBy:  z.string().optional(),
+  department:  z.enum(['Front Desk', 'Housekeeping', 'Maintenance', 'Engineering']).optional(),
+  /** Free-text request type label (e.g. "Extra towels", "AC not cooling"). */
+  requestType:       z.string().min(1).optional(),
+  callbackRequired:  z.boolean().optional(),
+});
+export type CreateTicketRequest = z.infer<typeof CreateTicketRequestSchema>;
+
+// ── Front-desk: state-change actions on an existing ticket ────────────────
+export const UpdateTicketStatusSchema = z.object({
+  status: z.enum([
+    'open', 'assigned', 'in_progress', 'completed',
+    'callback_pending', 'closed', 'reopened', 'escalated',
+  ]),
+  note:   z.string().optional(),
+  actor:  z.string().optional(),
+});
+export type UpdateTicketStatusRequest = z.infer<typeof UpdateTicketStatusSchema>;
+
+export const AddTicketNoteSchema = z.object({
+  note:  z.string().min(1),
+  actor: z.string().optional(),
+});
+export type AddTicketNoteRequest = z.infer<typeof AddTicketNoteSchema>;
+
+// ── Employee punch in / punch out ─────────────────────────────────────────
+export const PunchRequestSchema = z.object({
+  hotelCode:  z.string().min(1),
+  employeeId: z.string().min(1),
+  pin:        z.string().min(1),
+  kind:       z.enum(['in', 'out']),
+});
+export type PunchRequest = z.infer<typeof PunchRequestSchema>;
+
+export const PunchRowSchema = z.object({
+  id:         z.string(),
+  employeeId: z.string(),
+  fullName:   z.string(),
+  department: z.string().nullable(),
+  kind:       z.enum(['in', 'out']),
+  punchedAt:  z.string(),
+});
+export type ApiPunchRow = z.infer<typeof PunchRowSchema>;
+
+export const PunchResponseSchema = z.object({
+  ok:     z.literal(true),
+  punch:  PunchRowSchema,
+});
+export type PunchResponse = z.infer<typeof PunchResponseSchema>;
+
+export const GetPunchesResponseSchema = z.object({
+  punches: z.array(PunchRowSchema),
+});
+export type GetPunchesResponse = z.infer<typeof GetPunchesResponseSchema>;
+
+export const CallbackActionSchema = z.object({
+  /** confirmed → close; not_available → keep callback_pending; reopen → status=reopened. */
+  action: z.enum(['confirmed', 'not_available', 'reopen']),
+  note:   z.string().optional(),
+  actor:  z.string().optional(),
+});
+export type CallbackActionRequest = z.infer<typeof CallbackActionSchema>;
+
+export const CreateTicketResponseSchema = z.object({
+  ok:     z.literal(true),
+  /** The inserted MaintenanceTicket — typed loosely here to avoid a circular
+   *  import; consumers should cast to the in-memory MaintenanceTicket shape. */
+  ticket: z.record(z.string(), z.unknown()),
+});
+export type CreateTicketResponse = z.infer<typeof CreateTicketResponseSchema>;

@@ -2,8 +2,21 @@ export type RoomStatus = 'ready' | 'dirty' | 'inspecting' | 'ooo' | 'blocked' | 
 export type RoomType = 'King' | 'Queen' | 'Suite';
 export type HkStatus = 'clean' | 'dirty' | 'inspected';
 export type TicketType = 'reactive' | 'preventive' | 'audit' | 'escalation';
-export type TicketStatus = 'open' | 'in_progress' | 'pending_part' | 'resolved' | 'escalated' | 'scheduled';
+/**
+ * Ticket status — covers the front-desk Guest Request lifecycle plus the
+ * legacy maintenance values kept for back-compat with seeded data.
+ */
+export type TicketStatus =
+  | 'open' | 'assigned' | 'in_progress' | 'completed'
+  | 'callback_pending' | 'closed' | 'reopened' | 'escalated'
+  | 'pending_part' | 'scheduled' | 'resolved';
 export type TicketPriority = 'urgent' | 'high' | 'normal' | 'low';
+
+/** Department a ticket is routed to. */
+export type TicketDepartment = 'Front Desk' | 'Housekeeping' | 'Maintenance' | 'Engineering';
+
+/** Callback workflow state once a ticket has been completed. */
+export type CallbackStatus = 'pending' | 'confirmed' | 'not_available' | 'reopened';
 export type AuditTaskType = 'audit' | 'preventive';
 export type AuditStatus = 'scheduled' | 'in_progress' | 'passed' | 'failed' | 'overdue';
 export type ItemCategory = 'furniture' | 'appliance' | 'fixture' | 'linen' | 'electronics';
@@ -45,9 +58,17 @@ export interface MaintenanceTicket {
   assignedTo?: string;
   createdAt: string;
   updatedAt: string;
+  closedAt?: string;
   estimatedCost?: number;
   revenueLost?: number;
   activity: TicketActivity[];
+
+  /** Front-desk additions (nullable on legacy / non-FD tickets). */
+  department?: TicketDepartment;
+  /** Free-text label like "Extra towels" or "AC not cooling". */
+  requestType?: string;
+  callbackRequired?: boolean;
+  callbackStatus?: CallbackStatus | null;
 }
 
 export interface AuditTask {

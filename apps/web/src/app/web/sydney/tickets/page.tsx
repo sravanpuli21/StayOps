@@ -6,12 +6,17 @@ import { Wrench, Clock, Filter, Search, ChevronRight, AlertTriangle } from 'luci
 import { SYDNEY_HOTEL, useHotelTickets, TICKET_TYPE_META, PRIORITY_META } from '@/lib/sydney-data';
 
 const STATUS_META: Record<TicketStatus, { label: string; bg: string; color: string }> = {
-  open:         { label: 'Open',         bg: '#fef2f2', color: '#b91c1c' },
-  in_progress:  { label: 'In progress',  bg: '#fffbeb', color: '#b45309' },
-  pending_part: { label: 'Pending part', bg: '#fef3c7', color: '#92400e' },
-  scheduled:    { label: 'Scheduled',    bg: '#eff6ff', color: '#1d4ed8' },
-  escalated:    { label: 'Escalated',    bg: '#fef2f2', color: '#7f1d1d' },
-  resolved:     { label: 'Resolved',     bg: '#f0fdf4', color: '#15803d' },
+  open:             { label: 'Open',             bg: '#fef2f2', color: '#b91c1c' },
+  assigned:         { label: 'Assigned',         bg: '#eff6ff', color: '#1d4ed8' },
+  in_progress:      { label: 'In progress',      bg: '#fffbeb', color: '#b45309' },
+  completed:        { label: 'Completed',        bg: '#f0fdf4', color: '#15803d' },
+  callback_pending: { label: 'Callback pending', bg: '#fff7ed', color: '#9a3412' },
+  closed:           { label: 'Closed',           bg: '#f3f4f6', color: '#6a6a6a' },
+  reopened:         { label: 'Reopened',         bg: '#fef2f2', color: '#b91c1c' },
+  pending_part:     { label: 'Pending part',     bg: '#fef3c7', color: '#92400e' },
+  scheduled:        { label: 'Scheduled',        bg: '#eff6ff', color: '#1d4ed8' },
+  escalated:        { label: 'Escalated',        bg: '#fef2f2', color: '#7f1d1d' },
+  resolved:         { label: 'Resolved',         bg: '#f0fdf4', color: '#15803d' },
 };
 
 const TYPE_TABS: (TicketType | 'all')[] = ['all', 'reactive', 'preventive', 'audit', 'escalation'];

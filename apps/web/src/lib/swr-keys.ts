@@ -14,6 +14,7 @@ import {
   GetRoomsResponseSchema, GetTicketsResponseSchema, GetOpsSummaryResponseSchema,
   GetStaleDirtyResponseSchema, GetEmployeesResponseSchema, GetPropertyOpsStatsResponseSchema,
   GetPropertyRoomsResponseSchema, GetPortfolioOpsResponseSchema,
+  GetPunchesResponseSchema,
   GetAuditSummaryResponseSchema, GetAuditTasksResponseSchema,
   GetAssetsResponseSchema, GetAssetSummaryResponseSchema, GetVendorSpendResponseSchema,
   GetAmPmReportResponseSchema, GetOtaChannelRowsResponseSchema,
@@ -61,6 +62,8 @@ export const apiKeys = {
     [buildUrl('/api/ops/rooms', { hotelId, status }),                    GetRoomsResponseSchema] as const,
   opsTickets:     (hotelId?: string, status?: string) =>
     [buildUrl('/api/ops/tickets', { hotelId, status }),                  GetTicketsResponseSchema] as const,
+  opsTicketsAll:  (hotelId: string) =>
+    [buildUrl('/api/ops/tickets', { hotelId, all: '1' }),                GetTicketsResponseSchema] as const,
   opsSummary:     (hotelId: string) =>
     [buildUrl('/api/ops/summary', { hotelId }),                          GetOpsSummaryResponseSchema] as const,
   opsPropertyStats: (hotelId: string, from: string, to: string) =>
@@ -69,6 +72,8 @@ export const apiKeys = {
     [buildUrl('/api/ops/property-rooms', { hotelId }),                   GetPropertyRoomsResponseSchema] as const,
   opsPortfolio:    (hotelIds?: string[]) =>
     [buildUrl('/api/ops/portfolio-summary', { hotelIds }),               GetPortfolioOpsResponseSchema] as const,
+  punches:         (hotelId: string) =>
+    [buildUrl('/api/employees/punches', { hotelId }),                    GetPunchesResponseSchema] as const,
   staleDirty:     (hotelId?: string) =>
     [buildUrl('/api/ops/stale-dirty', { hotelId }),                      GetStaleDirtyResponseSchema] as const,
   employees:      (hotelId: string, team?: string) =>
