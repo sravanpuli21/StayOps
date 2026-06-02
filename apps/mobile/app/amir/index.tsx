@@ -1,294 +1,234 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
 import { C, F, R, S } from '../../src/theme';
-import { useTickets, type TicketStatus, type Ticket } from '../../src/store/ticketsContext';
-import { useAudits } from '../../src/store/auditsContext';
-import { useInventory } from '../../src/store/inventoryContext';
+import { useTickets, type Ticket, type TicketStatus } from '../../src/store/ticketsContext';
+import { SectionLabel } from '../../src/components/web-ui/SectionLabel';
+import { useT } from '../../src/i18n/amir-phrases';
+import { SYDNEY_NOTES, FOLLOWUP_TICKETS } from '../../src/data/amir-inventory';
+import { auditsForPerson, TYPE_CFG as AUDIT_TYPE_CFG } from '../../src/data/audits';
 
-// ── Bilingual strings — EN / ES ───────────────────────────────────────────
-type Lang = 'en' | 'es';
-const STR = {
-  greeting:         { en: 'Good evening, Amir',                    es: 'Buenas tardes, Amir' },
-  shift:            { en: 'Evening Shift 4–10 PM',                 es: 'Turno de Tarde 4–10 PM' },
-  handoverTitle:    { en: 'From Sydney',                           es: 'De Sydney' },
-  handoverSub:      { en: 'End-of-day handover · tap for details', es: 'Entrega de día · toca para ver' },
-  kpiOccupied:      { en: 'Occupied urgent',                       es: 'Ocupadas urgentes' },
-  kpiArrivals:      { en: 'Arrivals',                              es: 'Llegadas' },
-  kpiAging:         { en: 'Aging',                                 es: 'Pendientes' },
-  kpiAudits:        { en: 'Audits',                                es: 'Auditorías' },
-  inventoryAlerts:  { en: 'Inventory alerts',                      es: 'Alertas de inventario' },
-  inventoryLowSfx:  { en: 'low',                                   es: 'bajo' },
-  pausedAudits:     { en: 'audit paused',                          es: 'auditoría pausada' },
-  pausedAuditsPl:   { en: 'audits paused',                         es: 'auditorías pausadas' },
-  pausedSub:        { en: 'Resume where you left off',             es: 'Continuar donde lo dejaste' },
-  resume:           { en: 'Resume →',                              es: 'Continuar →' },
-  queueOccupied:    { en: 'Guest in room — urgent',                es: 'Huésped en habitación — urgente' },
-  queueOccupiedSub: { en: 'Guests actively waiting',               es: 'Huéspedes esperando' },
-  queueArrival:     { en: 'Arrival blockers',                      es: 'Bloqueando llegadas' },
-  queueArrivalSub:  { en: 'Blocking check-in',                     es: 'Bloqueando check-in' },
-  queueRepeat:      { en: 'Repeat complaint rooms',                es: 'Habitaciones con quejas repetidas' },
-  queueRepeatSub:   { en: 'Flagged history — investigate deeper',  es: 'Historial marcado — investigar a fondo' },
-  queueAging:       { en: 'Aging open tickets',                    es: 'Tickets abiertos pendientes' },
-  queueAgingSub:    { en: 'Older than 1 day',                      es: 'Más de 1 día' },
-  queueOther:       { en: 'Other open',                            es: 'Otros abiertos' },
-  queueOtherSub:    { en: 'Secondary work when quiet',             es: 'Trabajo secundario cuando haya calma' },
-  auditsDue:        { en: 'Audits Due',                            es: 'Auditorías Pendientes' },
-  overdue:          { en: 'd overdue',                             es: 'd atrasado' },
-  dueToday:         { en: 'Due today',                             es: 'Para hoy' },
-  supervisor:       { en: 'Supervisor',                            es: 'Supervisor' },
-  frontDesk:        { en: 'Front Desk',                            es: 'Recepción' },
-  hkLead:           { en: 'HK Lead',                               es: 'Líder Limpieza' },
-  gm:               { en: 'GM',                                    es: 'GM' },
-};
-const t = (key: keyof typeof STR, lang: Lang) => STR[key][lang];
-
-const PRIORITY_CFG: Record<string, { color: string; bg: string; label: string }> = {
-  urgent: { color: C.red,   bg: C.redBg,   label: 'Urgent' },
-  high:   { color: C.amber, bg: C.amberBg, label: 'High' },
-  normal: { color: C.blue,  bg: C.blueBg,  label: 'Normal' },
+const PRIORITY_CFG: Record<string, { color: string; bg: string }> = {
+  urgent: { color: '#b91c1c', bg: '#fee2e2' },
+  high:   { color: '#b45309', bg: '#fef3c7' },
+  normal: { color: '#1d4ed8', bg: '#dbeafe' },
 };
 
 const STATUS_CFG: Record<TicketStatus, { color: string; label: string }> = {
-  open:         { color: C.red,    label: 'Open' },
-  en_route:     { color: C.blue,   label: 'En route' },
-  in_progress:  { color: C.amber,  label: 'In Progress' },
-  pending_part: { color: C.purple, label: 'Wait part' },
-  scheduled:    { color: C.blue,   label: 'Scheduled' },
-  resolved:     { color: C.green,  label: 'Resolved' },
-  escalated:    { color: C.red,    label: 'Escalated' },
+  open:         { color: '#b91c1c', label: 'Open' },
+  en_route:     { color: '#1d4ed8', label: 'En route' },
+  in_progress:  { color: '#b45309', label: 'In progress' },
+  pending_part: { color: '#7c3aed', label: 'Wait part' },
+  scheduled:    { color: '#1d4ed8', label: 'Scheduled' },
+  resolved:     { color: '#15803d', label: 'Resolved' },
+  escalated:    { color: '#b91c1c', label: 'Escalated' },
 };
 
-const TYPE_CFG: Record<string, { color: string; bg: string; label: string }> = {
-  reactive:   { color: C.red,    bg: C.redBg,    label: 'Reactive' },
-  preventive: { color: C.blue,   bg: C.blueBg,   label: 'Preventive' },
-  audit:      { color: C.purple, bg: C.purpleBg, label: 'Audit' },
-  scheduled:  { color: C.sub,    bg: C.input,    label: 'Scheduled' },
-};
-
-function callRadio(role: string, name: string, lang: Lang) {
-  // Baton Rouge 225 area code — matches BTRCI (Home2 Suites Baton Rouge)
-  const contacts: Record<string, string> = {
-    'Sydney Rivera':     '(225) 555-0110',
-    'Front Desk':        '(225) 555-0100',
-    'Emma Johnson':      '(225) 555-0188',
-    'Rishab Patel':      '(225) 555-0120',
-  };
-  const phone = contacts[name] ?? '';
-  const cancel = lang === 'es' ? 'Cancelar' : 'Cancel';
-  const textLabel = lang === 'es' ? 'Mensaje' : 'Text';
-  const callLabel = lang === 'es' ? 'Llamar' : 'Call';
-  Alert.alert(name, `${role} · ${phone}`, [
-    { text: cancel, style: 'cancel' },
-    { text: textLabel, onPress: () => Linking.openURL(`sms:${phone.replace(/\D/g, '')}`).catch(() => {}) },
-    { text: callLabel, onPress: () => Linking.openURL(`tel:${phone.replace(/\D/g, '')}`).catch(() => {}) },
-  ]);
-}
-
-export default function AmirHome() {
+export default function AmirQueue() {
   const router = useRouter();
   const { allTickets } = useTickets();
-  const { allAudits } = useAudits();
-  const { lowItems: lowInventory, getStatus } = useInventory();
-  const [lang, setLang] = useState<Lang>('en');
+  const t = useT();
+  const [showCompleted, setShowCompleted] = useState(false);
 
-  const active = allTickets.filter((t) => t.status !== 'resolved');
+  const sections = useMemo(() => {
+    const open      = allTickets.filter((tk) => tk.status !== 'resolved');
+    const completed = allTickets.filter((tk) => tk.status === 'resolved');
 
-  // 4 buckets per persona spec
-  const occupiedUrgent = active.filter((t) => t.guestContext === 'occupied_urgent');
-  const arrivalIssues  = active.filter((t) => t.guestContext === 'arrival');
-  const repeat         = active.filter((t) => t.repeatInRoom && t.guestContext !== 'occupied_urgent' && t.guestContext !== 'arrival');
-  const aging          = active.filter((t) => {
-    if (occupiedUrgent.includes(t) || arrivalIssues.includes(t) || repeat.includes(t)) return false;
-    return ['1d', '3d', '4d', '5d'].some((age) => (t.createdAt ?? '').includes(age)) || t.status === 'pending_part';
-  });
-  const otherOpen = active.filter((t) =>
-    !occupiedUrgent.includes(t) && !arrivalIssues.includes(t) && !repeat.includes(t) && !aging.includes(t)
-  );
+    const urgent     = open.filter((tk) => tk.priority === 'urgent' && (tk.guestContext === 'occupied_urgent' || tk.guestContext === 'arrival'));
+    const arrival    = open.filter((tk) => tk.guestContext === 'arrival' && !urgent.includes(tk));
+    const assigned   = open.filter((tk) => tk.type === 'reactive' && !urgent.includes(tk) && !arrival.includes(tk));
+    const preventive = open.filter((tk) => tk.type === 'preventive');
+    const audit      = open.filter((tk) => tk.type === 'audit');
+    const followups  = open.filter((tk) => tk.repeatInRoom && !urgent.includes(tk) && !arrival.includes(tk) && !assigned.includes(tk));
 
-  const openAuditsDue = allAudits.filter((a) => a.state !== 'completed');
-  const pausedCount = allAudits.filter((a) => a.state === 'paused').length;
+    return { urgent, arrival, assigned, preventive, audit, followups, completed };
+  }, [allTickets]);
+
+  const totalOpen = sections.urgent.length + sections.arrival.length + sections.assigned.length +
+                    sections.preventive.length + sections.audit.length + sections.followups.length;
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Greeting */}
+      <View style={styles.greetBar}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>{t('greeting', lang)} 👋</Text>
-          <Text style={styles.date}>
-            {new Date().toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {t('shift', lang)}
+          <Text style={styles.greeting}>Buenas tardes, Amir 👋</Text>
+          <Text style={styles.greetSub}>
+            {sections.urgent.length} urgent · {totalOpen} open · {SYDNEY_NOTES.length} notes from Sydney
           </Text>
         </View>
-        {/* EN/ES language toggle */}
-        <TouchableOpacity
-          onPress={() => setLang((l) => (l === 'en' ? 'es' : 'en'))}
-          activeOpacity={0.7}
-          style={styles.langToggle}
-        >
-          <Text style={[styles.langText, lang === 'en' && styles.langActive]}>EN</Text>
-          <View style={styles.langSep} />
-          <Text style={[styles.langText, lang === 'es' && styles.langActive]}>ES</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* KPI strip — summary snapshot at a glance */}
-        <View style={styles.kpiRow}>
-          {[
-            { label: t('kpiOccupied', lang), value: String(occupiedUrgent.length), color: C.red },
-            { label: t('kpiArrivals', lang), value: String(arrivalIssues.length),  color: C.amber },
-            { label: t('kpiAging',    lang), value: String(aging.length),          color: C.purple },
-            { label: t('kpiAudits',   lang), value: String(openAuditsDue.length),  color: C.blue },
-          ].map((k) => (
-            <View key={k.label} style={styles.kpi}>
-              <Text style={[styles.kpiValue, { color: k.color }]}>{k.value}</Text>
-              <Text style={styles.kpiLabel}>{k.label}</Text>
+        {/* Sydney's morning notes */}
+        {SYDNEY_NOTES.length > 0 && (
+          <>
+            <SectionLabel>From Sydney</SectionLabel>
+            <View style={styles.card}>
+              {SYDNEY_NOTES.map((n, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.noteRow, i < SYDNEY_NOTES.length - 1 && styles.rowBorder]}
+                  onPress={() => Alert.alert('Reply to Sydney', n.body, [
+                    { text: 'Mark reviewed' },
+                    { text: 'Reply',     onPress: () => Alert.alert('Reply sent', 'Sydney will see this in the morning.') },
+                    { text: 'Cancel', style: 'cancel' },
+                  ])}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.sydneyAvatar}>
+                    <Text style={styles.sydneyAvatarText}>SR</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.noteBody}>{n.body}</Text>
+                    <Text style={styles.noteAt}>{n.at} · {n.from}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={C.faint} />
+                </TouchableOpacity>
+              ))}
             </View>
-          ))}
-        </View>
-
-        {/* ── Tickets, priority-bucketed (what Amir is here to do) ── */}
-        {occupiedUrgent.length > 0 && (
-          <QueueSection
-            title={t('queueOccupied', lang)}
-            subtitle={t('queueOccupiedSub', lang)}
-            icon="warning"
-            color={C.red}
-            tickets={occupiedUrgent}
-            router={router}
-          />
-        )}
-        {arrivalIssues.length > 0 && (
-          <QueueSection
-            title={t('queueArrival', lang)}
-            subtitle={t('queueArrivalSub', lang)}
-            icon="enter-outline"
-            color={C.amber}
-            tickets={arrivalIssues}
-            router={router}
-          />
-        )}
-        {repeat.length > 0 && (
-          <QueueSection
-            title={t('queueRepeat', lang)}
-            subtitle={t('queueRepeatSub', lang)}
-            icon="refresh-outline"
-            color={C.purple}
-            tickets={repeat}
-            router={router}
-          />
-        )}
-        {aging.length > 0 && (
-          <QueueSection
-            title={t('queueAging', lang)}
-            subtitle={t('queueAgingSub', lang)}
-            icon="hourglass-outline"
-            color="#0891b2"
-            tickets={aging}
-            router={router}
-          />
-        )}
-        {otherOpen.length > 0 && (
-          <QueueSection
-            title={t('queueOther', lang)}
-            subtitle={t('queueOtherSub', lang)}
-            icon="list-outline"
-            color={C.hint}
-            tickets={otherOpen}
-            router={router}
-          />
+          </>
         )}
 
-        {/* Audits due */}
-        <Text style={styles.sectionTitle}>{t('auditsDue', lang)}</Text>
-        {openAuditsDue.slice(0, 3).map((a) => {
-          const isPaused = a.state === 'paused';
-          const done = a.items.filter((it) => it.checked).length;
-          return (
-            <TouchableOpacity
-              key={a.id}
-              style={styles.auditCard}
-              onPress={() => router.push('/amir/audit')}
-              activeOpacity={0.88}
-            >
-              <View style={[styles.auditDot, { backgroundColor: isPaused ? C.purple : a.overdueDays > 7 ? C.red : C.amber }]} />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.auditArea}>{a.area}</Text>
-                  {isPaused && (
-                    <View style={{ backgroundColor: C.purpleBg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full }}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: C.purple }}>PAUSED {done}/{a.items.length}</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.auditRoom}>Room {a.room} · Floor {a.floor}</Text>
+        {/* Auto-created follow-ups (preview) */}
+        {FOLLOWUP_TICKETS.length > 0 && (
+          <>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionDot, { backgroundColor: '#b91c1c' }]} />
+              <SectionLabel>Follow-ups</SectionLabel>
+              <View style={[styles.countChip, { backgroundColor: '#fee2e2' }]}>
+                <Text style={[styles.countText, { color: '#b91c1c' }]}>{FOLLOWUP_TICKETS.length}</Text>
               </View>
-              <Text style={[styles.auditDays, { color: isPaused ? C.purple : a.overdueDays > 7 ? C.red : C.amber }]}>
-                {a.overdueDays > 0 ? `${a.overdueDays}${t('overdue', lang)}` : t('dueToday', lang)}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Paused audits banner (kept near the audits section for context) */}
-        {pausedCount > 0 && (
-          <TouchableOpacity style={styles.resumeCard} onPress={() => router.push('/amir/audit')} activeOpacity={0.88}>
-            <Ionicons name="pause-circle" size={16} color={C.purple} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.resumeTitle}>
-                {pausedCount} {pausedCount > 1 ? t('pausedAuditsPl', lang) : t('pausedAudits', lang)}
-              </Text>
-              <Text style={styles.resumeSub}>{t('pausedSub', lang)}</Text>
             </View>
-            <Text style={styles.resumeAction}>{t('resume', lang)}</Text>
-          </TouchableOpacity>
+            <View style={styles.card}>
+              {FOLLOWUP_TICKETS.map((f, i) => (
+                <TouchableOpacity
+                  key={f.id}
+                  style={[styles.followCard, i < FOLLOWUP_TICKETS.length - 1 && styles.rowBorder]}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(`/amir/ticket/${f.linkedTicketId}` as any)}
+                >
+                  <View style={[styles.followIcon, { backgroundColor: '#fee2e2' }]}>
+                    <Ionicons name="git-branch-outline" size={16} color="#b91c1c" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.followTopRow}>
+                      <View style={styles.priChip}>
+                        <Text style={styles.priChipText}>FOLLOW-UP</Text>
+                      </View>
+                      {f.arrivalSoon && (
+                        <View style={[styles.priChip, { backgroundColor: '#fee2e2' }]}>
+                          <Text style={[styles.priChipText, { color: '#b91c1c' }]}>ARRIVAL TODAY</Text>
+                        </View>
+                      )}
+                      <Text style={styles.age}>{f.createdAt}</Text>
+                    </View>
+                    <Text style={styles.followTitle}>Room {f.room} · {f.title}</Text>
+                    <Text style={styles.followSub}>Linked to {f.linkedTicketId}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={C.faint} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
         )}
 
-        {/* Sydney → Amir handover card (context from day shift — secondary info) */}
-        <HandoverCard lang={lang} />
+        <SectionBlock label={t('urgent_now')}        tone="urgent" tickets={sections.urgent}     onPress={(id) => router.push(`/amir/ticket/${id}` as any)} />
+        <SectionBlock label={t('arrival_blockers')}  tone="warn"   tickets={sections.arrival}    onPress={(id) => router.push(`/amir/ticket/${id}` as any)} />
+        <SectionBlock label={t('assigned_tasks')}    tone="normal" tickets={sections.assigned}   onPress={(id) => router.push(`/amir/ticket/${id}` as any)} />
+        <SectionBlock label="Preventive tasks"       tone="muted"  tickets={sections.preventive} onPress={(id) => router.push(`/amir/ticket/${id}` as any)} />
+        <SectionBlock label="Audit tasks"            tone="muted"  tickets={sections.audit}      onPress={(id) => router.push(`/amir/ticket/${id}` as any)} />
 
-        {/* Inventory alerts */}
-        {lowInventory.length > 0 && (
-          <View style={styles.invCard}>
-            <View style={styles.invHeader}>
-              <Ionicons name="warning-outline" size={14} color={C.amber} />
-              <Text style={styles.invTitle}>{t('inventoryAlerts', lang)}</Text>
-              <Text style={styles.invCount}>{lowInventory.length} {t('inventoryLowSfx', lang)}</Text>
-            </View>
-            {lowInventory.slice(0, 4).map((inv) => {
-              const status = getStatus(inv);
-              const critical = status === 'critical' || status === 'out';
-              return (
-                <View key={inv.id} style={styles.invItem}>
-                  <View style={[styles.invDot, { backgroundColor: critical ? C.red : C.amber }]} />
-                  <Text style={styles.invName}>{inv.name}</Text>
-                  <Text style={[styles.invQty, { color: critical ? C.red : C.amber }]}>
-                    {inv.onHand} {inv.unit}
-                  </Text>
+        {/* Real audits assigned to Amir from the AUDITS dataset */}
+        {(() => {
+          const myAudits = auditsForPerson('Amir Lopez');
+          if (myAudits.length === 0) return null;
+          return (
+            <View style={{ gap: S.sm }}>
+              <View style={styles.sectionHead}>
+                <View style={[styles.sectionDot, { backgroundColor: '#5b21b6' }]} />
+                <SectionLabel>Audits to complete</SectionLabel>
+                <View style={[styles.countChip, { backgroundColor: '#e0e7ff' }]}>
+                  <Text style={[styles.countText, { color: '#5b21b6' }]}>{myAudits.length}</Text>
                 </View>
-              );
-            })}
+              </View>
+              {myAudits.map((a) => {
+                const ty = AUDIT_TYPE_CFG[a.type];
+                return (
+                  <TouchableOpacity
+                    key={a.id}
+                    style={styles.card2}
+                    onPress={() => router.push(`/amir/audit/${a.id}` as any)}
+                    activeOpacity={0.88}
+                  >
+                    <View style={[styles.priorityBar, { backgroundColor: ty.color }]} />
+                    <View style={styles.cardBody}>
+                      <View style={styles.cardTop}>
+                        <View style={[styles.chip, { backgroundColor: ty.bg }]}>
+                          <Text style={[styles.chipText, { color: ty.color }]}>{ty.label.toUpperCase()}</Text>
+                        </View>
+                        <View style={[styles.chip, { backgroundColor: '#f0f0f0' }]}>
+                          <Text style={[styles.chipText, { color: C.text }]}>{a.cadence.toUpperCase()}</Text>
+                        </View>
+                        <Text style={styles.age}>{a.dueDate}</Text>
+                      </View>
+                      <Text style={styles.title} numberOfLines={1}>{a.name}</Text>
+                      <View style={styles.metaRow}>
+                        <View style={styles.meta}>
+                          <Ionicons name="location-outline" size={11} color={C.hint} />
+                          <Text style={styles.metaText}>{a.scopeLabel}</Text>
+                        </View>
+                        {a.familiarityScore === 'high' && (
+                          <View style={[styles.meta, { backgroundColor: '#dcfce7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full }]}>
+                            <Ionicons name="ribbon-outline" size={11} color="#15803d" />
+                            <Text style={[styles.metaText, { color: '#15803d', fontWeight: '700' }]}>You know this</Text>
+                          </View>
+                        )}
+                        {a.reassignmentReason && (
+                          <View style={[styles.meta, { backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full }]}>
+                            <Ionicons name="swap-horizontal" size={11} color="#b45309" />
+                            <Text style={[styles.metaText, { color: '#b45309', fontWeight: '700' }]}>Reassigned</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={C.faint} style={{ alignSelf: 'center', marginRight: S.sm }} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        })()}
+
+        {/* Completed Today (collapsed) */}
+        {sections.completed.length > 0 && (
+          <View style={{ gap: S.sm }}>
+            <TouchableOpacity style={styles.completedHead} onPress={() => setShowCompleted((v) => !v)} activeOpacity={0.85}>
+              <View style={[styles.sectionDot, { backgroundColor: '#15803d' }]} />
+              <SectionLabel>{t('completed_today')}</SectionLabel>
+              <View style={[styles.countChip, { backgroundColor: '#dcfce7' }]}>
+                <Text style={[styles.countText, { color: '#15803d' }]}>{sections.completed.length}</Text>
+              </View>
+              <Ionicons
+                name={showCompleted ? 'chevron-up' : 'chevron-down'}
+                size={16} color={C.sub} style={{ marginLeft: 'auto' }}
+              />
+            </TouchableOpacity>
+            {showCompleted && sections.completed.slice(0, 8).map((tk) => (
+              <TicketCard key={tk.id} ticket={tk} onPress={(id) => router.push(`/amir/ticket/${id}` as any)} dim />
+            ))}
           </View>
         )}
 
-        {/* Radio quick-contacts (move to bottom — reach for them when needed) */}
-        <View style={styles.radioRow}>
-          {[
-            { name: 'Sydney Rivera', role: t('supervisor', lang), icon: 'walkie-talkie-outline' as any, color: C.blue },
-            { name: 'Front Desk',    role: t('frontDesk',  lang), icon: 'desktop-outline',      color: C.amber },
-            { name: 'Emma Johnson',  role: t('hkLead',     lang), icon: 'people-outline',       color: C.purple },
-            { name: 'Rishab Patel',  role: t('gm',         lang), icon: 'briefcase-outline',    color: C.red },
-          ].map((c) => (
-            <TouchableOpacity key={c.name} style={styles.radioBtn} onPress={() => callRadio(c.role, c.name, lang)} activeOpacity={0.85}>
-              <View style={[styles.radioIcon, { backgroundColor: `${c.color}18` }]}>
-                <Ionicons name={c.icon as any} size={18} color={c.color} />
-              </View>
-              <Text style={styles.radioLabel} numberOfLines={1}>{c.name.split(' ')[0]}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {totalOpen === 0 && (
+          <View style={styles.empty}>
+            <Ionicons name="checkmark-done-circle-outline" size={48} color={C.green} />
+            <Text style={styles.emptyTitle}>All clear</Text>
+            <Text style={styles.emptySub}>Nothing assigned right now. Check back in a few.</Text>
+          </View>
+        )}
 
         <View style={{ height: S.xl }} />
       </ScrollView>
@@ -296,272 +236,168 @@ export default function AmirHome() {
   );
 }
 
-// ── Queue section (reusable) ──
+/* ─── Section block ─────────────────────────────────────── */
 
-function QueueSection({
-  title, subtitle, icon, color, tickets, router,
+type Tone = 'urgent' | 'warn' | 'normal' | 'muted';
+const TONE_COLOR: Record<Tone, string> = {
+  urgent: '#b91c1c',
+  warn:   '#b45309',
+  normal: '#1d4ed8',
+  muted:  C.sub,
+};
+const TONE_BG: Record<Tone, string> = {
+  urgent: '#fee2e2',
+  warn:   '#fef3c7',
+  normal: '#dbeafe',
+  muted:  '#f0f0f0',
+};
+
+function SectionBlock({
+  label, tone, tickets, onPress,
 }: {
-  title: string;
-  subtitle: string;
-  icon: string;
-  color: string;
+  label: string;
+  tone: Tone;
   tickets: Ticket[];
-  router: ReturnType<typeof useRouter>;
+  onPress: (id: string) => void;
 }) {
+  if (tickets.length === 0) return null;
   return (
-    <View style={{ gap: S.xs }}>
-      <View style={styles.queueHeader}>
-        <Ionicons name={icon as any} size={14} color={color} />
-        <Text style={[styles.queueTitle, { color }]}>{title}</Text>
-        <Text style={styles.queueCount}>{tickets.length}</Text>
+    <View style={{ gap: S.sm }}>
+      <View style={styles.sectionHead}>
+        <View style={[styles.sectionDot, { backgroundColor: TONE_COLOR[tone] }]} />
+        <SectionLabel>{label}</SectionLabel>
+        <View style={[styles.countChip, { backgroundColor: TONE_BG[tone] }]}>
+          <Text style={[styles.countText, { color: TONE_COLOR[tone] }]}>{tickets.length}</Text>
+        </View>
       </View>
-      <Text style={styles.queueSub}>{subtitle}</Text>
-      {tickets.map((t) => {
-        const p = PRIORITY_CFG[t.priority];
-        const ty = TYPE_CFG[t.type];
-        const st = STATUS_CFG[t.status];
-        return (
-          <TouchableOpacity
-            key={t.id}
-            style={styles.ticketCard}
-            onPress={() => router.push(`/amir/ticket/${t.id}` as any)}
-            activeOpacity={0.88}
-          >
-            <View style={[styles.ticketBar, { backgroundColor: p.color }]} />
-            <View style={styles.ticketBody}>
-              <View style={styles.ticketTop}>
-                <Text style={styles.ticketId}>{t.id}</Text>
-                <View style={[styles.badge, { backgroundColor: p.bg }]}>
-                  <Text style={[styles.badgeText, { color: p.color }]}>{p.label}</Text>
-                </View>
-                <View style={[styles.badge, { backgroundColor: ty.bg }]}>
-                  <Text style={[styles.badgeText, { color: ty.color }]}>{ty.label}</Text>
-                </View>
-                {t.repeatInRoom && (
-                  <View style={[styles.badge, { backgroundColor: C.purpleBg }]}>
-                    <Text style={[styles.badgeText, { color: C.purple }]}>REPEAT</Text>
-                  </View>
-                )}
-                <Text style={styles.ticketAge}>{t.updatedAt}</Text>
-              </View>
-              <Text style={styles.ticketTitle}>{t.title}</Text>
-              <View style={styles.ticketMeta}>
-                <Ionicons name="location-outline" size={12} color={C.hint} />
-                <Text style={styles.ticketRoom}>
-                  {t.room === 'Lobby' ? 'Lobby' : `Room ${t.room}`} · {st.label}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={C.hint} />
-          </TouchableOpacity>
-        );
-      })}
+      {tickets.map((tk) => <TicketCard key={tk.id} ticket={tk} onPress={onPress} />)}
     </View>
   );
 }
 
-// ── Handover card — what Sydney left Amir at the end of day shift ──
+function TicketCard({ ticket, onPress, dim }: { ticket: Ticket; onPress: (id: string) => void; dim?: boolean }) {
+  const p = PRIORITY_CFG[ticket.priority] ?? PRIORITY_CFG.normal;
 
-function HandoverCard({ lang }: { lang: Lang }) {
-  // Synthetic handover items — in real product these come from the day-shift's app state
-  const items = lang === 'es'
-    ? [
-        '2 tickets en progreso — revisar estado',
-        'Filtro PTAC entregado — instalar en Hab. 312',
-        'Ascensor Otis — técnico regresa mañana 9am',
-        'Auditoría de vestíbulo pausada — 6 de 12 hecha',
-      ]
-    : [
-        '2 tickets in progress — check status',
-        'PTAC filter part delivered — install in Room 312',
-        'Otis elevator — tech returning tomorrow 9am',
-        'Lobby audit paused — 6 of 12 done',
-      ];
-  const title = lang === 'es' ? 'De Sydney' : 'From Sydney';
-  const sub = lang === 'es' ? 'Entrega de fin de día' : 'End-of-day handover';
+  /* Single most important meta tag */
+  let meta: { label: string; color: string; bg: string; icon: 'person-outline' | 'time-outline' | 'refresh-outline' | 'trending-down' } | null = null;
+  if (ticket.guestContext === 'occupied_urgent')
+    meta = { label: 'Guest inside', color: '#b91c1c', bg: '#fee2e2', icon: 'person-outline' };
+  else if (ticket.guestContext === 'arrival')
+    meta = { label: 'Arrival pending', color: '#b45309', bg: '#fef3c7', icon: 'time-outline' };
+  else if (ticket.revenueLost > 0)
+    meta = { label: `$${ticket.revenueLost}/night`, color: '#b91c1c', bg: '#fee2e2', icon: 'trending-down' };
+  else if (ticket.repeatInRoom)
+    meta = { label: 'Repeat', color: '#b45309', bg: '#fef3c7', icon: 'refresh-outline' };
 
   return (
-    <View style={handoverStyles.card}>
-      <View style={handoverStyles.header}>
-        <View style={handoverStyles.avatar}>
-          <Text style={handoverStyles.avatarText}>SR</Text>
+    <TouchableOpacity
+      style={[styles.card2, dim && { opacity: 0.55 }]}
+      onPress={() => onPress(ticket.id)}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.priorityBar, { backgroundColor: p.color }]} />
+      <View style={styles.cardBody}>
+        <View style={styles.cardTop}>
+          <Text style={styles.tid}>Room {ticket.room}</Text>
+          <Text style={styles.age}>{ticket.updatedAt}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={handoverStyles.title}>{title}</Text>
-          <Text style={handoverStyles.sub}>{sub}</Text>
-        </View>
-        <View style={handoverStyles.badge}>
-          <Text style={handoverStyles.badgeText}>{items.length}</Text>
-        </View>
+        <Text style={styles.title} numberOfLines={2}>{ticket.title}</Text>
+        {meta && (
+          <View style={[styles.meta, { backgroundColor: meta.bg }]}>
+            <Ionicons name={meta.icon} size={11} color={meta.color} />
+            <Text style={[styles.metaText, { color: meta.color }]}>{meta.label}</Text>
+          </View>
+        )}
+        {!meta && (
+          <Text style={styles.metaSub} numberOfLines={1}>{ticket.reportedBy}</Text>
+        )}
       </View>
-      <View style={handoverStyles.divider} />
-      {items.map((line, i) => (
-        <View key={i} style={handoverStyles.item}>
-          <View style={handoverStyles.dot} />
-          <Text style={handoverStyles.itemText}>{line}</Text>
-        </View>
-      ))}
-    </View>
+      <Ionicons name="chevron-forward" size={16} color={C.faint} style={{ alignSelf: 'center', marginRight: S.sm }} />
+    </TouchableOpacity>
   );
 }
-
-const handoverStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: R.lg,
-    padding: S.md,
-  },
-  header: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  avatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#1d4ed8',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  title: { fontSize: F.sm, fontWeight: '800', color: '#1e3a8a' },
-  sub: { fontSize: F.xs, color: '#1e40af', marginTop: 1 },
-  badge: {
-    backgroundColor: '#1d4ed8', borderRadius: R.full, paddingHorizontal: 8, paddingVertical: 2,
-  },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  divider: { height: 1, backgroundColor: '#bfdbfe', marginVertical: S.sm },
-  item: { flexDirection: 'row', alignItems: 'flex-start', gap: S.sm, paddingVertical: 3 },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#1d4ed8', marginTop: 7 },
-  itemText: { flex: 1, fontSize: F.sm, color: '#1e40af', lineHeight: 18 },
-});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: S.xl,
-    paddingTop: S.lg,
-    paddingBottom: S.lg,
-    backgroundColor: C.card,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  greeting: { fontSize: F.lg, fontWeight: '800', color: C.text },
-  date: { fontSize: F.sm, color: C.sub, marginTop: 2 },
 
-  // Header right cluster: language toggle + logo stacked
-  headerRight: { alignItems: 'flex-end', gap: 6 },
-  langToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.input,
-    borderRadius: R.full,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  greetBar: {
+    paddingHorizontal: S.lg, paddingTop: S.md, paddingBottom: S.sm,
+    backgroundColor: C.bg,
   },
-  langText: { fontSize: 10, fontWeight: '700', color: C.hint, letterSpacing: 0.5 },
-  langActive: { color: C.text },
-  langSep: { width: 1, height: 10, backgroundColor: C.border },
+  greeting: { fontSize: F.xl, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  greetSub: { fontSize: F.xs, color: C.hint, marginTop: 4, fontWeight: '600' },
 
   scroll: { flex: 1 },
-  content: { padding: S.xl, gap: S.md },
+  content: { padding: S.lg, paddingTop: 0, gap: S.md },
 
-  // Radio row
-  radioRow: { flexDirection: 'row', gap: S.sm },
-  radioBtn: { flex: 1, alignItems: 'center', gap: 4 },
-  radioIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  radioLabel: { fontSize: 10, fontWeight: '700', color: C.text },
-
-  // KPI
-  kpiRow: {
-    flexDirection: 'row',
+  /* Sydney notes */
+  card: {
     backgroundColor: C.card,
-    borderRadius: R.xl,
-    padding: S.lg,
-  },
-  kpi: { flex: 1, alignItems: 'center' },
-  kpiValue: { fontSize: F.xl, fontWeight: '800' },
-  kpiLabel: { fontSize: 10, color: C.hint, marginTop: 2, textAlign: 'center' },
-
-  // Inventory
-  invCard: {
-    backgroundColor: C.amberBg,
-    borderWidth: 1,
-    borderColor: '#fcd34d',
+    borderWidth: 1, borderColor: C.border,
     borderRadius: R.lg,
-    padding: S.md,
-  },
-  invHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: S.xs },
-  invTitle: { fontSize: F.xs, fontWeight: '800', color: C.amber, textTransform: 'uppercase', letterSpacing: 0.6, flex: 1 },
-  invCount: { fontSize: 10, fontWeight: '700', color: C.amber },
-  invItem: { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 4 },
-  invDot: { width: 6, height: 6, borderRadius: 3 },
-  invName: { flex: 1, fontSize: F.sm, color: C.text },
-  invQty: { fontSize: F.xs, fontWeight: '700' },
-
-  // Paused banner
-  resumeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.sm,
-    backgroundColor: C.purpleBg,
-    borderWidth: 1,
-    borderColor: '#c4b5fd',
-    borderRadius: R.lg,
-    padding: S.md,
-  },
-  resumeTitle: { fontSize: F.sm, fontWeight: '700', color: C.purple },
-  resumeSub: { fontSize: F.xs, color: C.sub, marginTop: 1 },
-  resumeAction: { fontSize: F.sm, fontWeight: '700', color: C.purple },
-
-  // Queue
-  queueHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: S.sm },
-  queueTitle: { fontSize: F.xs, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 },
-  queueCount: { fontSize: F.xs, fontWeight: '800', color: C.hint, backgroundColor: C.input, paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
-  queueSub: { fontSize: F.xs, color: C.hint, marginBottom: 2 },
-
-  sectionTitle: {
-    fontSize: F.xs,
-    fontWeight: '700',
-    color: C.hint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: S.sm,
-  },
-
-  ticketCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.card,
-    borderRadius: R.xl,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  ticketBar: { width: 4, alignSelf: 'stretch' },
-  ticketBody: { flex: 1, padding: S.md },
-  ticketTop: { flexDirection: 'row', alignItems: 'center', gap: S.xs, marginBottom: S.xs, flexWrap: 'wrap' },
-  ticketId: { fontSize: F.xs, fontWeight: '700', color: C.hint },
-  badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
-  badgeText: { fontSize: 10, fontWeight: '700' },
-  ticketAge: { fontSize: F.xs, color: C.hint, marginLeft: 'auto' },
-  ticketTitle: { fontSize: F.sm, fontWeight: '600', color: C.text, marginBottom: S.xs },
-  ticketMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ticketRoom: { fontSize: F.xs, color: C.hint },
+  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, padding: S.md },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: C.borderSoft },
+  sydneyAvatar: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  sydneyAvatarText: { fontSize: F.xs, fontWeight: '800', color: '#1d4ed8' },
+  noteBody: { fontSize: F.sm, color: C.text, lineHeight: 20 },
+  noteAt: { fontSize: F.xs, color: C.hint, marginTop: 4, fontWeight: '600' },
 
-  auditCard: {
+  /* Follow-ups */
+  followCard: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md },
+  followIcon: { width: 36, height: 36, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' },
+  followTopRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4, flexWrap: 'wrap' },
+  followTitle: { fontSize: F.sm, fontWeight: '700', color: C.text, lineHeight: 18 },
+  followSub: { fontSize: F.xs, color: C.sub, marginTop: 2 },
+
+  /* Section heads */
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  countChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: R.full },
+  countText: { fontSize: F.xs, fontWeight: '800' },
+
+  completedHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  empty: { alignItems: 'center', padding: S.xxxl, gap: 4 },
+  emptyTitle: { fontSize: F.lg, fontWeight: '800', color: C.text, marginTop: S.sm },
+  emptySub: { fontSize: F.xs, color: C.sub, textAlign: 'center' },
+
+  /* Card */
+  card2: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.md,
     backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
     borderRadius: R.lg,
-    padding: S.md,
+    overflow: 'hidden',
   },
-  auditDot: { width: 10, height: 10, borderRadius: 5 },
-  auditArea: { fontSize: F.sm, fontWeight: '600', color: C.text },
-  auditRoom: { fontSize: F.xs, color: C.sub, marginTop: 2 },
-  auditDays: { fontSize: F.xs, fontWeight: '700' },
+  priorityBar: { width: 4, alignSelf: 'stretch' },
+  cardBody: { flex: 1, padding: S.md },
+
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6, flexWrap: 'wrap' },
+  tid: { fontSize: F.xs, fontWeight: '800', color: C.hint, letterSpacing: 0.4 },
+  chip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
+  chipText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
+  age: { fontSize: F.xs, color: C.hint, marginLeft: 'auto' },
+
+  priChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full, backgroundColor: '#fef3c7' },
+  priChipText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.4, color: '#b45309' },
+
+  title: { fontSize: F.md, fontWeight: '700', color: C.text, lineHeight: 20, letterSpacing: -0.2 },
+
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm, flexWrap: 'wrap', marginTop: 4 },
+  meta: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: R.full, alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  metaSub: { fontSize: F.xs, color: C.sub, marginTop: 2 },
+  metaText: { fontSize: F.xs, fontWeight: '700' },
+  metaTextRed: { fontSize: F.xs, color: '#b91c1c', fontWeight: '700' },
+  metaTextAmber: { fontSize: F.xs, color: '#b45309', fontWeight: '700' },
 });

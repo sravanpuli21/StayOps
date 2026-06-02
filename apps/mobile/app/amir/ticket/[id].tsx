@@ -6,6 +6,7 @@ import { C, F, R, S } from '../../../src/theme';
 import { useTickets, type TicketStatus } from '../../../src/store/ticketsContext';
 import { NoteModal } from '../../../src/components/NoteModal';
 import { PhotoModal } from '../../../src/components/PhotoModal';
+import { askDidYouUseItem } from '../../../src/lib/inventory-flow';
 
 const PRIORITY_CFG: Record<string, { color: string; bg: string; label: string }> = {
   urgent: { color: C.red,   bg: C.redBg,   label: 'URGENT' },
@@ -75,35 +76,24 @@ export default function TicketDetail() {
 
   const handlePrimaryAction = () => {
     if (!nextStep) return;
-    // When marking as fixed, prompt for item source for traceability
+    // When marking as fixed, prompt: "did you use any item?" → chained inventory
     if (nextStep.newStatus === 'resolved') {
-      Alert.alert(
-        'Log item source',
-        'Where did the parts/replacement come from? (helps inventory tracking)',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'From stock',
-            onPress: () => {
-              addNote(ticket.id, 'Part source: pulled from main stock cabinet.');
-              updateStatus(ticket.id, 'resolved');
-            },
-          },
-          {
-            text: 'From vacant room',
-            onPress: () => {
-              addNote(ticket.id, 'Part source: swapped from vacant room. Noted for replacement re-order.');
-              updateStatus(ticket.id, 'resolved');
-            },
-          },
-          {
-            text: 'Temporary fix',
-            onPress: () => {
-              addNote(ticket.id, 'Temporary fix only. Permanent repair still needed — flagged for follow-up.');
-              updateStatus(ticket.id, 'resolved');
-            },
-          },
-        ]
+      askDidYouUseItem(
+        `Room ${ticket.room} · ${ticket.title}`,
+        (result) => {
+          /* Item used — log + decrement (decrement happens inside the flow) */
+          const sourceLabel = result.sourceRoom ? `Room ${result.sourceRoom}` : result.source;
+          addNote(
+            ticket.id,
+            `Used: ${result.itemLabel}${result.variant ? ` · ${result.variant}` : ''} from ${sourceLabel}` +
+            (result.followUpUrgent ? ' · follow-up urgent (arrival today)' : '')
+          );
+          updateStatus(ticket.id, 'resolved');
+        },
+        () => {
+          /* Skipped — close without logging */
+          updateStatus(ticket.id, 'resolved');
+        },
       );
       return;
     }

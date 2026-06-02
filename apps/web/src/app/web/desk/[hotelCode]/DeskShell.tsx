@@ -28,6 +28,7 @@ export function DeskShell({
     { label: 'Home',       href: `/web/desk/${hotelCode}/home`,       icon: 'LayoutDashboard' },
     { label: 'Rooms',      href: `/web/desk/${hotelCode}/rooms`,      icon: 'Bed'             },
     { label: 'Requests',   href: `/web/desk/${hotelCode}/requests`,   icon: 'ClipboardList'   },
+    { label: 'Active Tickets', href: `/web/desk/${hotelCode}/tickets`, icon: 'Wrench'         },
     { label: 'Callbacks',  href: `/web/desk/${hotelCode}/callbacks`,  icon: 'Bell'            },
     { label: 'Punch In/Out', href: `/web/desk/${hotelCode}/punch`,    icon: 'Clock'           },
     { label: 'More',       href: `/web/desk/${hotelCode}/more`,       icon: 'Settings'        },

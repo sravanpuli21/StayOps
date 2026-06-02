@@ -1,244 +1,283 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { C, F, R, S } from '../../src/theme';
-import { CambriaLogo } from '../../src/components/CambriaLogo';
-import { useTickets, type TicketStatus } from '../../src/store/ticketsContext';
-import { useAudits } from '../../src/store/auditsContext';
-import { useInventory } from '../../src/store/inventoryContext';
+import { SectionLabel } from '../../src/components/web-ui/SectionLabel';
+import { useTickets } from '../../src/store/ticketsContext';
+import { INVENTORY, FOLLOWUP_TICKETS } from '../../src/data/amir-inventory';
+import { AUDITS, TYPE_CFG as AUDIT_TYPE_CFG } from '../../src/data/audits';
 
-const PRIORITY_CFG: Record<string, { color: string; bg: string }> = {
-  urgent: { color: C.red,   bg: C.redBg },
-  high:   { color: C.amber, bg: C.amberBg },
-  normal: { color: C.blue,  bg: C.blueBg },
+/* ─── Engineering Pulse rows ─── */
+type Tone = 'good' | 'warn' | 'urgent';
+const TONE_COLOR: Record<Tone, string> = {
+  good:   C.text,
+  warn:   '#b45309',
+  urgent: '#b91c1c',
+};
+const TONE_DOT: Record<Tone, string> = {
+  good:   '#16a34a',
+  warn:   '#f59e0b',
+  urgent: '#ef4444',
 };
 
-const STATUS_CFG: Record<TicketStatus, { color: string; label: string }> = {
-  open:         { color: C.red,    label: 'Open' },
-  en_route:     { color: C.blue,   label: 'En route' },
-  in_progress:  { color: C.amber,  label: 'In Progress' },
-  pending_part: { color: C.purple, label: 'Wait part' },
-  scheduled:    { color: C.blue,   label: 'Scheduled' },
-  resolved:     { color: C.green,  label: 'Resolved' },
-  escalated:    { color: C.red,    label: 'Escalated' },
-};
-
-const STAFF_TODAY = [
-  { name: 'Amir Lopez',   role: 'Maintenance', shift: '7AM–3:30PM' },
-  { name: 'Rosa Navarro', role: 'Housekeeping', shift: '8AM–4PM' },
-  { name: 'Carlos Reyes', role: 'Housekeeping', shift: '8AM–4PM' },
-  { name: 'Priya Nair',   role: 'Front Desk',  shift: '7AM–3PM' },
-];
-
-export default function SydneyDashboard() {
+export default function SydneyToday() {
   const router = useRouter();
   const { allTickets } = useTickets();
-  const { allAudits } = useAudits();
-  const { lowItems, criticalItems } = useInventory();
 
-  const openTickets = allTickets
-    .filter((t) => t.status !== 'resolved' && t.type !== 'audit')
-    .sort((a, b) => {
-      const order = { urgent: 0, high: 1, normal: 2 } as const;
-      return (order[a.priority] ?? 99) - (order[b.priority] ?? 99);
-    });
+  const open = allTickets.filter((tk) => tk.status !== 'resolved');
 
-  const urgent = openTickets.find((t) => t.priority === 'urgent');
+  const urgentTickets    = open.filter((tk) => tk.priority === 'urgent').length;
+  const oooRooms         = open.filter((tk) => tk.revenueLost > 0).length;
+  const occupiedIssues   = open.filter((tk) => tk.guestContext === 'occupied_urgent').length;
+  const arrivalRisk      = open.filter((tk) => tk.guestContext === 'arrival').length;
+  const preventiveDue    = open.filter((tk) => tk.type === 'preventive').length;
+  const auditDue         = open.filter((tk) => tk.type === 'audit').length;
+  const lowStock         = INVENTORY.filter((p) => p.level === 'low' || p.level === 'out').length;
+  const amirHandover     = 4; // mock count from last evening
 
-  // Audit compliance
-  const totalAudits   = allAudits.length;
-  const overdue       = allAudits.filter((a) => a.overdueDays > 0 && a.state !== 'completed').length;
-  const dueSoon       = allAudits.filter((a) => a.overdueDays === 0 && a.state !== 'completed').length;
-  const current       = allAudits.filter((a) => a.state === 'completed').length + (totalAudits - overdue - dueSoon - allAudits.filter((a) => a.state === 'completed').length);
-  const compliancePct = Math.round(((totalAudits - overdue) / Math.max(totalAudits, 1)) * 100);
-
-  // Room KPIs — stable mock (Sydney dashboards don't have a rooms store yet)
-  const ROOM_KPIS = [
-    { label: 'Occupancy', value: '88%', color: C.blue },
-    { label: 'OOO',       value: String(allTickets.filter((t) => t.revenueLost > 0 && t.status !== 'resolved').length), color: C.red },
-    { label: 'Dirty',     value: '7',  color: C.amber },
-    { label: 'Clean',     value: '25', color: C.green },
+  const pulse: Array<{ label: string; value: string; tone: Tone; sub?: string; href?: string }> = [
+    { label: 'Urgent tickets',  value: String(urgentTickets),  tone: urgentTickets > 0 ? 'urgent' : 'good',  href: '/sydney/queue' },
+    { label: 'OOO rooms',       value: String(oooRooms),       tone: oooRooms > 1 ? 'urgent' : 'good',       href: '/sydney/rooms', sub: oooRooms > 0 ? `$${oooRooms * 142}/night` : undefined },
+    { label: 'Occupied issues', value: String(occupiedIssues), tone: occupiedIssues > 0 ? 'urgent' : 'good', href: '/sydney/queue' },
+    { label: 'Arrival risk',    value: String(arrivalRisk),    tone: arrivalRisk > 0 ? 'warn' : 'good',      href: '/sydney/rooms' },
+    { label: 'Preventive due',  value: String(preventiveDue),  tone: preventiveDue > 0 ? 'warn' : 'good',    href: '/sydney/queue' },
+    { label: 'Audit due',       value: String(auditDue),       tone: auditDue > 0 ? 'warn' : 'good',         href: '/sydney/queue' },
+    { label: 'Low stock',       value: String(lowStock),       tone: lowStock > 0 ? 'warn' : 'good',         href: '/sydney/inventory' },
+    { label: 'Amir handover',   value: String(amirHandover),   tone: amirHandover > 0 ? 'warn' : 'good',     href: '/sydney/handover' },
   ];
+
+  /* Revenue blockers — vacant or arrival rooms blocked by maintenance */
+  const revenueBlockers = useMemo(
+    () => open.filter((tk) =>
+      (tk.guestContext === 'arrival' || (tk.guestContext === 'vacant' && tk.revenueLost > 0)) &&
+      tk.priority !== 'normal'
+    ).slice(0, 4),
+    [open]
+  );
+
+  /* Top urgent tickets feed */
+  const urgentFeed = useMemo(
+    () => open.filter((tk) => tk.priority === 'urgent').slice(0, 4),
+    [open]
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Good morning, Sydney 👋</Text>
-          <Text style={styles.date}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · Day Shift
-          </Text>
-        </View>
-        <CambriaLogo size="sm" />
-      </View>
-
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* Hotel KPIs */}
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiHotel}>BTRCI · Home2 Suites Baton Rouge</Text>
-          <View style={styles.kpiRow}>
-            {ROOM_KPIS.map((k) => (
-              <View key={k.label} style={styles.kpi}>
-                <Text style={[styles.kpiValue, { color: k.color }]}>{k.value}</Text>
-                <Text style={styles.kpiLabel}>{k.label}</Text>
-              </View>
-            ))}
-          </View>
+        {/* Greeting */}
+        <View style={{ paddingHorizontal: 4 }}>
+          <Text style={styles.greeting}>Morning, Sydney 👋</Text>
+          <Text style={styles.sub}>
+            Maintenance ops · {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · Day shift
+          </Text>
         </View>
 
-        {/* Urgent alert */}
-        {urgent && (
-          <TouchableOpacity
-            style={styles.alert}
-            onPress={() => router.push(`/sydney/ticket/${urgent.id}` as any)}
-            activeOpacity={0.88}
-          >
-            <Ionicons name="warning" size={16} color={C.red} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.alertTitle}>
-                Room {urgent.room} · {urgent.revenueLost > 0 ? `$${urgent.revenueLost}/night revenue loss` : urgent.title}
-              </Text>
-              <Text style={styles.alertSub}>
-                {urgent.title.split('–')[1]?.trim() ?? urgent.area} · Amir assigned · {urgent.createdAt}
-              </Text>
-            </View>
-            <Text style={styles.alertAction}>View →</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Inventory banner */}
-        {lowItems.length > 0 && (
-          <TouchableOpacity
-            style={styles.invBanner}
-            onPress={() => router.push('/sydney/inventory' as any)}
-            activeOpacity={0.88}
-          >
-            <Ionicons name="cube-outline" size={16} color={C.amber} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.invBannerTitle}>
-                {lowItems.length} inventory item{lowItems.length !== 1 ? 's' : ''} low
-              </Text>
-              <Text style={styles.invBannerSub}>
-                {criticalItems.length} critical · tap to view & request restock
-              </Text>
-            </View>
-            <Text style={styles.invBannerAction}>View →</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Audit compliance */}
-        <TouchableOpacity
-          style={styles.auditCard}
-          activeOpacity={0.92}
-          onPress={() => router.push('/amir/audit' as any)}
-        >
-          <View style={styles.auditHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.auditTitle}>Audit Compliance</Text>
-              <Text style={styles.auditSub}>
-                {overdue > 0 ? `${overdue} area${overdue > 1 ? 's' : ''} overdue this week` : 'All on schedule'}
-              </Text>
-            </View>
-            <Text style={[styles.auditPct, { color: compliancePct >= 85 ? C.green : compliancePct >= 70 ? C.amber : C.red }]}>
-              {compliancePct}%
-            </Text>
-          </View>
-          <View style={styles.progressBg}>
-            <View style={[styles.progressFill, { width: `${compliancePct}%`, backgroundColor: compliancePct >= 85 ? C.green : compliancePct >= 70 ? C.amber : C.red }]} />
-          </View>
-          <View style={styles.auditStats}>
-            <View style={styles.auditStat}>
-              <View style={[styles.statDot, { backgroundColor: C.green }]} />
-              <Text style={styles.auditStatText}>{current} current</Text>
-            </View>
-            <View style={styles.auditStat}>
-              <View style={[styles.statDot, { backgroundColor: C.amber }]} />
-              <Text style={styles.auditStatText}>{dueSoon} due soon</Text>
-            </View>
-            <View style={styles.auditStat}>
-              <View style={[styles.statDot, { backgroundColor: C.red }]} />
-              <Text style={styles.auditStatText}>{overdue} overdue</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Open tickets */}
-        <Text style={styles.sectionTitle}>Open Tickets ({openTickets.length})</Text>
-        {openTickets.slice(0, 5).map((t) => {
-          const p = PRIORITY_CFG[t.priority];
-          const st = STATUS_CFG[t.status];
-          return (
-            <TouchableOpacity
-              key={t.id}
-              style={styles.ticketCard}
-              activeOpacity={0.88}
-              onPress={() => router.push(`/sydney/ticket/${t.id}` as any)}
-            >
-              <View style={[styles.priorityBar, { backgroundColor: p.color }]} />
-              <View style={styles.ticketBody}>
-                <View style={styles.ticketTop}>
-                  <Text style={styles.ticketId}>{t.id}</Text>
-                  <View style={[styles.badge, { backgroundColor: p.bg }]}>
-                    <Text style={[styles.badgeText, { color: p.color }]}>{t.priority.toUpperCase()}</Text>
-                  </View>
-                  <View style={[styles.badge, { backgroundColor: '#f0f0f0' }]}>
-                    <Text style={[styles.badgeText, { color: st.color }]}>{st.label}</Text>
-                  </View>
-                  <Text style={styles.ticketAge}>{t.updatedAt}</Text>
-                </View>
-                <Text style={styles.ticketTitle}>{t.title}</Text>
-                <View style={styles.ticketBottom}>
-                  <View style={styles.roomChip}>
-                    <Ionicons name="bed-outline" size={11} color={C.hint} />
-                    <Text style={styles.roomText}>Room {t.room}</Text>
-                  </View>
-                  <Text style={styles.assigneeText}>→ Amir</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={C.hint} />
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Staff today */}
-        <Text style={styles.sectionTitle}>Staff On Shift</Text>
-        <TouchableOpacity
-          style={styles.staffCard}
-          activeOpacity={0.92}
-          onPress={() => router.push('/sydney/staff')}
-        >
-          {STAFF_TODAY.map((s, i) => {
-            // Derive "active task" from the live store for Amir; stub others
-            let activeTask = 'On shift';
-            if (s.name === 'Amir Lopez') {
-              const amirActive = allTickets.find((t) => t.status === 'in_progress' || t.status === 'en_route');
-              activeTask = amirActive
-                ? `${amirActive.id} – Room ${amirActive.room}`
-                : `${allTickets.filter((t) => t.status !== 'resolved').length} tickets queued`;
-            } else if (s.role === 'Housekeeping') {
-              activeTask = s.name === 'Rosa Navarro' ? '12 rooms assigned' : '10 rooms assigned';
-            } else if (s.role === 'Front Desk') {
-              activeTask = 'Check-ins';
-            }
+        {/* Engineering Pulse */}
+        <SectionLabel>Engineering Pulse</SectionLabel>
+        <View style={styles.pulseCard}>
+          {pulse.map((p, i) => {
+            const cols = 2;
+            const totalRows = Math.ceil(pulse.length / cols);
+            const row = Math.floor(i / cols);
+            const col = i % cols;
+            const Wrap: any = p.href ? TouchableOpacity : View;
             return (
-              <View key={s.name} style={[styles.staffRow, i < STAFF_TODAY.length - 1 && styles.staffBorder]}>
-                <View style={styles.staffAvatar}>
-                  <Text style={styles.staffInitials}>{s.name.split(' ').map(n => n[0]).join('')}</Text>
+              <Wrap
+                key={p.label}
+                style={[
+                  styles.pulseCell,
+                  {
+                    borderBottomWidth: row < totalRows - 1 ? 1 : 0,
+                    borderRightWidth:  col < cols - 1      ? 1 : 0,
+                  },
+                ]}
+                onPress={p.href ? () => router.push(p.href as any) : undefined}
+                activeOpacity={0.85}
+              >
+                <View style={styles.pulseRow}>
+                  <View style={[styles.pulseDot, { backgroundColor: TONE_DOT[p.tone] }]} />
+                  <Text style={styles.pulseLabel}>{p.label}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.staffName}>{s.name}</Text>
-                  <Text style={styles.staffTask}>{activeTask}</Text>
+                <View style={styles.pulseValueRow}>
+                  <Text style={[styles.pulseValue, { color: TONE_COLOR[p.tone] }]}>{p.value}</Text>
+                  {p.sub && <Text style={styles.pulseSub}>{p.sub}</Text>}
                 </View>
-                <View>
-                  <Text style={styles.staffRole}>{s.role}</Text>
-                  <Text style={styles.staffShift}>{s.shift}</Text>
-                </View>
-              </View>
+              </Wrap>
             );
           })}
+        </View>
+
+        {/* Revenue Blockers */}
+        {revenueBlockers.length > 0 && (
+          <>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionDot, { backgroundColor: '#b91c1c' }]} />
+              <SectionLabel>Revenue blockers</SectionLabel>
+              <View style={[styles.countChip, { backgroundColor: '#fee2e2' }]}>
+                <Text style={[styles.countText, { color: '#b91c1c' }]}>{revenueBlockers.length}</Text>
+              </View>
+            </View>
+            <View style={styles.feed}>
+              {revenueBlockers.map((tk, i) => (
+                <TouchableOpacity
+                  key={tk.id}
+                  style={[styles.feedRow, i < revenueBlockers.length - 1 && styles.feedBorder]}
+                  onPress={() => router.push(`/sydney/ticket/${tk.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={[styles.feedIcon, { backgroundColor: '#fee2e2' }]}>
+                    <Ionicons name="bed-outline" size={18} color="#b91c1c" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.feedTopRow}>
+                      <View style={[styles.priChip, { backgroundColor: '#fee2e2' }]}>
+                        <Text style={[styles.priChipText, { color: '#b91c1c' }]}>BLOCKER</Text>
+                      </View>
+                      <Text style={styles.feedTime}>${tk.revenueLost}/night</Text>
+                    </View>
+                    <Text style={styles.feedTitle} numberOfLines={2}>Room {tk.room} · {tk.title}</Text>
+                    <Text style={styles.feedSub} numberOfLines={1}>
+                      {tk.guestContext === 'arrival' ? 'Arrival pending · ' : 'Vacant blocked · '}
+                      requested by {tk.reportedBy}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={C.faint} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Urgent feed */}
+        {urgentFeed.length > 0 && (
+          <>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionDot, { backgroundColor: '#b91c1c' }]} />
+              <SectionLabel>Urgent now</SectionLabel>
+              <View style={[styles.countChip, { backgroundColor: '#fee2e2' }]}>
+                <Text style={[styles.countText, { color: '#b91c1c' }]}>{urgentFeed.length}</Text>
+              </View>
+            </View>
+            <View style={styles.feed}>
+              {urgentFeed.map((tk, i) => (
+                <TouchableOpacity
+                  key={tk.id}
+                  style={[styles.feedRow, i < urgentFeed.length - 1 && styles.feedBorder]}
+                  onPress={() => router.push(`/sydney/ticket/${tk.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={[styles.feedIcon, { backgroundColor: '#dbeafe' }]}>
+                    <Ionicons name="construct-outline" size={18} color="#1d4ed8" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.feedTopRow}>
+                      <View style={[styles.priChip, { backgroundColor: '#fee2e2' }]}>
+                        <Text style={[styles.priChipText, { color: '#b91c1c' }]}>URGENT</Text>
+                      </View>
+                      <Text style={styles.feedType}>{tk.type.toUpperCase()}</Text>
+                    </View>
+                    <Text style={styles.feedTitle} numberOfLines={2}>Room {tk.room} · {tk.title}</Text>
+                    <Text style={styles.feedSub} numberOfLines={1}>
+                      {tk.assignee !== 'Sydney Rivera' ? `→ ${tk.assignee}` : 'unassigned'} · open {tk.updatedAt}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={C.faint} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Amir handover preview */}
+        <View style={styles.sectionHead}>
+          <View style={[styles.sectionDot, { backgroundColor: '#1d4ed8' }]} />
+          <SectionLabel>Amir handover</SectionLabel>
+          <View style={[styles.countChip, { backgroundColor: '#dbeafe' }]}>
+            <Text style={[styles.countText, { color: '#1d4ed8' }]}>{amirHandover}</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.handoverCard}
+          onPress={() => router.push('/sydney/handover' as any)}
+          activeOpacity={0.88}
+        >
+          <View style={styles.amirAvatar}>
+            <Text style={styles.amirAvatarText}>AL</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.handoverTitle}>From Amir last night</Text>
+            <Text style={styles.handoverSub}>
+              {oooRooms} OOO room{oooRooms !== 1 ? 's' : ''} · {FOLLOWUP_TICKETS.length} follow-up · 3 parts low
+            </Text>
+          </View>
+          <Text style={styles.handoverCta}>Review →</Text>
         </TouchableOpacity>
+
+        {/* Audits */}
+        <View style={styles.sectionHead}>
+          <View style={[styles.sectionDot, { backgroundColor: '#5b21b6' }]} />
+          <SectionLabel>Audits due</SectionLabel>
+          <View style={[styles.countChip, { backgroundColor: '#e0e7ff' }]}>
+            <Text style={[styles.countText, { color: '#5b21b6' }]}>{AUDITS.length}</Text>
+          </View>
+        </View>
+        <View style={styles.feed}>
+          {AUDITS.slice(0, 4).map((a, i) => {
+            const ty = AUDIT_TYPE_CFG[a.type];
+            return (
+              <TouchableOpacity
+                key={a.id}
+                style={[styles.feedRow, i < Math.min(AUDITS.length, 4) - 1 && styles.feedBorder]}
+                onPress={() => router.push(`/sydney/audit/${a.id}` as any)}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.feedIcon, { backgroundColor: ty.bg }]}>
+                  <Ionicons name={ty.icon as any} size={18} color={ty.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.feedTopRow}>
+                    <View style={[styles.priChip, { backgroundColor: ty.bg }]}>
+                      <Text style={[styles.priChipText, { color: ty.color }]}>{ty.label.toUpperCase()}</Text>
+                    </View>
+                    <Text style={styles.feedType}>{a.cadence}</Text>
+                    <Text style={styles.feedTime}>{a.dueDate}</Text>
+                  </View>
+                  <Text style={styles.feedTitle} numberOfLines={1}>{a.name}</Text>
+                  <Text style={styles.feedSub} numberOfLines={1}>
+                    {a.scopeLabel} · {a.assignedTo === 'Sydney Rivera' ? 'You' : a.assignedTo}
+                    {a.familiarityScore === 'high' ? ' · familiar' : a.reassignmentReason ? ' · reassigned' : ''}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={C.faint} />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Quick links */}
+        <SectionLabel>Open</SectionLabel>
+        <View style={styles.linkGrid}>
+          {[
+            { icon: 'people-outline'    as const, title: 'Staff',     sub: 'On shift today',          href: '/sydney/staff' },
+            { icon: 'person-circle-outline' as const, title: 'Profile', sub: 'Account · settings',    href: '/sydney/profile' },
+          ].map((l) => (
+            <TouchableOpacity
+              key={l.href}
+              style={styles.linkCard}
+              onPress={() => router.push(l.href as any)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name={l.icon} size={20} color={C.brand} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkTitle}>{l.title}</Text>
+                <Text style={styles.linkSub}>{l.sub}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.faint} />
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={{ height: S.xl }} />
       </ScrollView>
@@ -248,110 +287,87 @@ export default function SydneyDashboard() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: S.xl,
-    paddingTop: S.lg,
-    paddingBottom: S.lg,
-    backgroundColor: C.card,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  greeting: { fontSize: F.lg, fontWeight: '800', color: C.text },
-  date: { fontSize: F.sm, color: C.sub, marginTop: 2 },
-
   scroll: { flex: 1 },
-  content: { padding: S.xl, gap: S.md },
+  content: { padding: S.lg, gap: S.md },
 
-  kpiCard: { backgroundColor: C.card, borderRadius: R.xl, padding: S.lg },
-  kpiHotel: { fontSize: F.xs, fontWeight: '700', color: C.hint, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: S.md },
-  kpiRow: { flexDirection: 'row', gap: 0 },
-  kpi: { flex: 1, alignItems: 'center' },
-  kpiValue: { fontSize: F.xl, fontWeight: '800' },
-  kpiLabel: { fontSize: F.xs, color: C.hint, marginTop: 2 },
+  greeting: { fontSize: F.xl, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  sub: { fontSize: F.xs, color: C.hint, marginTop: 4 },
 
-  alert: {
+  /* Pulse */
+  pulseCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.sm,
-    backgroundColor: C.redBg,
-    borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: R.lg,
-    padding: S.md,
-  },
-  alertTitle: { fontSize: F.sm, fontWeight: '700', color: C.red },
-  alertSub: { fontSize: F.xs, color: C.sub, marginTop: 1 },
-  alertAction: { fontSize: F.sm, fontWeight: '700', color: C.red },
-
-  invBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.sm,
-    backgroundColor: C.amberBg,
-    borderWidth: 1,
-    borderColor: '#fcd34d',
-    borderRadius: R.lg,
-    padding: S.md,
-  },
-  invBannerTitle: { fontSize: F.sm, fontWeight: '700', color: C.amber },
-  invBannerSub: { fontSize: F.xs, color: C.sub, marginTop: 1 },
-  invBannerAction: { fontSize: F.sm, fontWeight: '700', color: C.amber },
-
-  auditCard: { backgroundColor: C.card, borderRadius: R.xl, padding: S.lg, gap: S.sm },
-  auditHeader: { flexDirection: 'row', alignItems: 'flex-start' },
-  auditTitle: { fontSize: F.md, fontWeight: '700', color: C.text },
-  auditSub: { fontSize: F.xs, color: C.sub, marginTop: 1 },
-  auditPct: { fontSize: F.xxl, fontWeight: '800' },
-  progressBg: { height: 6, backgroundColor: C.border, borderRadius: R.full, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: R.full },
-  auditStats: { flexDirection: 'row', gap: S.md },
-  auditStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statDot: { width: 7, height: 7, borderRadius: 4 },
-  auditStatText: { fontSize: F.xs, color: C.sub, fontWeight: '600' },
-
-  sectionTitle: { fontSize: F.xs, fontWeight: '700', color: C.hint, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: S.xs },
-
-  ticketCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
     borderRadius: R.xl,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  priorityBar: { width: 4, alignSelf: 'stretch' },
-  ticketBody: { flex: 1, padding: S.md },
-  ticketTop: { flexDirection: 'row', alignItems: 'center', gap: S.xs, marginBottom: S.xs, flexWrap: 'wrap' },
-  ticketId: { fontSize: F.xs, fontWeight: '700', color: C.hint },
-  badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
-  badgeText: { fontSize: 10, fontWeight: '700' },
-  ticketAge: { fontSize: F.xs, color: C.hint, marginLeft: 'auto' },
-  ticketTitle: { fontSize: F.sm, fontWeight: '600', color: C.text, marginBottom: S.xs },
-  ticketBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  roomChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.input, paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.full },
-  roomText: { fontSize: F.xs, color: C.sub, fontWeight: '600' },
-  assigneeText: { fontSize: F.xs, color: C.blue, fontWeight: '700' },
+  pulseCell: {
+    width: '50%',
+    padding: S.md,
+    borderColor: C.borderSoft,
+  },
+  pulseRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pulseDot: { width: 7, height: 7, borderRadius: 4 },
+  pulseLabel: {
+    fontSize: F.xs, fontWeight: '700', color: C.sub,
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  pulseValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 },
+  pulseValue: { fontSize: F.xxl, fontWeight: '800', letterSpacing: -0.5 },
+  pulseSub: { fontSize: F.xs, color: C.hint, fontWeight: '600' },
 
-  staffCard: { backgroundColor: C.card, borderRadius: R.xl, overflow: 'hidden' },
-  staffRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md },
-  staffBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
-  staffAvatar: {
-    width: 38, height: 38,
-    borderRadius: 19,
-    backgroundColor: C.blueBg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  /* Section heads */
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  countChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: R.full },
+  countText: { fontSize: F.xs, fontWeight: '800' },
+
+  /* Feed (revenue blockers + urgent) */
+  feed: {
+    backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: R.xl,
+    overflow: 'hidden',
   },
-  staffInitials: { fontSize: F.xs, fontWeight: '800', color: C.blue },
-  staffName: { fontSize: F.sm, fontWeight: '700', color: C.text },
-  staffTask: { fontSize: F.xs, color: C.sub, marginTop: 1 },
-  staffRole: { fontSize: F.xs, fontWeight: '700', color: C.hint, textAlign: 'right' },
-  staffShift: { fontSize: 10, color: C.hint, textAlign: 'right', marginTop: 1 },
+  feedRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md },
+  feedBorder: { borderBottomWidth: 1, borderBottomColor: C.borderSoft },
+  feedIcon: { width: 38, height: 38, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' },
+  feedTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
+  priChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
+  priChipText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  feedType: { fontSize: F.xs, color: C.hint, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  feedTime: { fontSize: F.xs, color: '#b91c1c', fontWeight: '700', marginLeft: 'auto' },
+  feedTitle: { fontSize: F.sm, fontWeight: '700', color: C.text, lineHeight: 18 },
+  feedSub: { fontSize: F.xs, color: C.sub, marginTop: 2, lineHeight: 16 },
+
+  /* Amir handover preview */
+  handoverCard: {
+    flexDirection: 'row', alignItems: 'center', gap: S.md,
+    backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: R.xl,
+    padding: S.md,
+  },
+  amirAvatar: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#fef3c7',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  amirAvatarText: { fontSize: F.xs, fontWeight: '800', color: '#b45309' },
+  handoverTitle: { fontSize: F.sm, fontWeight: '700', color: C.text },
+  handoverSub: { fontSize: F.xs, color: C.sub, marginTop: 2 },
+  handoverCta: { fontSize: F.sm, fontWeight: '700', color: C.brand },
+
+  /* Quick links */
+  linkGrid: { gap: S.sm },
+  linkCard: {
+    flexDirection: 'row', alignItems: 'center', gap: S.md,
+    backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: R.lg, padding: S.md,
+  },
+  linkTitle: { fontSize: F.sm, fontWeight: '700', color: C.text },
+  linkSub: { fontSize: F.xs, color: C.sub, marginTop: 2 },
 });

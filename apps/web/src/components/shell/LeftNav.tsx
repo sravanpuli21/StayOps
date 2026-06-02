@@ -23,6 +23,7 @@ import {
   UserCircle,
   Bed,
   TrendingDown,
+  ExternalLink,
   LucideIcon,
 } from 'lucide-react';
 import { NAV_ITEMS, type NavItem } from '@/lib/constants';
@@ -86,6 +87,26 @@ export function LeftNav({
         {navItems.map((item) => {
           const Icon = ICON_MAP[item.icon];
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+
+          // External items (e.g. cross-persona links) open in a new tab so the
+          // current persona's shell stays put.
+          if (item.external) {
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl text-sm font-medium transition-colors hover:bg-[#f7f7f7]"
+                style={{ color: '#6a6a6a' }}
+              >
+                {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+                <span className="flex-1">{item.label}</span>
+                <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#c1c1c1' }} />
+              </a>
+            );
+          }
+
           return (
             <Link
               key={item.href}

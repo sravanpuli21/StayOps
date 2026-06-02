@@ -157,7 +157,7 @@ export default function RoomHistory() {
               <TouchableOpacity
                 key={a.id}
                 style={styles.historyItem}
-                onPress={() => router.push('/amir/audit')}
+                onPress={() => router.push('/amir' as any)}
                 activeOpacity={0.88}
               >
                 <View style={[styles.itemIcon, { backgroundColor: C.purpleBg }]}>

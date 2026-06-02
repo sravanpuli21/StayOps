@@ -39,6 +39,7 @@ export async function queryTickets(
     request_type: string | null;
     callback_required: boolean;
     callback_status: string | null;
+    items: unknown;
     closed_at: string | null;
     created_at: string;
     updated_at: string;
@@ -47,7 +48,7 @@ export async function queryTickets(
            t.room_number, t.area, t.type, t.priority, t.status,
            t.title, t.description, t.reported_by, t.assigned_to,
            t.estimated_cost, t.revenue_lost, t.activity,
-           t.department, t.request_type, t.callback_required, t.callback_status,
+           t.department, t.request_type, t.callback_required, t.callback_status, t.items,
            t.closed_at::text as closed_at,
            t.created_at::text as created_at,
            t.updated_at::text as updated_at

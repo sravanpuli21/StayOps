@@ -123,9 +123,10 @@ export default function SydneyDashboard() {
             {topUrgent.map((t) => {
               const typeMeta = TICKET_TYPE_META[t.type as keyof typeof TICKET_TYPE_META];
               return (
-                <div
+                <Link
                   key={t.id}
-                  className="rounded-lg px-3 py-2.5"
+                  href="/web/sydney/tickets?priority=urgent"
+                  className="rounded-lg px-3 py-2.5 block transition-colors hover:bg-[#fff5f5]"
                   style={{ background: '#ffffff', border: '1px solid #fecaca' }}
                 >
                   <div className="flex items-baseline gap-2 flex-wrap mb-1">
@@ -144,7 +145,7 @@ export default function SydneyDashboard() {
                     {t.assignedTo && <span>→ {t.assignedTo}</span>}
                     <span className="inline-flex items-center gap-0.5"><Clock className="w-3 h-3" /> {timeAgo(t.createdAt)}</span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

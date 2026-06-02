@@ -1,4 +1,4 @@
-export type NavItem = { label: string; href: string; icon: string };
+export type NavItem = { label: string; href: string; icon: string; external?: boolean };
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Dashboard',    href: '/web/kris/dashboard',    icon: 'LayoutDashboard' },
@@ -8,7 +8,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Labour',     href: '/web/kris/labour',      icon: 'Users'           },
   { label: 'Operations', href: '/web/kris/operations',  icon: 'Wrench'          },
   { label: 'Audits',     href: '/web/kris/audits',      icon: 'ClipboardList'   },
-  { label: 'Assets',     href: '/web/kris/assets',      icon: 'Building2'       },
+  { label: 'Valuation',  href: '/web/kris/assets',      icon: 'Building2'       },
   { label: 'Leaders',    href: '/web/kris/leaders',     icon: 'UserCheck'       },
   { label: 'Alerts',     href: '/web/kris/alerts',      icon: 'Bell'            },
   { label: 'Strategy',   href: '/web/kris/strategy',    icon: 'Target'          },
@@ -55,7 +55,7 @@ export const EMMA_NAV_ITEMS: readonly NavItem[] = [
   { label: 'Team',         href: '/web/emma/team',         icon: 'Users'           },
   { label: 'Tickets',      href: '/web/emma/tickets',      icon: 'Wrench'          },
   { label: 'Print Sheets', href: '/web/emma/print',        icon: 'Printer'         },
-  { label: 'Staff Schedule', href: '/web/rishab/scheduling', icon: 'Calendar'      },
+  { label: 'Staff Schedule', href: '/web/emma/scheduling', icon: 'Calendar'      },
   { label: 'SOP',          href: '/web/emma/sop',          icon: 'BookOpen'        },
   { label: 'Settings',     href: '/web/emma/settings',     icon: 'Settings'        },
 ] as const;
@@ -65,11 +65,32 @@ export const SYDNEY_NAV_ITEMS: readonly NavItem[] = [
   { label: 'Dashboard',   href: '/web/sydney/dashboard',   icon: 'LayoutDashboard' },
   { label: 'Tickets',     href: '/web/sydney/tickets',     icon: 'Wrench'          },
   { label: 'Preventive',  href: '/web/sydney/preventive',  icon: 'CalendarCheck'   },
+  { label: 'Audits',      href: '/web/sydney/audits',      icon: 'ClipboardList'   },
   { label: 'Rooms',       href: '/web/sydney/rooms',       icon: 'Bed'             },
   { label: 'Assets',      href: '/web/sydney/assets',      icon: 'Building2'       },
   { label: 'Team',        href: '/web/sydney/team',        icon: 'Users'           },
   { label: 'SOP',         href: '/web/sydney/sop',         icon: 'BookOpen'        },
   { label: 'Settings',    href: '/web/sydney/settings',    icon: 'Settings'        },
+] as const;
+
+// Sanjay — Corporate Accounting (portfolio scope, accounting-only nav)
+// Full V1 spec navigation (15 items) — see docs/stayops-accounting-spec.md
+export const SANJAY_NAV_ITEMS: readonly NavItem[] = [
+  { label: 'Dashboard',        href: '/web/sanjay/accounting/dashboard',         icon: 'LayoutDashboard' },
+  { label: 'Uploads',          href: '/web/sanjay/accounting/uploads',           icon: 'Printer'         },
+  { label: 'Transactions',     href: '/web/sanjay/accounting/transactions',      icon: 'ClipboardList'   },
+  { label: 'Banking',          href: '/web/sanjay/accounting/banking',           icon: 'DollarSign'      },
+  { label: 'Credit Cards',     href: '/web/sanjay/accounting/credit-cards',      icon: 'DollarSign'      },
+  { label: 'Vendors',          href: '/web/sanjay/accounting/vendors',           icon: 'Users'           },
+  { label: 'Bills',            href: '/web/sanjay/accounting/bills',             icon: 'ClipboardList'   },
+  { label: 'Recurring Bills',  href: '/web/sanjay/accounting/recurring-bills',   icon: 'CalendarCheck'   },
+  { label: 'Reconciliation',   href: '/web/sanjay/accounting/reconciliation',    icon: 'Sparkles'        },
+  { label: 'Reports',          href: '/web/sanjay/accounting/reports',           icon: 'BookOpen'        },
+  { label: 'Chart of Accounts',href: '/web/sanjay/accounting/chart-of-accounts', icon: 'Building2'       },
+  { label: 'Budgets',          href: '/web/sanjay/accounting/budgets',           icon: 'Target'          },
+  { label: 'Approvals',        href: '/web/sanjay/accounting/approvals',         icon: 'UserCheck'       },
+  { label: 'CPA Export',       href: '/web/sanjay/accounting/cpa-export',        icon: 'TrendingDown'    },
+  { label: 'Settings',         href: '/web/sanjay/accounting/settings',          icon: 'Settings'        },
 ] as const;
 
 // Sravan — Front Desk Staff (self-service)

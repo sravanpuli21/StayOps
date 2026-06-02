@@ -21,6 +21,12 @@ export function useHotelTickets(): Any[] {
   return (data?.tickets ?? []) as Any[];
 }
 
+/** All tickets including resolved/closed (archive view). */
+export function useHotelTicketsAll(): Any[] {
+  const { data } = useApi(apiKeys.opsTicketsAll(SYDNEY_HOTEL_ID));
+  return (data?.tickets ?? []) as Any[];
+}
+
 export function useHotelAudits(): Any[] {
   const { data } = useApi(apiKeys.auditTasks(SYDNEY_HOTEL_ID));
   return (data?.tasks ?? []) as Any[];

@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { SlidersHorizontal, ChevronRight } from 'lucide-react';
 import { formatCurrency, formatPct } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
@@ -21,14 +23,24 @@ export default function RishabRevenue() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>Revenue</h1>
-          <HealthBadge health={rev.health} showLabel />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-xl font-bold" style={{ color: '#222222' }}>Revenue</h1>
+            <HealthBadge health={rev.health} showLabel />
+          </div>
+          <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
+            {hotel.name} · {period.label}
+          </p>
         </div>
-        <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
-          {hotel.name} · {period.label}
-        </p>
+        <Link
+          href="/web/rishab/revenue/rates"
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold transition-colors"
+          style={{ background: '#ffffff', color: '#222', border: '1px solid #dddddd' }}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          Manage rates
+        </Link>
       </div>
 
       {/* Headline KPIs */}

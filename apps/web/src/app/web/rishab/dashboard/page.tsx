@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { AlertTriangle, ChevronRight, Users, Bed, Wrench, Clock } from 'lucide-react';
 import {
-  computeHotelScore,
-  getEmployeesForHotel, getActiveTicketsForHotel,
-  getPropertyOpsSummary, getHotelAuditSummary,
   formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
 import { useRedFlags, useAnomalies } from '@/lib/ai-data';
+import { useApi } from '@/lib/use-api';
+import { apiKeys } from '@/lib/swr-keys';
 import { KpiCard } from '@/components/common/KpiCard';
 import { HealthBadge } from '@/components/common/HealthBadge';
 import { csatTier } from '@/lib/csat';
@@ -30,6 +29,12 @@ export default function RishabDashboard() {
   // Hooks must run unconditionally — call them BEFORE any early returns.
   const allRedFlags = useRedFlags();
   const allAnomalies = useAnomalies();
+  // Real DB-backed sources (replace the former static in-memory getters).
+  const employeesData = useApi(apiKeys.employees(HOTEL_ID));
+  const ticketsData   = useApi(apiKeys.opsTickets(HOTEL_ID));
+  const opsSummaryData = useApi(apiKeys.opsSummary(HOTEL_ID));
+  const auditSummaryData = useApi(apiKeys.auditSummary(HOTEL_ID));
+  const gmScoresData = useApi(apiKeys.gmScores([HOTEL_ID]));
 
   if (scoped.error) return (
     <div className="p-6">
@@ -50,11 +55,16 @@ export default function RishabDashboard() {
       </div>
     );
   }
-  const score = computeHotelScore(HOTEL_ID);
-  const employees = getEmployeesForHotel(HOTEL_ID);
-  const activeTickets = getActiveTicketsForHotel(HOTEL_ID);
-  const opsSummary = getPropertyOpsSummary(HOTEL_ID);
-  const auditSummary = getHotelAuditSummary(HOTEL_ID);
+  // Real data with safe fallbacks so the dashboard renders during fetch.
+  const score = gmScoresData.data?.scores?.find((s: { hotelId: string }) => s.hotelId === HOTEL_ID)?.score
+    ?? { composite: 0, trendDirection: 'flat' as const, trendDelta: 0 };
+  const employees = (employeesData.data?.employees ?? []) as Array<{ status: string }>;
+  const activeTickets = ((ticketsData.data?.tickets ?? []) as Array<{ priority: string; status: string }>)
+    .filter((t) => t.status !== 'resolved');
+  const opsSummary = opsSummaryData.data?.summary
+    ?? { readyRooms: 0, blockedRooms: 0, openTickets: 0 };
+  const auditSummary = auditSummaryData.data?.summary
+    ?? { compliancePct: 0, overdueRooms: 0 };
   const flags = allRedFlags.filter((f) => f.hotelId === HOTEL_ID);
   const anomalies = allAnomalies.filter((a) => a.hotelId === HOTEL_ID);
 

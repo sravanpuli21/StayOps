@@ -1,15 +1,47 @@
 'use client';
 
-import { DollarSign, Download } from 'lucide-react';
+import { useState } from 'react';
+import { DollarSign, Download, Check } from 'lucide-react';
 import { formatCurrency } from '@hos/shared';
 import { useSravanProfile, useSravanPaystubs } from '@/lib/sravan-data';
 
 export default function SravanEarningsPage() {
   const SRAVAN_EMPLOYEE = useSravanProfile() as any;
   const SRAVAN_PAYSTUBS = useSravanPaystubs();
+  const [downloaded, setDownloaded] = useState<string | null>(null);
   const current = SRAVAN_PAYSTUBS.find((p) => p.status === 'pending');
   if (!SRAVAN_EMPLOYEE || !current) return <div className="p-6 text-sm text-[#6a6a6a]">Loading…</div>;
   const history = SRAVAN_PAYSTUBS.filter((p) => p.status === 'paid');
+
+  const downloadStub = (p: any) => {
+    const lines = [
+      'HOS MANAGEMENT — PAY STATEMENT',
+      '================================',
+      `Employee:   ${SRAVAN_EMPLOYEE.name ?? 'Sravan Puli'} (#${SRAVAN_EMPLOYEE.employeeId ?? 'FD-2042'})`,
+      `Hotel:      ${SRAVAN_EMPLOYEE.hotel ?? 'Home2 Baton Rouge'}`,
+      `Period:     ${p.period}`,
+      `Paid:       ${p.payDate}`,
+      '--------------------------------',
+      `Regular hours:   ${p.regularHours}`,
+      `Overtime hours:  ${p.overtimeHours}`,
+      `Gross pay:       ${formatCurrency(p.grossPay)}`,
+      `Tips:            ${formatCurrency(p.tips)}`,
+      `Bonus:           ${formatCurrency(p.bonus)}`,
+      '--------------------------------',
+      `NET PAY:         ${formatCurrency(p.netPay)}`,
+    ].join('\n');
+    const blob = new Blob([lines], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `paystub-${p.period.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setDownloaded(p.id);
+    setTimeout(() => setDownloaded((cur) => (cur === p.id ? null : cur)), 2500);
+  };
 
   const totalHours = current.regularHours + current.overtimeHours;
   const ytd = SRAVAN_PAYSTUBS.reduce((s, p) => s + p.grossPay + p.tips + p.bonus, 0);
@@ -81,10 +113,17 @@ export default function SravanEarningsPage() {
                 <td className="py-3 px-5 text-right font-semibold" style={{ color: '#222222' }}>{formatCurrency(p.netPay)}</td>
                 <td className="py-3 px-5 text-right">
                   <button
-                    className="inline-flex items-center gap-1 h-7 px-2 rounded-lg text-[11px] font-semibold"
-                    style={{ background: '#f7f7f7', color: '#6a6a6a', border: '1px solid #dddddd' }}
+                    onClick={() => downloadStub(p)}
+                    className="inline-flex items-center gap-1 h-7 px-2 rounded-lg text-[11px] font-semibold transition-colors"
+                    style={{
+                      background: downloaded === p.id ? '#dcfce7' : '#f7f7f7',
+                      color: downloaded === p.id ? '#15803d' : '#6a6a6a',
+                      border: `1px solid ${downloaded === p.id ? '#86efac' : '#dddddd'}`,
+                    }}
                   >
-                    <Download className="w-3 h-3" /> PDF
+                    {downloaded === p.id
+                      ? <><Check className="w-3 h-3" /> Saved</>
+                      : <><Download className="w-3 h-3" /> Download</>}
                   </button>
                 </td>
               </tr>

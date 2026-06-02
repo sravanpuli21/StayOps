@@ -129,6 +129,14 @@ export const GetPortfolioOpsResponseSchema = z.object({
 export type GetPortfolioOpsResponse = z.infer<typeof GetPortfolioOpsResponseSchema>;
 
 // ── Front-desk: log a guest-request / maintenance ticket ──────────────────
+export const TicketItemSchema = z.object({
+  area:     z.string().optional(),
+  category: z.string().optional(),
+  item:     z.string().min(1),
+  quantity: z.number().int().positive().optional(),
+});
+export type TicketItemInput = z.infer<typeof TicketItemSchema>;
+
 export const CreateTicketRequestSchema = z.object({
   hotelCode:   z.string().min(1),
   roomNumber:  z.string().min(1).optional(),
@@ -142,6 +150,8 @@ export const CreateTicketRequestSchema = z.object({
   /** Free-text request type label (e.g. "Extra towels", "AC not cooling"). */
   requestType:       z.string().min(1).optional(),
   callbackRequired:  z.boolean().optional(),
+  /** Multiple line items per request (Work Order: {area,item}; Service: {category,item,quantity}). */
+  items:             z.array(TicketItemSchema).optional(),
 });
 export type CreateTicketRequest = z.infer<typeof CreateTicketRequestSchema>;
 

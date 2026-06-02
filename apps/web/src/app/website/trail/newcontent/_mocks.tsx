@@ -103,15 +103,15 @@ function MiniKpi({
 }
 
 /* ============================================================
- *  PortfolioMock — placed after Hero. Mirrors Kris's dashboard.
+ *  PortfolioMock — placed after Hero. Mirrors the MD dashboard.
  * ============================================================ */
 export function PortfolioMock() {
   const rows = [
-    { name: 'Home2 Suites - Baton Rouge',         meta: 'Baton Rouge, LA · Hilton',  rooms: 116, occ: '83%', rev: '$24.3K',  health: 'green' as const },
-    { name: 'Hilton Garden Inn - Midtown',        meta: 'Savannah, GA · Hilton',     rooms: 132, occ: '77%', rev: '$17.6K',  health: 'amber' as const },
-    { name: 'Fairfield/TPS - Pooler, GA',         meta: 'Pooler, GA · Marriott',     rooms: 158, occ: '91%', rev: '$29.4K',  health: 'green' as const },
-    { name: 'Woodspring - Brunswick',             meta: 'Brunswick, GA · Choice',    rooms: 122, occ: '74%', rev: '$15.8K',  health: 'red'   as const },
-    { name: 'Home2 Suites - Flower Mound TX',     meta: 'Flower Mound, TX · Hilton', rooms:  99, occ: '85%', rev: '$13.7K',  health: 'green' as const },
+    { name: 'Home2 Suites - Cedar Ridge',         meta: 'Asheville, NC · Hilton',    rooms: 116, occ: '83%', rev: '$24.3K',  health: 'green' as const },
+    { name: 'Hilton Garden Inn - Riverbend',      meta: 'Burlington, VT · Hilton',   rooms: 132, occ: '77%', rev: '$17.6K',  health: 'amber' as const },
+    { name: 'Fairfield Inn - Lakeshore',          meta: 'Madison, WI · Marriott',    rooms: 158, occ: '91%', rev: '$29.4K',  health: 'green' as const },
+    { name: 'Woodspring Suites - Stoneview',      meta: 'Boulder, CO · Choice',      rooms: 122, occ: '74%', rev: '$15.8K',  health: 'red'   as const },
+    { name: 'Home2 Suites - Bayshore',            meta: 'Portland, ME · Hilton',     rooms:  99, occ: '85%', rev: '$13.7K',  health: 'green' as const },
   ];
   const thClass = 'text-left text-xs font-semibold uppercase tracking-wide py-3 px-4 whitespace-nowrap';
 
@@ -259,9 +259,9 @@ export function RoomDrillMock() {
             <ChevronLeft className="w-3 h-3" />Portfolio
           </p>
           <h3 className="mt-1 text-base font-bold" style={{ color: '#222' }}>
-            Hampton Inn &amp; Suites — Gateway
+            Hampton Inn &amp; Suites — Crestmont
           </h3>
-          <p className="text-[11px]" style={{ color: '#929292' }}>Savannah, GA · Hilton · 92 rooms</p>
+          <p className="text-[11px]" style={{ color: '#929292' }}>Burlington, VT · Hilton · 92 rooms</p>
 
           {/* Status summary pills */}
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -319,7 +319,7 @@ export function RoomDrillMock() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-bold" style={{ color: '#222' }}>Room 608</p>
-              <p className="text-[11px]" style={{ color: '#6a6a6a' }}>King · Floor 6 · Hampton Gateway</p>
+              <p className="text-[11px]" style={{ color: '#6a6a6a' }}>King · Floor 6 · Hampton Crestmont</p>
             </div>
             <X className="w-3.5 h-3.5 mt-1" style={{ color: '#929292' }} />
           </div>
@@ -432,10 +432,10 @@ export function RoomDrillMock() {
  * ============================================================ */
 export function MaintenanceSpendMock() {
   const rows = [
-    { asset: 'AC condenser',  loc: 'Hilton Garden Midtown · Rm 214',     ytd: '$4,580', last: '6d ago',  st: 'red'   as const },
-    { asset: 'Hot water tap', loc: 'Home2 Baton Rouge · Rm 101',         ytd: '$1,890', last: '14d ago', st: 'amber' as const },
-    { asset: 'Boiler',        loc: 'Fairfield Pooler · Mech room',       ytd: '$3,200', last: '30d ago', st: 'green' as const },
-    { asset: 'Toilet flush',  loc: 'Woodspring Brunswick · Rm 103',      ytd: '$720',   last: '8d ago',  st: 'green' as const },
+    { asset: 'AC condenser',  loc: 'Hilton Garden Riverbend · Rm 214',   ytd: '$4,580', last: '6d ago',  st: 'red'   as const },
+    { asset: 'Hot water tap', loc: 'Home2 Cedar Ridge · Rm 101',         ytd: '$1,890', last: '14d ago', st: 'amber' as const },
+    { asset: 'Boiler',        loc: 'Fairfield Lakeshore · Mech room',    ytd: '$3,200', last: '30d ago', st: 'green' as const },
+    { asset: 'Toilet flush',  loc: 'Woodspring Stoneview · Rm 103',      ytd: '$720',   last: '8d ago',  st: 'green' as const },
     { asset: 'Door lock',     loc: 'Hilton Midtown · Rm 410',            ytd: '$610',   last: '2d ago',  st: 'amber' as const },
   ];
   const thClass = 'text-left text-xs font-semibold uppercase tracking-wide py-3 px-4 whitespace-nowrap';
@@ -485,7 +485,7 @@ export function MaintenanceSpendMock() {
 
 /* ============================================================
  *  FfeAuditMock — Asset-level lifecycle drill-down. Mirrors the
- *  /web/kris/operations asset detail panel: Cotton Sail Hotel grid
+ *  /web/kris/operations asset detail panel: The Westbrook Hotel grid
  *  on the left, AC/PTAC unit asset detail on the right (warranty +
  *  useful life bars, tabs, repair history, inspections, replacements).
  * ============================================================ */
@@ -500,7 +500,7 @@ export function FfeAuditMock() {
   type S = keyof typeof TILE;
   type Tile = { num: string; status: S; tickets?: number; selected?: boolean };
 
-  // Cotton Sail Hotel — 5 floors visible (same size as Room Drill).
+  // The Westbrook Hotel — 5 floors visible (same size as Room Drill).
   // Selected: Room 312 (hidden behind the slide panel, which shows the
   // AC/PTAC Unit drilled-into from that room).
   const floor5: Tile[] = [
@@ -570,9 +570,9 @@ export function FfeAuditMock() {
             <ChevronLeft className="w-3 h-3" />Portfolio
           </p>
           <h3 className="mt-1 text-base font-bold" style={{ color: '#222' }}>
-            Cotton Sail Hotel
+            The Westbrook Hotel
           </h3>
-          <p className="text-[11px]" style={{ color: '#929292' }}>Savannah, GA · Hilton · 56 rooms</p>
+          <p className="text-[11px]" style={{ color: '#929292' }}>Burlington, VT · Hilton · 56 rooms</p>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
             {[
@@ -628,7 +628,7 @@ export function FfeAuditMock() {
                 <ChevronLeft className="w-3 h-3" />Room 312
               </p>
               <p className="mt-1.5 text-base font-bold" style={{ color: '#222' }}>AC/PTAC Unit</p>
-              <p className="text-[11px]" style={{ color: '#6a6a6a' }}>Room 312 · Cotton Sail</p>
+              <p className="text-[11px]" style={{ color: '#6a6a6a' }}>Room 312 · Westbrook</p>
             </div>
             <X className="w-3.5 h-3.5 mt-1" style={{ color: '#929292' }} />
           </div>
@@ -713,7 +713,7 @@ export function FfeAuditMock() {
                   type: 'Inspection', tone: '#3b82f6', icon: 'search',
                   date: 'Sep 3, 2025',
                   title: 'Annual HVAC check – operational, age-related wear',
-                  by: 'By Sydney Rivera',
+                  by: 'By Jordan Lee',
                 },
                 {
                   type: 'Replacement', tone: '#0a0a0a', icon: 'package',
@@ -755,7 +755,7 @@ export function FfeAuditMock() {
  * ============================================================ */
 export function OwnerKpiMock() {
   return (
-    <ScreenFrame label="Kris (MD) · Portfolio · Today" shadow="0 18px 50px -18px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04)">
+    <ScreenFrame label="MD · Portfolio · Today" shadow="0 18px 50px -18px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04)">
       <div
         className="grid grid-cols-2 gap-3 p-4 sm:p-5"
         style={{ background: '#f7f7f7' }}
@@ -775,14 +775,14 @@ export function OwnerKpiMock() {
  * ============================================================ */
 export function RegionalMock() {
   const items = [
-    { name: 'Woodspring · Brunswick',     gm: 'Marcus Lee',    h: 'red'   as const, tags: ['Occ 74%', '4 aging tickets'] },
-    { name: 'Hilton Garden · Midtown',    gm: 'Priya Shah',    h: 'amber' as const, tags: ['3 OOO rooms', 'Audit due'] },
-    { name: 'Home2 · Baton Rouge',        gm: 'James Patel',   h: 'green' as const, tags: ['On track'] },
-    { name: 'Four Points · Brunswick',    gm: 'Sara Mendoza',  h: 'amber' as const, tags: ['OT trending up'] },
-    { name: 'Hampton · Brunswick',        gm: 'David Kim',     h: 'green' as const, tags: ['On track'] },
+    { name: 'Woodspring · Stoneview',     gm: 'Daniel Brooks', h: 'red'   as const, tags: ['Occ 74%', '4 aging tickets'] },
+    { name: 'Hilton Garden · Riverbend',  gm: 'Maya Iqbal',    h: 'amber' as const, tags: ['3 OOO rooms', 'Audit due'] },
+    { name: 'Home2 · Cedar Ridge',        gm: 'Reuben Park',   h: 'green' as const, tags: ['On track'] },
+    { name: 'Four Points · Stonefield',   gm: 'Taylor Quinn',  h: 'amber' as const, tags: ['OT trending up'] },
+    { name: 'Hampton · Bayfield',         gm: 'Riley Chen',    h: 'green' as const, tags: ['On track'] },
   ];
   return (
-    <ScreenFrame label="Harshal (Regional) · Today's Attention List">
+    <ScreenFrame label="Regional Director · Today's Attention List">
       <div style={{ background: '#ffffff' }}>
         <div
           className="px-4 py-2.5 flex items-center justify-between"
@@ -895,9 +895,9 @@ export function ReportMock() {
           </p>
           <ul className="mt-2.5 flex flex-col gap-2">
             {[
-              { name: 'Woodspring Brunswick', detail: 'Occupancy 74% — second week running below 80%', h: 'red'   as const },
-              { name: 'Hilton Garden Midtown', detail: '3 rooms OOO — ~$540/day revenue impact',         h: 'amber' as const },
-              { name: 'Home2 Flower Mound',    detail: 'Labour OT trending up vs last 3 weeks',          h: 'amber' as const },
+              { name: 'Woodspring Stoneview',   detail: 'Occupancy 74% — second week running below 80%', h: 'red'   as const },
+              { name: 'Hilton Garden Riverbend', detail: '3 rooms OOO — ~$540/day revenue impact',        h: 'amber' as const },
+              { name: 'Home2 Bayshore',         detail: 'Labour OT trending up vs last 3 weeks',          h: 'amber' as const },
             ].map((line) => (
               <li
                 key={line.name}
@@ -975,7 +975,7 @@ export function MaintenanceAppMock() {
     <PhoneFrame label="StayOps · Maintenance">
       <div className="px-4 py-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
         <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#929292' }}>
-          Today · Home2 Baton Rouge
+          Today · Home2 Cedar Ridge
         </p>
         <p className="text-base font-bold mt-0.5" style={{ color: '#222' }}>4 open tickets</p>
         <p className="text-xs" style={{ color: '#dc2626' }}>1 urgent · revenue impact</p>
@@ -1141,11 +1141,11 @@ export function IpadFrame({
  * ============================================================ */
 export function MdDashboardIpadMock() {
   const rows = [
-    { name: 'Home2 Suites - Baton Rouge',     meta: 'Baton Rouge, LA · Hilton',  rooms: 116, occ: '83%', rev: '$24.3K', oprCost: '$8.5K', costPerRoom: '$73',  health: 'green' as const },
-    { name: 'Hilton Garden Inn - Midtown',    meta: 'Savannah, GA · Hilton',     rooms: 132, occ: '77%', rev: '$17.6K', oprCost: '$6.8K', costPerRoom: '$52',  health: 'amber' as const },
-    { name: 'Fairfield/TPS - Pooler, GA',     meta: 'Pooler, GA · Marriott',     rooms: 158, occ: '91%', rev: '$29.4K', oprCost: '$9.8K', costPerRoom: '$62',  health: 'green' as const },
-    { name: 'Woodspring - Brunswick',         meta: 'Brunswick, GA · Choice',    rooms: 122, occ: '74%', rev: '$15.8K', oprCost: '$7.2K', costPerRoom: '$59',  health: 'red'   as const },
-    { name: 'Home2 Suites - Flower Mound TX', meta: 'Flower Mound, TX · Hilton', rooms:  99, occ: '85%', rev: '$13.7K', oprCost: '$5.0K', costPerRoom: '$51',  health: 'green' as const },
+    { name: 'Home2 Suites - Cedar Ridge',     meta: 'Asheville, NC · Hilton',    rooms: 116, occ: '83%', rev: '$24.3K', oprCost: '$8.5K', costPerRoom: '$73',  health: 'green' as const },
+    { name: 'Hilton Garden Inn - Riverbend',  meta: 'Burlington, VT · Hilton',   rooms: 132, occ: '77%', rev: '$17.6K', oprCost: '$6.8K', costPerRoom: '$52',  health: 'amber' as const },
+    { name: 'Fairfield Inn - Lakeshore',      meta: 'Madison, WI · Marriott',    rooms: 158, occ: '91%', rev: '$29.4K', oprCost: '$9.8K', costPerRoom: '$62',  health: 'green' as const },
+    { name: 'Woodspring Suites - Stoneview',  meta: 'Boulder, CO · Choice',      rooms: 122, occ: '74%', rev: '$15.8K', oprCost: '$7.2K', costPerRoom: '$59',  health: 'red'   as const },
+    { name: 'Home2 Suites - Bayshore',        meta: 'Portland, ME · Hilton',     rooms:  99, occ: '85%', rev: '$13.7K', oprCost: '$5.0K', costPerRoom: '$51',  health: 'green' as const },
   ];
   const thClass = 'text-left text-xs font-semibold uppercase tracking-wide py-3 px-3 whitespace-nowrap';
 
@@ -1238,7 +1238,7 @@ export function LabourMiniMock() {
 export function TicketsMiniMock() {
   const tickets = [
     { title: 'AC condenser failure',    room: 'Hilton Garden · Rm 214',  age: '6d', tone: '#dc2626', label: 'Aging · High' },
-    { title: 'Faucet leak',              room: 'Cotton Sail · Rm 312',     age: '3d', tone: '#d97706', label: 'Open' },
+    { title: 'Faucet leak',              room: 'Westbrook · Rm 312',     age: '3d', tone: '#d97706', label: 'Open' },
     { title: 'TV remote replacement',    room: 'Home2 Baton Rouge · 105',  age: '2d', tone: '#d97706', label: 'Open' },
     { title: 'Door lock',                room: 'Hilton Midtown · Rm 410',  age: '1d', tone: '#16a34a', label: 'In progress' },
   ];
@@ -1284,7 +1284,7 @@ export function AssetMiniMock() {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-bold" style={{ color: '#222' }}>AC/PTAC Unit</p>
-            <p className="text-xs" style={{ color: '#929292' }}>Cotton Sail · Room 312 · since May 2017</p>
+            <p className="text-xs" style={{ color: '#929292' }}>Westbrook · Room 312 · since May 2017</p>
           </div>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
             style={{ background: '#fef2f2', color: '#b91c1c' }}>

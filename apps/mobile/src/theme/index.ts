@@ -1,7 +1,12 @@
 export const C = {
-  // HOS brand
+  // HOS brand — kept for brand moments only (logo, single accent FAB, persona pip)
   brand:   '#ff385c',
   brandBg: 'rgba(255,56,92,0.08)',
+
+  // Ink — primary action surfaces (buttons, active tab tint, active filter chip).
+  // Mirrors web `.stayops-cta` background. Replaces previous overuse of brand red.
+  ink:     '#0a0a0a',
+  inkSoft: '#1f2937',
 
   // Cambria hotel
   gold:       '#cf8a00',
@@ -9,15 +14,22 @@ export const C = {
   hotelSlate: '#5b6670',
 
   // Surfaces
-  bg:     '#f5f5f5',
+  bg:     '#f7f7f7',           // web: #f7f7f7 (Airbnb soft canvas)
   card:   '#ffffff',
-  border: '#e8e8e8',
+  border: '#dddddd',           // web: #dddddd
+  borderSoft: '#e8e8e8',
   input:  '#f0f0f0',
 
-  // Text
-  text:   '#1a1a1a',
-  sub:    '#6a6a6a',
-  hint:   '#aaaaaa',
+  // Text — aligned with web Airbnb hierarchy
+  text:   '#222222',           // web: #222222
+  sub:    '#6a6a6a',           // web: #6a6a6a
+  hint:   '#929292',           // web: #929292 (kpi labels)
+  faint:  '#c1c1c1',
+
+  // Alerts — web-matched amber strip
+  alertAmberBg:     '#fffbeb',
+  alertAmberBorder: '#fcd34d',
+  alertAmberText:   '#b45309',
 
   // Status
   red:      '#dc2626',

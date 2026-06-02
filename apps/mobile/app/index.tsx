@@ -35,6 +35,21 @@ const PERSONAS = [
     accentColor: C.blue,
     accentBg: C.blueBg,
   },
+  {
+    route: '/rishab' as const,
+    initials: 'RP',
+    name: 'Rishab Patel',
+    role: 'General Manager',
+    shift: 'Day · 7:00 AM – 6:00 PM',
+    icon: 'briefcase-outline' as const,
+    stats: [
+      { label: 'Occupancy',   value: '88%' },
+      { label: 'Open Tickets', value: '6' },
+      { label: 'Tasks Due',    value: '9' },
+    ],
+    accentColor: C.purple,
+    accentBg: C.purpleBg,
+  },
 ];
 
 export default function PersonaSelector() {

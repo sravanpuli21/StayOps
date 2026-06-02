@@ -44,6 +44,22 @@ export interface TicketActivity {
   note?: string;
 }
 
+/**
+ * Single line item on a multi-item front-desk request.
+ *   Work Order:      { area: 'Bathroom',  item: 'Toilet' }
+ *   Service Request: { category: 'Towels', item: 'Bath Towel', quantity: 3 }
+ */
+export interface TicketItem {
+  /** Work Order grouping (e.g. 'Bathroom', 'HVAC / AC'). */
+  area?: string;
+  /** Service Request grouping (e.g. 'Towels', 'Water / Amenities'). */
+  category?: string;
+  /** Leaf item — required (e.g. 'Toilet', 'Bath Towel'). */
+  item: string;
+  /** Service Request only. */
+  quantity?: number;
+}
+
 export interface MaintenanceTicket {
   id: string;
   hotelId: string;
@@ -69,6 +85,8 @@ export interface MaintenanceTicket {
   requestType?: string;
   callbackRequired?: boolean;
   callbackStatus?: CallbackStatus | null;
+  /** Structured item list when multiple items belong to one ticket. */
+  items?: TicketItem[];
 }
 
 export interface AuditTask {

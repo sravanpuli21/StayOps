@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { C, F, R, S } from '../../../src/theme';
 import { useTickets, type TicketStatus, type Priority } from '../../../src/store/ticketsContext';
 import { NoteModal } from '../../../src/components/NoteModal';
+import { askDidYouUseItem } from '../../../src/lib/inventory-flow';
 
 const SUPERVISOR = 'Sydney Rivera';
 
@@ -104,15 +105,29 @@ export default function SydneyTicketDetail() {
   const handleOverrideResolve = () => {
     Alert.alert(
       'Override — mark resolved?',
-      'Close this ticket without waiting for assignee. Use only when the issue is confirmed resolved through other means.',
+      'Close this ticket without waiting for assignee. Did you use any item to fix it?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Force resolve',
           style: 'destructive',
           onPress: () => {
-            addNote(ticket.id, 'Force-resolved by supervisor (override).', SUPERVISOR);
-            updateStatus(ticket.id, 'resolved', SUPERVISOR);
+            askDidYouUseItem(
+              `Room ${ticket.room} · ${ticket.title}`,
+              (result) => {
+                const sourceLabel = result.sourceRoom ? `Room ${result.sourceRoom}` : result.source;
+                addNote(
+                  ticket.id,
+                  `Force-resolved · used ${result.itemLabel}${result.variant ? ` · ${result.variant}` : ''} from ${sourceLabel}`,
+                  SUPERVISOR,
+                );
+                updateStatus(ticket.id, 'resolved', SUPERVISOR);
+              },
+              () => {
+                addNote(ticket.id, 'Force-resolved by supervisor (override).', SUPERVISOR);
+                updateStatus(ticket.id, 'resolved', SUPERVISOR);
+              },
+            );
           },
         },
       ]

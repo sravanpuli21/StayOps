@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Plus, Calendar, Minus } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Plus, Calendar, Minus, ChevronLeft } from 'lucide-react';
 import { ErrorBanner } from '@/components/common/ErrorBanner';
 
 interface RateEvent {
@@ -94,6 +95,14 @@ export default function RateManagerPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href="/web/rishab/revenue"
+        className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+        style={{ color: '#ff385c' }}
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Revenue
+      </Link>
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold" style={{ color: '#222' }}>Rate Manager</h1>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { mutate } from 'swr';
-import { ChevronLeft, Wrench, Sparkles, MapPin, DoorClosed, Check } from 'lucide-react';
+import { ChevronLeft, Wrench, Sparkles, MapPin, DoorClosed, Check, Plus, X } from 'lucide-react';
 import type { ApiRoomSnapshotRow, MaintenanceTicket } from '@hos/shared';
 import { useApi } from '@/lib/use-api';
 import { apiKeys } from '@/lib/swr-keys';

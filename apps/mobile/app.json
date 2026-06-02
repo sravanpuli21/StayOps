@@ -1,13 +1,12 @@
 {
   "expo": {
     "name": "HOS Management",
-    "slug": "hos-management",
+    "slug": "hostest",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "scheme": "hos",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "backgroundColor": "#ffffff"
     },
@@ -16,10 +15,6 @@
       "bundleIdentifier": "com.hos.management"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "com.hos.management",
       "edgeToEdgeEnabled": true
     },
@@ -29,6 +24,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "c9ad5656-da09-4680-9bf4-51ac32a6766f"
+      }
+    },
+    "owner": "hosstayops"
   }
 }

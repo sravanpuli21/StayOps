@@ -123,7 +123,7 @@ function ProductMockup() {
         {/* Main panel — KPIs + table preview */}
         <div className="p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: '#929292' }}>
-            Harshal&apos;s Region · Yesterday
+            Avery&apos;s Region · Yesterday
           </p>
           <div className="mt-4 grid grid-cols-5 gap-3">
             {[
@@ -147,11 +147,11 @@ function ProductMockup() {
               <span>7 hotels</span>
             </div>
             {[
-              { name: 'Hampton Gateway', occ: '68%', rev: '$132K', color: '#b91c1c' },
-              { name: 'Woodspring Brunswick', occ: '71%', rev: '$118K', color: '#b45309' },
-              { name: 'Holiday Inn Express', occ: '78%', rev: '$142K', color: '#3f3f3f' },
-              { name: 'Home2 Baton Rouge', occ: '82%', rev: '$156K', color: '#3f3f3f' },
-              { name: 'Hotel Amalga', occ: '89%', rev: '$189K', color: '#15803d' },
+              { name: 'Hampton Crestmont', occ: '68%', rev: '$132K', color: '#b91c1c' },
+              { name: 'Woodspring Stoneview', occ: '71%', rev: '$118K', color: '#b45309' },
+              { name: 'Holiday Inn Express - Pinecrest', occ: '78%', rev: '$142K', color: '#3f3f3f' },
+              { name: 'Home2 Cedar Ridge', occ: '82%', rev: '$156K', color: '#3f3f3f' },
+              { name: 'The Aldwyn Hotel', occ: '89%', rev: '$189K', color: '#15803d' },
             ].map((r, i, arr) => (
               <div
                 key={r.name}

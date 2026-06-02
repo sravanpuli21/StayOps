@@ -1,11 +1,10 @@
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { C, F, R, S } from '../../src/theme';
+import { C, F, S } from '../../src/theme';
 import { CambriaLogo } from '../../src/components/CambriaLogo';
 import { PreferencesProvider } from '../../src/store/preferencesContext';
 
-// Small back button — pops to persona picker
 function BackToPicker() {
   const router = useRouter();
   return (
@@ -21,7 +20,6 @@ function BackToPicker() {
   );
 }
 
-// Property logo on the right
 function PropertyBadge() {
   return (
     <View style={styles.badge}>
@@ -46,7 +44,7 @@ export default function AmirLayout() {
           headerTitleStyle: { fontSize: F.md, fontWeight: '700', color: C.text },
           headerLeft: () => <BackToPicker />,
           headerRight: () => <PropertyBadge />,
-          tabBarActiveTintColor: C.amber,
+          tabBarActiveTintColor: C.ink,
           tabBarInactiveTintColor: C.hint,
           tabBarStyle: {
             backgroundColor: C.card,
@@ -62,33 +60,45 @@ export default function AmirLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'My Day',
-            tabBarIcon: ({ color, size }) => <Ionicons name="today-outline" size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="tickets"
-          options={{
-            title: 'Tickets',
+            title: 'Queue',
             tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
           }}
         />
         <Tabs.Screen
-          name="audit"
+          name="rooms"
           options={{
-            title: 'Audit',
-            tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-circle-outline" size={size} color={color} />,
+            title: 'Rooms',
+            tabBarIcon: ({ color, size }) => <Ionicons name="bed-outline" size={size} color={color} />,
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="inventory"
           options={{
-            title: 'Me',
-            tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+            title: 'Inventory',
+            tabBarIcon: ({ color, size }) => <Ionicons name="cube-outline" size={size} color={color} />,
           }}
         />
-        <Tabs.Screen name="ticket/[id]" options={{ href: null }} />
+        <Tabs.Screen
+          name="handover"
+          options={{
+            title: 'Handover',
+            tabBarIcon: ({ color, size }) => <Ionicons name="paper-plane-outline" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="more"
+          options={{
+            title: 'More',
+            tabBarIcon: ({ color, size }) => <Ionicons name="ellipsis-horizontal-outline" size={size} color={color} />,
+          }}
+        />
+
+        {/* Sub-routes (not in tab bar) */}
+        <Tabs.Screen name="ticket/[id]"  options={{ href: null }} />
+        <Tabs.Screen name="audit/[id]"   options={{ href: null }} />
         <Tabs.Screen name="room/[number]" options={{ href: null }} />
+        <Tabs.Screen name="profile"       options={{ href: null }} />
+
       </Tabs>
     </PreferencesProvider>
   );

@@ -105,20 +105,22 @@ export default async function EmployeeDetailPage({ params }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+          <a
+            href={`tel:${(emp.phone ?? '').replace(/[^0-9+]/g, '')}`}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-colors hover:bg-[#f0f0f0]"
             style={{ background: '#f7f7f7', color: '#222', border: '1px solid #dddddd' }}
           >
             <Phone className="w-3.5 h-3.5" />
             Call
-          </button>
-          <button
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+          </a>
+          <a
+            href={`sms:${(emp.phone ?? '').replace(/[^0-9+]/g, '')}`}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-opacity hover:opacity-90"
             style={{ background: '#ff385c', color: '#ffffff' }}
           >
             <MessageSquare className="w-3.5 h-3.5" />
             Message
-          </button>
+          </a>
         </div>
       </div>
 

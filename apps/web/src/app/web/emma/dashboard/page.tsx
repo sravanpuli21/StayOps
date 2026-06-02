@@ -413,9 +413,10 @@ export default function EmmaDashboard() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {urgentTickets.map((t) => (
-              <div
+              <Link
                 key={t.id}
-                className="rounded-lg px-3 py-2"
+                href="/web/emma/tickets"
+                className="rounded-lg px-3 py-2 block transition-colors hover:bg-[#fff5f5]"
                 style={{ background: '#ffffff', border: '1px solid #fecaca' }}
               >
                 <div className="flex items-baseline gap-2 flex-wrap">
@@ -425,7 +426,7 @@ export default function EmmaDashboard() {
                 </div>
                 <p className="text-sm mt-0.5" style={{ color: '#222' }}>{t.title}</p>
                 <p className="text-[11px] mt-0.5" style={{ color: '#6a6a6a' }}>Assigned to {t.assignedTo}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

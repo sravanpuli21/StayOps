@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Filter, Search, Wrench } from 'lucide-react';
+import Link from 'next/link';
+import { Wrench, X, AlertTriangle, ChevronRight } from 'lucide-react';
 import { SYDNEY_HOTEL, useHotelRooms, useHotelTickets } from '@/lib/sydney-data';
 
 const ROOM_TILE: Record<string, { bg: string; border: string; dot: string; label: string }> = {
@@ -27,6 +28,7 @@ export default function SydneyRoomsPage() {
   }, [tickets]);
 
   const [filter, setFilter] = useState<'all' | 'hasTicket' | 'ooo' | 'blocked'>('all');
+  const [openRoom, setOpenRoom] = useState<typeof rooms[number] | null>(null);
 
   const floors = useMemo(() => {
     const byFloor = new Map<number, typeof rooms>();
@@ -120,9 +122,10 @@ export default function SydneyRoomsPage() {
                   const cfg = ROOM_TILE[r.status] ?? ROOM_TILE.occupied;
                   const tk = ticketsByRoom.get(r.number) ?? 0;
                   return (
-                    <div
+                    <button
                       key={r.id}
-                      className="relative rounded-xl flex flex-col items-center justify-center"
+                      onClick={() => setOpenRoom(r)}
+                      className="relative rounded-xl flex flex-col items-center justify-center transition-all hover:scale-105 hover:shadow-md"
                       style={{ width: 64, height: 56, background: cfg.bg, border: `1.5px solid ${cfg.border}` }}
                       title={`Room ${r.number} · ${cfg.label}${r.oooReason ? ` (${r.oooReason})` : ''}${tk ? ` · ${tk} open ticket${tk === 1 ? '' : 's'}` : ''}`}
                     >
@@ -136,13 +139,90 @@ export default function SydneyRoomsPage() {
                         </span>
                       )}
                       <div className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: cfg.dot }} />
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </div>
           );
         })}
+      </div>
+
+      {openRoom && (
+        <RoomDetailModal
+          room={openRoom}
+          tickets={tickets.filter((t) => t.roomNumber === openRoom.number && t.status !== 'resolved')}
+          onClose={() => setOpenRoom(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function RoomDetailModal({
+  room, tickets, onClose,
+}: { room: any; tickets: any[]; onClose: () => void }) {
+  const cfg = ROOM_TILE[room.status] ?? ROOM_TILE.occupied;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md flex flex-col max-h-[85vh]" style={{ border: '1px solid #dddddd' }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 flex items-start justify-between gap-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl flex items-center justify-center" style={{ width: 48, height: 44, background: cfg.bg, border: `1.5px solid ${cfg.border}` }}>
+              <span className="text-sm font-bold" style={{ color: '#222' }}>{room.number}</span>
+            </div>
+            <div>
+              <h2 className="text-base font-bold" style={{ color: '#222' }}>Room {room.number}</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#929292' }}>Floor {room.floor} · {cfg.label}{room.type ? ` · ${room.type}` : ''}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[#6a6a6a] hover:text-[#222] flex-shrink-0"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-6 py-5 overflow-y-auto flex flex-col gap-4">
+          {room.oooReason && (
+            <div className="rounded-lg p-3 flex items-start gap-2" style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
+              <AlertTriangle className="w-4 h-4 mt-0.5" style={{ color: '#b91c1c' }} />
+              <div>
+                <p className="text-xs font-bold" style={{ color: '#b91c1c' }}>Out of order</p>
+                <p className="text-xs mt-0.5" style={{ color: '#3f3f3f' }}>{room.oooReason}</p>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: '#929292' }}>
+              Open tickets · {tickets.length}
+            </p>
+            {tickets.length === 0 ? (
+              <p className="text-sm" style={{ color: '#15803d' }}>No open maintenance tickets for this room.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {tickets.map((t) => (
+                  <div key={t.id} className="rounded-lg px-3 py-2" style={{ background: '#fafafa', border: '1px solid #f0f0f0' }}>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      {t.priority === 'urgent' && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full" style={{ background: '#fef2f2', color: '#b91c1c' }}>Urgent</span>}
+                      <span className="text-[10px] uppercase font-semibold capitalize" style={{ color: '#929292' }}>{t.type}</span>
+                    </div>
+                    <p className="text-sm font-medium mt-0.5" style={{ color: '#222' }}>{t.title}</p>
+                    {t.assignedTo && <p className="text-[11px] mt-0.5" style={{ color: '#6a6a6a' }}>→ {t.assignedTo}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-6 py-4 flex items-center justify-between gap-3" style={{ borderTop: '1px solid #f0f0f0' }}>
+          <Link
+            href={`/web/sydney/tickets`}
+            className="inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+            style={{ color: '#ff385c' }}
+          >
+            View all tickets <ChevronRight className="w-3 h-3" />
+          </Link>
+          <button onClick={onClose} className="h-9 px-4 rounded-lg text-sm font-semibold" style={{ background: '#f7f7f7', color: '#222' }}>Close</button>
+        </div>
       </div>
     </div>
   );

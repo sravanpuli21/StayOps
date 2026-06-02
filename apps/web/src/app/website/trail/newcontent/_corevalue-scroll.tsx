@@ -66,17 +66,17 @@ function IpadFrame({ children, label }: { children: React.ReactNode; label: stri
 /* ─── Screen 1: Portfolio dashboard ─── */
 function PortfolioScreen() {
   const rows = [
-    { name: 'Home2 Suites - Baton Rouge',     meta: 'Baton Rouge, LA · Hilton',  rooms: 116, occ: '83%', rev: '$24.3K', h: 'green' as const },
-    { name: 'Hilton Garden Inn - Midtown',    meta: 'Savannah, GA · Hilton',     rooms: 132, occ: '77%', rev: '$17.6K', h: 'amber' as const },
-    { name: 'Fairfield/TPS - Pooler',         meta: 'Pooler, GA · Marriott',     rooms: 158, occ: '91%', rev: '$29.4K', h: 'green' as const },
-    { name: 'Woodspring - Brunswick',         meta: 'Brunswick, GA · Choice',    rooms: 122, occ: '74%', rev: '$15.8K', h: 'red'   as const },
-    { name: 'Home2 Suites - Flower Mound',    meta: 'Flower Mound, TX · Hilton', rooms:  99, occ: '85%', rev: '$13.7K', h: 'green' as const },
+    { name: 'Home2 Suites - Cedar Ridge',     meta: 'Asheville, NC · Hilton',    rooms: 116, occ: '83%', rev: '$24.3K', h: 'green' as const },
+    { name: 'Hilton Garden Inn - Riverbend',  meta: 'Burlington, VT · Hilton',   rooms: 132, occ: '77%', rev: '$17.6K', h: 'amber' as const },
+    { name: 'Fairfield Inn - Lakeshore',      meta: 'Madison, WI · Marriott',    rooms: 158, occ: '91%', rev: '$29.4K', h: 'green' as const },
+    { name: 'Woodspring Suites - Stoneview',  meta: 'Boulder, CO · Choice',      rooms: 122, occ: '74%', rev: '$15.8K', h: 'red'   as const },
+    { name: 'Home2 Suites - Bayshore',        meta: 'Portland, ME · Hilton',     rooms:  99, occ: '85%', rev: '$13.7K', h: 'green' as const },
   ];
   return (
     <div className="absolute inset-0 overflow-hidden">
       <div className="px-4 pt-4">
         <h3 className="text-sm font-bold" style={{ color: '#222' }}>Portfolio Dashboard</h3>
-        <p className="text-[11px]" style={{ color: '#929292' }}>16 properties · 5 brands · this month</p>
+        <p className="text-[11px]" style={{ color: '#929292' }}>14 properties · 5 brands · this month</p>
       </div>
       <div className="grid grid-cols-4 gap-2 p-3" style={{ background: '#f7f7f7' }}>
         <Kpi label="Occupancy"     value="83.4%"  sub="1,243 / 1,490 sold" />
@@ -118,11 +118,11 @@ function PortfolioScreen() {
 /* ─── Screen 2: Attention list ─── */
 function AttentionScreen() {
   const items = [
-    { icon: Wrench,         title: 'Aging maintenance ticket',  meta: 'Hilton Garden · Room 214 AC · 6 days open',   h: 'red'   as const },
-    { icon: Bed,            title: '3 rooms out of order',      meta: 'Hilton Midtown · ~$540/day revenue impact',    h: 'amber' as const },
-    { icon: Clock,          title: 'Audit overdue',             meta: 'Woodspring Brunswick · AM handover · 4d late', h: 'amber' as const },
-    { icon: DollarSign,     title: 'Labour cost trending up',   meta: 'Fairfield Pooler · OT +4.2% week-over-week',   h: 'amber' as const },
-    { icon: AlertTriangle,  title: 'Underperforming property',  meta: 'Woodspring · Occ 74% · 2nd week below 80%',    h: 'red'   as const },
+    { icon: Wrench,         title: 'Aging maintenance ticket',  meta: 'Hilton Garden Riverbend · Room 214 AC · 6 days open', h: 'red'   as const },
+    { icon: Bed,            title: '3 rooms out of order',      meta: 'Hilton Garden Riverbend · ~$540/day revenue impact',  h: 'amber' as const },
+    { icon: Clock,          title: 'Audit overdue',             meta: 'Woodspring Stoneview · AM handover · 4d late',        h: 'amber' as const },
+    { icon: DollarSign,     title: 'Labour cost trending up',   meta: 'Fairfield Lakeshore · OT +4.2% week-over-week',       h: 'amber' as const },
+    { icon: AlertTriangle,  title: 'Underperforming property',  meta: 'Woodspring Stoneview · Occ 74% · 2nd week below 80%', h: 'red'   as const },
   ];
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -159,7 +159,7 @@ function AttentionScreen() {
 
 /* ─── Screen 3: Drill-down path ─── */
 function DrillDownScreen() {
-  const crumbs = ['Portfolio', 'Hilton Garden Midtown', 'Maintenance', 'Room 214'];
+  const crumbs = ['Portfolio', 'Hilton Garden Riverbend', 'Maintenance', 'Room 214'];
   return (
     <div className="absolute inset-0 overflow-hidden">
       <div className="px-4 py-3" style={{ background: '#f7f7f7', borderBottom: '1px solid #dddddd' }}>
@@ -242,9 +242,9 @@ function ReportScreen() {
         </p>
         <ul className="mt-2 flex flex-col gap-1.5">
           {[
-            { name: 'Woodspring Brunswick',  detail: 'Occ 74% · 2nd week below 80%',     h: 'red'   as const },
-            { name: 'Hilton Garden Midtown', detail: '3 rooms OOO · ~$540/day impact',   h: 'amber' as const },
-            { name: 'Fairfield Pooler',      detail: 'Labour OT +4.2% week-over-week',   h: 'amber' as const },
+            { name: 'Woodspring Stoneview',  detail: 'Occ 74% · 2nd week below 80%',     h: 'red'   as const },
+            { name: 'Hilton Garden Riverbend', detail: '3 rooms OOO · ~$540/day impact', h: 'amber' as const },
+            { name: 'Fairfield Lakeshore',   detail: 'Labour OT +4.2% week-over-week',   h: 'amber' as const },
           ].map((x) => (
             <li key={x.name} className="flex items-start gap-2 text-[11px]">
               <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"

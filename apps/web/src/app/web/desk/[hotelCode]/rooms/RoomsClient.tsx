@@ -46,7 +46,7 @@ export function RoomsClient({ hotelCode }: Props) {
       <div>
         <h1 className="text-xl font-bold" style={{ color: '#222' }}>Room Grid</h1>
         <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
-          Click any room to log a ticket pre-filled for that room
+          Click any room to see its open work and log a request pre-filled for that room
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export function RoomsClient({ hotelCode }: Props) {
           ) : floors.map((floor) => (
             <div key={floor} className="mb-6 last:mb-0">
               <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#929292' }}>Floor {floor}</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {floorMap[floor].sort((a, b) => a.roomNumber.localeCompare(b.roomNumber)).map((t) => {
                   const cfg = TILE_CFG[t.status] ?? TILE_CFG.occupied;
                   const ticketCount = ticketsByRoom[t.roomNumber] ?? 0;
@@ -89,21 +89,21 @@ export function RoomsClient({ hotelCode }: Props) {
                       key={t.roomNumber}
                       onClick={() => handleTileClick(t.roomNumber)}
                       title={`Room ${t.roomNumber} · ${cfg.label}${ticketCount ? ` · ${ticketCount} open ticket${ticketCount === 1 ? '' : 's'}` : ''}`}
-                      className="relative rounded-xl flex flex-col items-center justify-center transition-all hover:scale-105 hover:shadow-md"
+                      className="relative rounded-lg flex flex-col items-center justify-center transition-all hover:scale-105 hover:shadow-md"
                       style={{
-                        width: 64, height: 56,
+                        width: 50, height: 44,
                         background: cfg.bg,
                         border: `1.5px solid ${cfg.border}`,
                       }}
                     >
-                      <span className="text-xs font-bold" style={{ color: '#222' }}>{t.roomNumber}</span>
+                      <span className="text-[11px] font-bold leading-none" style={{ color: '#222' }}>{t.roomNumber}</span>
                       {ticketCount > 0 && (
                         <span
-                          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-xs font-black flex items-center justify-center text-white"
-                          style={{ background: '#ff385c', fontSize: '9px' }}
+                          className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full font-black flex items-center justify-center text-white"
+                          style={{ background: '#ff385c', fontSize: '8px' }}
                         >{ticketCount}</span>
                       )}
-                      <div className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: cfg.dot }} />
+                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: cfg.dot }} />
                     </button>
                   );
                 })}

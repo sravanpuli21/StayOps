@@ -39,10 +39,10 @@ export default function RegionalPage() {
       blobVariant="teal"
       blobHeadline="Regional health"
       blobPills={[
-        '16 properties',
-        'Cambria · 2 audits missed',
-        'Hampton · 5 open tickets',
-        'Cotton Sail · trending up',
+        '14 properties',
+        'Cambria Maplewood · 2 audits missed',
+        'Hampton Bayfield · 5 open tickets',
+        'The Westbrook · trending up',
         '3 properties need attention',
       ]}
       relatedLinks={[

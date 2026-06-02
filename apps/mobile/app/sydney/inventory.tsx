@@ -1,239 +1,246 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { useState, useMemo } from 'react';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { C, F, R, S } from '../../src/theme';
-import { useInventory, type InventoryCategory, type InventoryItem, type StockStatus } from '../../src/store/inventoryContext';
+import { SectionLabel } from '../../src/components/web-ui/SectionLabel';
+import {
+  CATEGORY_CFG, USAGE_TODAY, FOLLOWUP_TICKETS,
+  type InventoryItem, type StockLevel, type Category,
+} from '../../src/data/amir-inventory';
+import { useInventory, decrementItem, restockItem } from '../../src/store/inventory-store';
 
-const CATEGORIES: Array<{ value: InventoryCategory | 'All'; label: string; icon: string }> = [
-  { value: 'All',              label: 'All',          icon: 'apps-outline' },
-  { value: 'Electronics',      label: 'Electronics',  icon: 'tv-outline' },
-  { value: 'Lighting',         label: 'Lighting',     icon: 'bulb-outline' },
-  { value: 'HVAC',             label: 'HVAC',         icon: 'snow-outline' },
-  { value: 'Plumbing',         label: 'Plumbing',     icon: 'water-outline' },
-  { value: 'Bathroom',         label: 'Bathroom',     icon: 'beaker-outline' },
-  { value: 'Batteries',        label: 'Batteries',    icon: 'battery-half-outline' },
-  { value: 'Hardware',         label: 'Hardware',     icon: 'construct-outline' },
-  { value: 'Guest amenities',  label: 'Amenities',    icon: 'gift-outline' },
-];
-
-const STATUS_FILTERS: Array<{ value: StockStatus | 'all' | 'flagged'; label: string; color: string }> = [
-  { value: 'all',      label: 'All',       color: C.hint },
-  { value: 'flagged',  label: 'Flagged',   color: C.red },
-  { value: 'ok',       label: 'OK',        color: C.green },
-];
-
-const STATUS_CFG: Record<StockStatus, { color: string; bg: string; label: string }> = {
-  ok:       { color: C.green, bg: C.greenBg, label: 'OK' },
-  low:      { color: C.amber, bg: C.amberBg, label: 'LOW' },
-  critical: { color: C.red,   bg: C.redBg,   label: 'CRITICAL' },
-  out:      { color: C.red,   bg: C.redBg,   label: 'OUT' },
+const LEVEL_CFG: Record<StockLevel, { color: string; bg: string; label: string }> = {
+  good: { color: '#15803d', bg: '#dcfce7', label: 'Good' },
+  low:  { color: '#b45309', bg: '#fef3c7', label: 'Low' },
+  out:  { color: '#b91c1c', bg: '#fee2e2', label: 'Out' },
 };
 
+type Filter = 'all' | 'low' | 'used_today' | 'pending_followups' | Category;
+const PRIMARY_FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all',                label: 'All' },
+  { key: 'low',                label: 'Low / Out' },
+  { key: 'used_today',         label: 'Used today' },
+  { key: 'pending_followups',  label: 'Borrowed-room follow-ups' },
+];
+const CATEGORY_FILTERS: { key: Category; label: string }[] = [
+  { key: 'bulbs',      label: 'Bulbs' },
+  { key: 'remotes',    label: 'Remotes' },
+  { key: 'batteries',  label: 'Batteries' },
+  { key: 'hvac',       label: 'HVAC' },
+  { key: 'plumbing',   label: 'Plumbing' },
+  { key: 'electrical', label: 'Electrical' },
+];
+
 export default function SydneyInventory() {
-  const router = useRouter();
-  const { items, getStatus, lowItems, criticalItems, requestRestock, adjustStock } = useInventory();
-  const [category, setCategory] = useState<InventoryCategory | 'All'>('All');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'flagged' | StockStatus>('all');
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const inventory = useInventory();
+
+  const lowCount = inventory.filter((p) => p.level === 'low' || p.level === 'out').length;
+  const borrowed = USAGE_TODAY.filter((u) => u.source === 'another_room');
 
   const filtered = useMemo(() => {
-    return items.filter((item) => {
-      if (category !== 'All' && item.category !== category) return false;
-      const s = getStatus(item);
-      if (statusFilter === 'flagged' && s !== 'low' && s !== 'critical' && s !== 'out') return false;
-      if (statusFilter !== 'all' && statusFilter !== 'flagged' && s !== statusFilter) return false;
-      if (query.trim() && !item.name.toLowerCase().includes(query.toLowerCase()) && !item.location.toLowerCase().includes(query.toLowerCase())) return false;
-      return true;
-    });
-  }, [items, category, statusFilter, query, getStatus]);
-
-  // Group by category
-  const grouped = useMemo(() => {
-    const map = new Map<InventoryCategory, InventoryItem[]>();
-    for (const item of filtered) {
-      if (!map.has(item.category)) map.set(item.category, []);
-      map.get(item.category)!.push(item);
+    if (filter === 'all')                return inventory;
+    if (filter === 'low')                return inventory.filter((p) => p.level === 'low' || p.level === 'out');
+    if (filter === 'used_today') {
+      const used = new Set(USAGE_TODAY.map((u) => `${u.itemName}|${u.variant ?? ''}`));
+      return inventory.filter((p) => used.has(`${p.name}|${p.variant}`));
     }
-    return Array.from(map.entries()).map(([cat, its]) => ({
-      category: cat,
-      items: its.sort((a, b) => {
-        const order: StockStatus[] = ['out', 'critical', 'low', 'ok'];
-        return order.indexOf(getStatus(a)) - order.indexOf(getStatus(b));
-      }),
-    }));
-  }, [filtered, getStatus]);
+    if (filter === 'pending_followups')  return [];   // shown as separate section below
+    return inventory.filter((p) => p.category === filter);
+  }, [filter, inventory]);
 
-  const handleItemTap = (item: InventoryItem) => {
-    const status = getStatus(item);
-    const pct = Math.round((item.onHand / Math.max(item.threshold, 1)) * 100);
+  const grouped = useMemo(() => {
+    const m = new Map<Category, InventoryItem[]>();
+    filtered.forEach((it) => {
+      const arr = m.get(it.category) ?? [];
+      arr.push(it);
+      m.set(it.category, arr);
+    });
+    return Array.from(m.entries());
+  }, [filtered]);
+
+  function requestOrder(item: InventoryItem) {
+    const suggestedQty = Math.max(item.par * 2, 10);
     Alert.alert(
-      item.name,
-      `${item.onHand} ${item.unit} on hand · threshold ${item.threshold} (${pct}%)\n\nLocation: ${item.location}\nLast restock: ${item.lastRestocked}\nMonthly usage: ${item.monthlyUsage} ${item.unit}\nVendor: ${item.vendor ?? '—'}\nCost: $${item.costPerUnit ?? 0}/unit\n${item.notes ? '\n' + item.notes : ''}`,
+      'Request order',
+      `${item.name} · ${item.variant}\nCurrent: ${item.count} · PAR: ${item.par}\n\nSuggested order: ${suggestedQty} ${item.unit}\nApproval needed: Rishab`,
       [
-        { text: 'Close', style: 'cancel' },
-        {
-          text: 'Log use (-1)',
-          onPress: () => adjustStock(item.id, -1),
-        },
-        {
-          text: 'Request restock',
-          style: status === 'ok' ? 'default' : 'destructive',
-          onPress: () => {
-            const qty = Math.max(item.threshold * 2 - item.onHand, 5);
-            requestRestock(item.id, qty, 'Sydney Rivera');
-            Alert.alert('Restock requested', `${qty} ${item.unit} of ${item.name} queued for order.`);
-          },
-        },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Send to Rishab', onPress: () => {
+          /* Mock: pretend Rishab approves immediately */
+          restockItem(item.id, suggestedQty);
+          Alert.alert('Approved', `Rishab approved · ${suggestedQty} ${item.unit} added to stock.`);
+        } },
       ]
     );
-  };
+  }
+
+  function adjust(item: InventoryItem) {
+    Alert.alert(
+      'Adjust count',
+      `${item.name} · ${item.variant}\nCurrent: ${item.count}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: '−1',   onPress: () => decrementItem(item.id, 1) },
+        { text: '+1',   onPress: () => restockItem(item.id, 1) },
+        { text: '+10',  onPress: () => restockItem(item.id, 10) },
+      ]
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={C.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Inventory</Text>
-          <Text style={styles.subtitle}>{items.length} tracked items</Text>
-        </View>
-        <View style={styles.alertBadge}>
-          <Text style={styles.alertBadgeText}>{lowItems.length}</Text>
-          <Text style={styles.alertBadgeLabel}>flagged</Text>
-        </View>
+      {/* Compact summary strip */}
+      <View style={styles.summaryBar}>
+        <Text style={styles.summaryHero}>{inventory.length}</Text>
+        <Text style={styles.summarySub}>tracked</Text>
+        <View style={styles.summaryDot} />
+        <Text style={[styles.summaryHero, { color: '#b45309' }]}>{lowCount}</Text>
+        <Text style={styles.summarySub}>low/out</Text>
+        <View style={styles.summaryDot} />
+        <Text style={styles.summaryHero}>{USAGE_TODAY.length}</Text>
+        <Text style={styles.summarySub}>used today</Text>
+        {FOLLOWUP_TICKETS.length > 0 && <>
+          <View style={styles.summaryDot} />
+          <Text style={[styles.summaryHero, { color: '#b91c1c' }]}>{FOLLOWUP_TICKETS.length}</Text>
+          <Text style={styles.summarySub}>follow-ups</Text>
+        </>}
       </View>
 
-      {/* Summary row */}
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryCell}>
-          <Text style={[styles.summaryValue, { color: C.red }]}>{criticalItems.length}</Text>
-          <Text style={styles.summaryLabel}>critical / out</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryCell}>
-          <Text style={[styles.summaryValue, { color: C.amber }]}>{lowItems.length - criticalItems.length}</Text>
-          <Text style={styles.summaryLabel}>low</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryCell}>
-          <Text style={[styles.summaryValue, { color: C.green }]}>{items.length - lowItems.length}</Text>
-          <Text style={styles.summaryLabel}>ok</Text>
-        </View>
+      {/* Filters */}
+      <View style={styles.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {[...PRIMARY_FILTERS, ...CATEGORY_FILTERS].map((f) => {
+            const active = filter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setFilter(f.key)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search-outline" size={16} color={C.hint} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search items or locations..."
-            placeholderTextColor={C.hint}
-            value={query}
-            onChangeText={setQuery}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
-              <Ionicons name="close-circle" size={16} color={C.hint} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Status filter */}
-      <View style={styles.statusRow}>
-        {STATUS_FILTERS.map((f) => {
-          const isActive = statusFilter === f.value;
-          return (
-            <TouchableOpacity
-              key={f.value}
-              style={[styles.statusBtn, isActive && { backgroundColor: f.color + '20', borderColor: f.color }]}
-              onPress={() => setStatusFilter(f.value as any)}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.statusBtnText, isActive && { color: f.color, fontWeight: '800' }]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Category chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={styles.catRow}>
-        {CATEGORIES.map((c) => {
-          const isActive = category === c.value;
-          return (
-            <TouchableOpacity
-              key={c.value}
-              style={[styles.catChip, isActive && styles.catChipActive]}
-              onPress={() => setCategory(c.value)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name={c.icon as any} size={14} color={isActive ? C.blue : C.sub} />
-              <Text style={[styles.catText, isActive && styles.catTextActive]}>{c.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {/* List */}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {grouped.length === 0 && (
-          <View style={styles.empty}>
-            <Ionicons name="file-tray-outline" size={40} color={C.hint} />
-            <Text style={styles.emptyText}>No items match your filter</Text>
-          </View>
-        )}
-        {grouped.map(({ category: cat, items: catItems }) => (
-          <View key={cat} style={{ marginBottom: S.md }}>
-            <Text style={styles.groupLabel}>{cat} · {catItems.length}</Text>
-            <View style={styles.card}>
-              {catItems.map((item, i) => {
-                const status = getStatus(item);
-                const cfg = STATUS_CFG[status];
-                const pct = Math.min(100, (item.onHand / Math.max(item.threshold, 1)) * 100);
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[styles.item, i < catItems.length - 1 && styles.itemBorder]}
-                    onPress={() => handleItemTap(item)}
-                    activeOpacity={0.88}
-                  >
-                    <View style={[styles.itemIcon, { backgroundColor: cfg.bg }]}>
-                      <Ionicons name={item.icon as any} size={18} color={cfg.color} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.itemTop}>
-                        <Text style={styles.itemName}>{item.name}</Text>
-                        <View style={[styles.itemBadge, { backgroundColor: cfg.bg }]}>
-                          <Text style={[styles.itemBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.itemMid}>
-                        <Text style={styles.itemCount}>
-                          <Text style={{ color: cfg.color, fontWeight: '800' }}>{item.onHand}</Text>
-                          <Text style={{ color: C.hint }}> / {item.threshold} {item.unit}</Text>
-                        </Text>
-                        <Text style={styles.itemUsage}>· {item.monthlyUsage}/mo</Text>
-                      </View>
-                      <View style={styles.itemBar}>
-                        <View style={[styles.itemBarFill, { width: `${Math.min(100, pct)}%`, backgroundColor: cfg.color }]} />
-                      </View>
-                      <Text style={styles.itemLocation}>
-                        <Ionicons name="location-outline" size={10} color={C.hint} /> {item.location}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={14} color={C.hint} />
-                  </TouchableOpacity>
-                );
-              })}
+
+        {/* Borrowed-room follow-ups (Sydney's responsibility — preview always when it's filter or there are some) */}
+        {(filter === 'pending_followups' || filter === 'all') && FOLLOWUP_TICKETS.length > 0 && (
+          <>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionDot, { backgroundColor: '#b91c1c' }]} />
+              <SectionLabel>Borrowed-room follow-ups</SectionLabel>
+              <View style={[styles.countChip, { backgroundColor: '#fee2e2' }]}>
+                <Text style={[styles.countText, { color: '#b91c1c' }]}>{FOLLOWUP_TICKETS.length}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+            <View style={styles.card}>
+              {FOLLOWUP_TICKETS.map((f, i) => (
+                <View key={f.id} style={[styles.row, i < FOLLOWUP_TICKETS.length - 1 && styles.rowBorder]}>
+                  <View style={[styles.iconWrap, { backgroundColor: '#fee2e2' }]}>
+                    <Ionicons name="git-branch-outline" size={16} color="#b91c1c" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle}>Room {f.room} · {f.title}</Text>
+                    <Text style={styles.rowSub}>
+                      {f.arrivalSoon ? 'URGENT — arrival today · ' : ''}linked to {f.linkedTicketId}
+                    </Text>
+                    {f.note && <Text style={styles.note}>{f.note}</Text>}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Borrowed today (separate signal) */}
+        {filter !== 'pending_followups' && borrowed.length > 0 && (
+          <>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionDot, { backgroundColor: '#b45309' }]} />
+              <SectionLabel>Borrowed today</SectionLabel>
+              <View style={[styles.countChip, { backgroundColor: '#fef3c7' }]}>
+                <Text style={[styles.countText, { color: '#b45309' }]}>{borrowed.length}</Text>
+              </View>
+            </View>
+            <View style={styles.card}>
+              {borrowed.map((u, i) => (
+                <View key={u.id} style={[styles.row, i < borrowed.length - 1 && styles.rowBorder]}>
+                  <View style={[styles.iconWrap, { backgroundColor: '#fef3c7' }]}>
+                    <Ionicons name="swap-horizontal-outline" size={16} color="#b45309" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle}>
+                      {u.itemName} · from Room {u.sourceRoom} → Room {u.destinationRoom}
+                    </Text>
+                    <Text style={styles.rowSub}>{u.variant} · {u.loggedAt}</Text>
+                    {u.note && <Text style={styles.note}>{u.note}</Text>}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Inventory grouped by category */}
+        {grouped.map(([cat, items]) => {
+          const cfg = CATEGORY_CFG[cat];
+          return (
+            <View key={cat} style={{ gap: S.sm }}>
+              <View style={styles.catHead}>
+                <View style={[styles.catIcon, { backgroundColor: cfg.bg }]}>
+                  <Ionicons name={cfg.icon as any} size={14} color={cfg.color} />
+                </View>
+                <SectionLabel>{cfg.label}</SectionLabel>
+                <Text style={styles.catCount}>{items.length}</Text>
+              </View>
+              <View style={styles.card}>
+                {items.map((p, i) => {
+                  const lvl = LEVEL_CFG[p.level];
+                  return (
+                    <View key={p.id} style={[styles.row, i < items.length - 1 && styles.rowBorder]}>
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.partTopRow}>
+                          <Text style={styles.rowTitle}>{p.name}</Text>
+                          <View style={[styles.levelChip, { backgroundColor: lvl.bg }]}>
+                            <Text style={[styles.levelChipText, { color: lvl.color }]}>{lvl.label.toUpperCase()}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.variantText}>{p.variant}</Text>
+                        <Text style={styles.rowSub}>
+                          {p.count} {p.unit} · PAR {p.par} · {p.location}
+                        </Text>
+                      </View>
+                      <View style={styles.partActions}>
+                        <TouchableOpacity
+                          style={styles.miniBtn}
+                          onPress={() => adjust(p)}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        >
+                          <Ionicons name="create-outline" size={16} color={C.sub} />
+                        </TouchableOpacity>
+                        {p.level !== 'good' && (
+                          <TouchableOpacity
+                            style={[styles.miniBtn, { backgroundColor: '#fef3c7', borderColor: '#fcd34d' }]}
+                            onPress={() => requestOrder(p)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          >
+                            <Ionicons name="cart-outline" size={16} color="#b45309" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })}
+
         <View style={{ height: S.xl }} />
       </ScrollView>
     </SafeAreaView>
@@ -243,103 +250,61 @@ export default function SydneyInventory() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.md,
-    paddingHorizontal: S.lg,
-    paddingVertical: S.md,
-    backgroundColor: C.card,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+  summaryBar: {
+    flexDirection: 'row', alignItems: 'baseline',
+    paddingHorizontal: S.lg, paddingTop: S.md, paddingBottom: S.sm,
+    gap: 6, backgroundColor: C.bg, flexWrap: 'wrap',
   },
-  backBtn: { padding: 4 },
-  title: { fontSize: F.xl, fontWeight: '800', color: C.text },
-  subtitle: { fontSize: F.xs, color: C.sub, marginTop: 1 },
-  alertBadge: { alignItems: 'center', backgroundColor: C.redBg, paddingHorizontal: S.md, paddingVertical: 4, borderRadius: R.lg },
-  alertBadgeText: { fontSize: F.xl, fontWeight: '800', color: C.red, lineHeight: 22 },
-  alertBadgeLabel: { fontSize: 10, fontWeight: '700', color: C.red, letterSpacing: 0.4 },
+  summaryHero: { fontSize: F.md, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  summarySub: { fontSize: F.xs, fontWeight: '600', color: C.sub, marginRight: 2 },
+  summaryDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.faint, alignSelf: 'center' },
 
-  summaryRow: {
-    flexDirection: 'row',
-    backgroundColor: C.card,
-    paddingVertical: S.md,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  summaryCell: { flex: 1, alignItems: 'center' },
-  summaryDivider: { width: 1, backgroundColor: C.border, alignSelf: 'center', height: 32 },
-  summaryValue: { fontSize: F.xl, fontWeight: '800' },
-  summaryLabel: { fontSize: 10, color: C.hint, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
-
-  searchRow: { paddingHorizontal: S.lg, paddingTop: S.md, backgroundColor: C.card },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.sm,
-    backgroundColor: C.input,
-    borderRadius: R.lg,
-    paddingHorizontal: S.md,
-    paddingVertical: S.sm,
-  },
-  searchInput: { flex: 1, fontSize: F.sm, color: C.text, padding: 0 },
-
-  statusRow: {
-    flexDirection: 'row',
-    gap: S.xs,
-    paddingHorizontal: S.lg,
-    paddingVertical: S.md,
+  filterRow: { backgroundColor: C.bg, marginBottom: S.xs },
+  filterScroll: { paddingHorizontal: S.lg, gap: S.xs },
+  chip: {
+    paddingHorizontal: S.md, paddingVertical: 6,
+    borderRadius: R.full, borderWidth: 1, borderColor: C.border,
     backgroundColor: C.card,
   },
-  statusBtn: {
-    flex: 1,
-    paddingVertical: S.xs + 2,
-    alignItems: 'center',
-    backgroundColor: C.input,
-    borderRadius: R.full,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  statusBtnText: { fontSize: F.xs, fontWeight: '700', color: C.sub },
-
-  catScroll: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border, flexGrow: 0 },
-  catRow: { flexDirection: 'row', gap: 6, paddingHorizontal: S.lg, paddingBottom: S.md },
-  catChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: S.md,
-    paddingVertical: S.xs + 2,
-    backgroundColor: C.input,
-    borderRadius: R.full,
-  },
-  catChipActive: { backgroundColor: C.blueBg },
-  catText: { fontSize: F.xs, fontWeight: '600', color: C.sub },
-  catTextActive: { color: C.blue, fontWeight: '800' },
+  chipActive: { backgroundColor: C.ink, borderColor: C.ink },
+  chipText: { fontSize: F.xs, fontWeight: '700', color: C.sub },
+  chipTextActive: { color: '#fff' },
 
   scroll: { flex: 1 },
-  content: { padding: S.lg },
+  content: { paddingHorizontal: S.lg, paddingTop: S.sm, gap: S.md },
 
-  empty: { alignItems: 'center', gap: S.sm, paddingTop: 60 },
-  emptyText: { fontSize: F.md, color: C.hint },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  countChip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: R.full },
+  countText: { fontSize: F.xs, fontWeight: '800' },
 
-  groupLabel: {
-    fontSize: F.xs, fontWeight: '700', color: C.hint,
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    marginBottom: S.xs, marginLeft: S.xs,
+  catHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  catIcon: { width: 24, height: 24, borderRadius: R.sm, alignItems: 'center', justifyContent: 'center' },
+  catCount: { marginLeft: 'auto', fontSize: F.xs, color: C.hint, fontWeight: '700' },
+
+  card: {
+    backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: R.lg,
+    overflow: 'hidden',
   },
-  card: { backgroundColor: C.card, borderRadius: R.xl, overflow: 'hidden' },
-  item: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md },
-  itemBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
-  itemIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  itemTop: { flexDirection: 'row', alignItems: 'center', gap: S.xs, marginBottom: 2 },
-  itemName: { flex: 1, fontSize: F.sm, fontWeight: '700', color: C.text },
-  itemBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
-  itemBadgeText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
-  itemMid: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  itemCount: { fontSize: F.xs },
-  itemUsage: { fontSize: F.xs, color: C.hint },
-  itemBar: { height: 3, borderRadius: R.full, backgroundColor: C.border, overflow: 'hidden', marginBottom: 4 },
-  itemBarFill: { height: '100%', borderRadius: R.full },
-  itemLocation: { fontSize: 10, color: C.hint },
+  row: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: C.borderSoft },
+  iconWrap: { width: 36, height: 36, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' },
+  rowTitle: { fontSize: F.sm, fontWeight: '700', color: C.text },
+  rowSub: { fontSize: F.xs, color: C.sub, marginTop: 2 },
+  variantText: { fontSize: F.xs, color: C.text, fontWeight: '600', marginTop: 2 },
+  note: { fontSize: F.xs, color: C.text, marginTop: 4, fontStyle: 'italic' },
+
+  partTopRow: { flexDirection: 'row', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' },
+  levelChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: R.full },
+  levelChipText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
+
+  partActions: { flexDirection: 'row', gap: S.sm },
+  miniBtn: {
+    width: 32, height: 32, borderRadius: R.md,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.bg,
+    borderWidth: 1, borderColor: C.border,
+  },
 });

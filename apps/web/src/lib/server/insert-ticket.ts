@@ -40,6 +40,12 @@ export async function insertTicket(input: CreateTicketRequest): Promise<Maintena
     },
   ];
 
+  // Items are stored as a JSON-string parameter and cast to jsonb on the
+  // server, sidestepping postgres.js's strict db.json() typing.
+  const itemsJson = input.items && input.items.length > 0
+    ? JSON.stringify(input.items)
+    : null;
+
   const [row] = await db<Array<{
     id: string;
     legacy_id: string | null;
@@ -59,6 +65,7 @@ export async function insertTicket(input: CreateTicketRequest): Promise<Maintena
     request_type: string | null;
     callback_required: boolean;
     callback_status: string | null;
+    items: unknown;
     closed_at: string | null;
     created_at: string;
     updated_at: string;
@@ -66,7 +73,7 @@ export async function insertTicket(input: CreateTicketRequest): Promise<Maintena
     insert into maintenance_tickets (
       hotel_id, room_number, area, type, priority, status,
       title, description, reported_by, activity, source,
-      department, request_type, callback_required, callback_status
+      department, request_type, callback_required, callback_status, items
     ) values (
       ${hotel.id},
       ${input.roomNumber ?? null},
@@ -82,12 +89,13 @@ export async function insertTicket(input: CreateTicketRequest): Promise<Maintena
       ${input.department ?? null},
       ${input.requestType ?? null},
       ${callbackRequired},
-      ${callbackStatus}
+      ${callbackStatus},
+      ${itemsJson === null ? null : (itemsJson as unknown as string)}::jsonb
     )
     returning id::text as id, legacy_id, room_number, area, type, priority, status,
               title, description, reported_by, assigned_to,
               estimated_cost, revenue_lost, activity,
-              department, request_type, callback_required, callback_status,
+              department, request_type, callback_required, callback_status, items,
               closed_at::text as closed_at,
               created_at::text as created_at,
               updated_at::text as updated_at
@@ -118,6 +126,7 @@ export function rowToTicket(
     request_type: string | null;
     callback_required: boolean;
     callback_status: string | null;
+    items?: unknown;
     closed_at: string | null;
     created_at: string;
     updated_at: string;
@@ -148,5 +157,6 @@ export function rowToTicket(
     requestType:     row.request_type ?? undefined,
     callbackRequired: row.callback_required,
     callbackStatus:  (row.callback_status as MaintenanceTicket['callbackStatus']) ?? null,
+    items:           Array.isArray(row.items) ? (row.items as MaintenanceTicket['items']) : undefined,
   };
 }

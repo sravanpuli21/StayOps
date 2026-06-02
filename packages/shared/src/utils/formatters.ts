@@ -9,6 +9,17 @@ export const formatCurrency = (value: number, compact = false): string => {
   }).format(value);
 };
 
+export const formatCurrencyM = (value: number): string => {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000)     return `$${(value / 1_000).toFixed(0)}k`;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
 export const formatPct = (value: number, decimals = 1): string =>
   `${value.toFixed(decimals)}%`;
 

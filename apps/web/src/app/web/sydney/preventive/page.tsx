@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Plus, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, Filter, X, Clock, MapPin, User } from 'lucide-react';
 import { SYDNEY_HOTEL, PRIORITY_META } from '@/lib/sydney-data';
 
 // Deterministic hash for seeding synthetic preventive tasks across the month
@@ -44,10 +44,10 @@ function generateMonthPpm(year: number, month: number): PpmTask[] {
   const seedBase = `${SYDNEY_HOTEL.id}-${year}-${month}`;
 
   const TEMPLATES: { title: string; system: SystemKey; assignedTo: string; location: string; durationMin: number }[] = [
-    { title: 'PTAC filter change',            system: 'hvac',       assignedTo: 'Sydney Rivera', location: 'Floors 1–3', durationMin: 120 },
+    { title: 'PTAC filter change',            system: 'hvac',       assignedTo: 'Sydney Rivera', location: 'Rooms 101–135', durationMin: 120 },
     { title: 'Chiller inspection',            system: 'hvac',       assignedTo: 'HVAC Vendor',   location: 'Roof',       durationMin: 90 },
     { title: 'Hot water heater check',        system: 'plumbing',   assignedTo: 'Sydney Rivera', location: 'Mech room',  durationMin: 45 },
-    { title: 'Shower head descale rotation',  system: 'plumbing',   assignedTo: 'Amir Lopez',    location: 'Random 10',  durationMin: 60 },
+    { title: 'Shower head descale rotation',  system: 'plumbing',   assignedTo: 'Amir Lopez',    location: 'Rooms 210–219', durationMin: 60 },
     { title: 'Emergency light test',          system: 'fire_life',  assignedTo: 'Sydney Rivera', location: 'All floors', durationMin: 75 },
     { title: 'Fire extinguisher inspection',  system: 'fire_life',  assignedTo: 'Sydney Rivera', location: 'All floors', durationMin: 60 },
     { title: 'Elevator monthly inspection',   system: 'elevator',   assignedTo: 'Otis',          location: 'Elevator',   durationMin: 90 },
@@ -59,7 +59,7 @@ function generateMonthPpm(year: number, month: number): PpmTask[] {
     { title: 'Ice machine descale',           system: 'kitchen',    assignedTo: 'Amir Lopez',    location: 'Breakfast',  durationMin: 30 },
     { title: 'Landscape + irrigation',        system: 'grounds',    assignedTo: 'Grounds Vendor',location: 'Exterior',   durationMin: 180 },
     { title: 'Trash compactor service',       system: 'general',    assignedTo: 'Waste Vendor',  location: 'Rear lot',   durationMin: 30 },
-    { title: 'PTAC coil cleaning',            system: 'hvac',       assignedTo: 'Sydney Rivera', location: 'Floor 4',    durationMin: 150 },
+    { title: 'PTAC coil cleaning',            system: 'hvac',       assignedTo: 'Sydney Rivera', location: 'Rooms 401–420', durationMin: 150 },
     { title: 'Generator test run',            system: 'electrical', assignedTo: 'Sydney Rivera', location: 'Gen room',   durationMin: 45 },
     { title: 'Laundry dryer vent cleaning',   system: 'general',    assignedTo: 'Amir Lopez',    location: 'Laundry',    durationMin: 60 },
   ];
@@ -104,6 +104,8 @@ export default function SydneyPreventivePage() {
 
   const [systemFilter, setSystemFilter] = useState<SystemKey | 'all'>('all');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const tasks = useMemo(() => generateMonthPpm(year, month), [year, month]);
 
@@ -201,7 +203,7 @@ export default function SydneyPreventivePage() {
             {assignees.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
           <button
-            onClick={() => alert('Schedule new preventive task (mock)')}
+            onClick={() => setScheduleOpen(true)}
             className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-semibold"
             style={{ background: '#ff385c', color: '#ffffff' }}
           >
@@ -238,10 +240,12 @@ export default function SydneyPreventivePage() {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const dayTasks = tasksByDay.get(dateStr) ?? [];
                 const isToday = dateStr === todayStr;
+                const hasTasks = dayTasks.length > 0;
                 return (
                   <div
                     key={di}
-                    className="min-h-[110px] p-1.5"
+                    onClick={hasTasks ? () => setSelectedDay(dateStr) : undefined}
+                    className={`min-h-[110px] p-1.5 ${hasTasks ? 'cursor-pointer transition-colors hover:bg-[#fafafa]' : ''}`}
                     style={{
                       background: isToday ? '#fff1f3' : '#ffffff',
                       borderRight: di < 6 ? '1px solid #f0f0f0' : 'none',
@@ -277,6 +281,7 @@ export default function SydneyPreventivePage() {
                             title={`${t.title} · ${t.location} · ${t.assignedTo} · ${t.durationMin}m`}
                           >
                             <div className="font-semibold truncate">{t.title}</div>
+                            <div className="truncate" style={{ opacity: 0.75 }}>📍 {t.location}</div>
                           </div>
                         );
                       })}
@@ -317,6 +322,109 @@ export default function SydneyPreventivePage() {
             );
           })}
         </div>
+      </div>
+
+      {selectedDay && (
+        <DayDetailModal
+          dateStr={selectedDay}
+          tasks={tasksByDay.get(selectedDay) ?? []}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
+
+      {scheduleOpen && <ScheduleTaskModal onClose={() => setScheduleOpen(false)} />}
+    </div>
+  );
+}
+
+function DayDetailModal({ dateStr, tasks, onClose }: { dateStr: string; tasks: PpmTask[]; onClose: () => void }) {
+  const dateLabel = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const totalMin = tasks.reduce((s, t) => s + t.durationMin, 0);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[85vh]" style={{ border: '1px solid #dddddd' }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 flex items-start justify-between gap-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <div>
+            <h2 className="text-base font-bold" style={{ color: '#222' }}>{dateLabel}</h2>
+            <p className="text-xs mt-0.5" style={{ color: '#929292' }}>
+              {tasks.length} preventive task{tasks.length === 1 ? '' : 's'} · {Math.round(totalMin / 60 * 10) / 10}h total
+            </p>
+          </div>
+          <button onClick={onClose} className="text-[#6a6a6a] hover:text-[#222] flex-shrink-0"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="px-6 py-5 overflow-y-auto flex flex-col gap-2">
+          {tasks.map((t) => {
+            const m = SYSTEM_META[t.system];
+            const pm = PRIORITY_META[t.priority as keyof typeof PRIORITY_META];
+            return (
+              <div key={t.id} className="rounded-xl p-3" style={{ background: m.bg, border: `1px solid ${m.border}`, borderLeft: `4px solid ${m.color}` }}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                  <p className="text-sm font-bold" style={{ color: '#222' }}>{t.title}</p>
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: pm.bg, color: pm.color }}>{pm.label}</span>
+                </div>
+                <div className="flex items-center gap-4 text-[11px] flex-wrap" style={{ color: '#6a6a6a' }}>
+                  <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {t.location}</span>
+                  <span className="inline-flex items-center gap-1"><User className="w-3 h-3" /> {t.assignedTo}</span>
+                  <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {t.durationMin}m</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="px-6 py-4 flex justify-end" style={{ borderTop: '1px solid #f0f0f0' }}>
+          <button onClick={onClose} className="h-9 px-4 rounded-lg text-sm font-semibold" style={{ background: '#f7f7f7', color: '#222' }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleTaskModal({ onClose }: { onClose: () => void }) {
+  const [system, setSystem] = useState<SystemKey>('hvac');
+  const [title, setTitle] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const inputStyle = { border: '1px solid #dddddd', background: '#ffffff', color: '#222' };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md flex flex-col" style={{ border: '1px solid #dddddd' }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <h2 className="text-base font-bold" style={{ color: '#222' }}>Schedule preventive task</h2>
+          <button onClick={onClose} className="text-[#6a6a6a] hover:text-[#222]"><X className="w-5 h-5" /></button>
+        </div>
+        {submitted ? (
+          <div className="px-6 py-8 flex flex-col items-center text-center gap-2">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#15803d' }}>
+              <Calendar className="w-5 h-5" style={{ color: '#fff' }} />
+            </div>
+            <p className="text-sm font-bold" style={{ color: '#15803d' }}>Task scheduled</p>
+            <p className="text-xs" style={{ color: '#6a6a6a' }}>
+              {title || 'New task'} added to the {SYSTEM_META[system].label} rotation. (Demo — not persisted.)
+            </p>
+            <button onClick={onClose} className="mt-2 h-9 px-4 rounded-lg text-sm font-semibold" style={{ background: '#222', color: '#fff' }}>Done</button>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}
+            className="px-6 py-5 flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Task</label>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. PTAC filter change · Floor 5" className="h-11 px-3 rounded-xl outline-none focus:ring-2 focus:ring-[#ff385c] text-sm" style={inputStyle} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>System</label>
+              <select value={system} onChange={(e) => setSystem(e.target.value as SystemKey)} className="h-11 px-3 rounded-xl outline-none focus:ring-2 focus:ring-[#ff385c] text-sm" style={inputStyle}>
+                {(Object.keys(SYSTEM_META) as SystemKey[]).map((k) => <option key={k} value={k}>{SYSTEM_META[k].label}</option>)}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={onClose} className="h-9 px-4 rounded-lg text-sm font-semibold" style={{ background: '#f7f7f7', color: '#222' }}>Cancel</button>
+              <button type="submit" disabled={!title.trim()} className="h-9 px-4 rounded-lg text-sm font-semibold transition-opacity" style={{ background: '#ff385c', color: '#fff', opacity: title.trim() ? 1 : 0.5 }}>Schedule</button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
