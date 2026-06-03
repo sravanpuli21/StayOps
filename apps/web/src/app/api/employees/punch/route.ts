@@ -17,12 +17,12 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const { hotelCode, employeeId, pin, kind } = parsed.data;
+  const { hotelCode, employeeId, pin, kind, punchedAt } = parsed.data;
 
   const emp = await verifyEmployee(hotelCode, employeeId, pin);
   if (!emp) return NextResponse.json({ ok: false, error: 'Invalid ID or PIN' }, { status: 401 });
 
-  const punch = await recordPunch(emp.id, kind);
+  const punch = await recordPunch(emp.id, kind, punchedAt);
   if (!punch) return NextResponse.json({ ok: false, error: 'Could not record punch' }, { status: 500 });
 
   const body = PunchResponseSchema.parse({ ok: true, punch });

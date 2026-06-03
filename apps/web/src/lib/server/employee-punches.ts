@@ -59,6 +59,31 @@ export async function verifyEmployee(
   };
 }
 
+/**
+ * Look up an active employee by (hotelCode, employee_id) WITHOUT a pin. Used by
+ * the one-tap punch on the desk computer, where the employee already signed in.
+ */
+export async function findEmployee(
+  hotelCode: string,
+  employeeId: string,
+): Promise<PunchEmployee | null> {
+  const tenantId = await getHosTenantId();
+  if (!tenantId) return null;
+
+  const [row] = await db<Array<{
+    id: string; full_name: string; department: string | null; active: boolean;
+  }>>`
+    select e.id::text as id, e.full_name, e.department, e.active
+      from employees e
+      join hotels h on h.id = e.hotel_id
+     where h.tenant_id = ${tenantId} and h.code = ${hotelCode}
+       and e.employee_id = ${employeeId}
+     limit 1
+  `;
+  if (!row || !row.active) return null;
+  return { id: row.id, hotelCode, employeeId, fullName: row.full_name, department: row.department };
+}
+
 export interface PunchRow {
   id:           string;
   employeeId:   string;     // text id like '1001'
@@ -68,18 +93,23 @@ export interface PunchRow {
   punchedAt:    string;
 }
 
-/** Record a punch. Caller is responsible for verifying the employee first. */
+/**
+ * Record a punch. Caller is responsible for verifying the employee first.
+ * `punchedAt` (ISO) preserves the real punch time for offline punches synced
+ * later; when omitted, the DB default `now()` is used.
+ */
 export async function recordPunch(
   employeeUuid: string,
   kind: 'in' | 'out',
+  punchedAt?: string,
 ): Promise<PunchRow | null> {
   const [row] = await db<Array<{
     id: string; punched_at: string;
     employee_id: string; full_name: string; department: string | null;
   }>>`
     with ins as (
-      insert into employee_punches (hotel_id, employee_id, kind)
-      select e.hotel_id, e.id, ${kind}
+      insert into employee_punches (hotel_id, employee_id, kind, punched_at)
+      select e.hotel_id, e.id, ${kind}, coalesce(${punchedAt ?? null}::timestamptz, now())
         from employees e
        where e.id = ${employeeUuid}::uuid
       returning id::text as id, punched_at::text as punched_at, employee_id

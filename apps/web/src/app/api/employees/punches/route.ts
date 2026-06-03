@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   if (!hotelId) {
     return NextResponse.json({ error: 'hotelId is required' }, { status: 400 });
   }
-  const punches = await recentPunches(hotelId, 20);
+  const punches = await recentPunches(hotelId, 100);
   const body = GetPunchesResponseSchema.parse({ punches });
   return NextResponse.json(body);
 }

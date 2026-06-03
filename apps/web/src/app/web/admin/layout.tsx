@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
+import { AdminAccessProvider } from '@/lib/admin-access-context';
+import { AdminShell } from '@/components/admin/AdminShell';
 
 /**
  * Phase 1 admin gate — shared secret in localStorage + cookie.
@@ -72,5 +74,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  return <>{children}</>;
+  return (
+    <AdminAccessProvider>
+      <AdminShell>{children}</AdminShell>
+    </AdminAccessProvider>
+  );
 }

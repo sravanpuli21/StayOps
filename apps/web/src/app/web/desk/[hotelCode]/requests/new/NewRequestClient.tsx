@@ -9,7 +9,7 @@ import { useApi } from '@/lib/use-api';
 import { apiKeys } from '@/lib/swr-keys';
 import { TILE_CFG, statusFromType } from '@/components/operations/_constants';
 import {
-  HOTEL_AREAS,
+  HOTEL_AREAS, HOTEL_AREA_ITEMS, type HotelArea,
   WORK_ORDER_AREAS, WORK_ORDER_ITEMS, type WorkOrderArea,
   SERVICE_CATEGORIES, SERVICE_ITEMS, type ServiceCategory,
   REQUESTED_BY_WORK_ORDER, REQUESTED_BY_SERVICE,
@@ -318,8 +318,13 @@ function HotelAreaPicker({ type, onPick }: { type: RequestType; onPick: (a: stri
 function RequestForm({
   hotelCode, type, roomNumber, hotelArea,
 }: { hotelCode: string; type: RequestType; roomNumber: string; hotelArea: string }) {
+  // For a hotel-area work order the Area is locked to the selected hotel area;
+  // the room-area picker only applies to room-scoped work orders.
+  const isHotelAreaWorkOrder = type === 'work-order' && !!hotelArea;
   // Work-order specific
-  const [woArea, setWoArea] = useState<WorkOrderArea | ''>('');
+  const [woArea, setWoArea] = useState<WorkOrderArea | ''>(
+    isHotelAreaWorkOrder ? (hotelArea as WorkOrderArea) : '',
+  );
   const [woItem, setWoItem] = useState<string>('');
   // Service-request specific
   const [srCategory, setSrCategory] = useState<ServiceCategory | ''>('');
@@ -333,7 +338,9 @@ function RequestForm({
   const [error,       setError]       = useState<string | null>(null);
   const [created,     setCreated]     = useState<MaintenanceTicket | null>(null);
 
-  const woItemOptions = woArea ? WORK_ORDER_ITEMS[woArea] : [];
+  const woItemOptions = isHotelAreaWorkOrder
+    ? (HOTEL_AREA_ITEMS[hotelArea as HotelArea] ?? ['Other'])
+    : (woArea ? WORK_ORDER_ITEMS[woArea] : []);
   const srItemOptions = srCategory ? SERVICE_ITEMS[srCategory] : [];
   const requestedByOptions = type === 'work-order' ? REQUESTED_BY_WORK_ORDER : REQUESTED_BY_SERVICE;
 
@@ -422,15 +429,25 @@ function RequestForm({
           <>
             <div className="flex flex-col gap-1">
               <label className={lblCls} style={lblStyle}>Area</label>
-              <select
-                value={woArea}
-                onChange={(e) => { setWoArea(e.target.value as WorkOrderArea); setWoItem(''); }}
-                className={inputCls}
-                style={inputStyle}
-              >
-                <option value="">Select area…</option>
-                {WORK_ORDER_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
+              {isHotelAreaWorkOrder ? (
+                // Locked to the hotel area picked in the previous step.
+                <div
+                  className="w-full h-11 px-3 rounded-xl flex items-center text-base"
+                  style={{ border: '1px solid #dddddd', background: '#f7f7f7', color: '#222' }}
+                >
+                  {hotelArea}
+                </div>
+              ) : (
+                <select
+                  value={woArea}
+                  onChange={(e) => { setWoArea(e.target.value as WorkOrderArea); setWoItem(''); }}
+                  className={inputCls}
+                  style={inputStyle}
+                >
+                  <option value="">Select area…</option>
+                  {WORK_ORDER_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              )}
             </div>
 
             <div className="flex flex-col gap-1">
@@ -438,11 +455,11 @@ function RequestForm({
               <select
                 value={woItem}
                 onChange={(e) => setWoItem(e.target.value)}
-                disabled={!woArea}
+                disabled={!isHotelAreaWorkOrder && !woArea}
                 className={inputCls}
                 style={inputStyle}
               >
-                <option value="">{woArea ? 'Select item…' : 'Pick an area first'}</option>
+                <option value="">{(isHotelAreaWorkOrder || woArea) ? 'Select item…' : 'Pick an area first'}</option>
                 {woItemOptions.map((i) => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>

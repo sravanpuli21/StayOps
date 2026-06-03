@@ -122,6 +122,11 @@ export default function PersonaSelector() {
           ))}
         </View>
 
+        <TouchableOpacity style={styles.previewBtn} onPress={() => router.push('/preview' as never)} activeOpacity={0.85}>
+          <Ionicons name="sparkles" size={15} color={C.brand} />
+          <Text style={styles.previewText}>Preview new design</Text>
+        </TouchableOpacity>
+
         <Text style={styles.footer}>
           {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </Text>
@@ -133,6 +138,9 @@ export default function PersonaSelector() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
   container: { flex: 1, paddingHorizontal: S.xl, paddingTop: S.xl },
+
+  previewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center', marginTop: S.lg, paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.full, borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
+  previewText: { fontSize: F.sm, fontWeight: '700', color: C.brand },
 
   header: {
     flexDirection: 'row',

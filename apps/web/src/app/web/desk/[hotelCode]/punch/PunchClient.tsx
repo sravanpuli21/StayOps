@@ -2,73 +2,74 @@
 
 import { useState } from 'react';
 import { mutate } from 'swr';
-import { Delete, LogIn, LogOut, Check } from 'lucide-react';
+import { LogIn, LogOut, Check, WifiOff } from 'lucide-react';
 import type { ApiPunchRow } from '@hos/shared';
 import { useApi } from '@/lib/use-api';
 import { apiKeys } from '@/lib/swr-keys';
+import { enqueue, flushQueue } from '../punch-queue';
 
 interface Props { hotelCode: string }
 
-type Pad = 'employee' | 'pin';
-
+/**
+ * Full-page punch screen for the shared desk kiosk. No login — anyone enters
+ * their own username + password and clocks in/out. Punches are offline-resilient
+ * (saved on the device, synced when the network returns).
+ */
 export function PunchClient({ hotelCode }: Props) {
-  const [employeeId, setEmployeeId] = useState<string>('');
-  const [pin, setPin]               = useState<string>('');
-  const [active, setActive]         = useState<Pad>('employee');
-  const [busy, setBusy]             = useState<'in' | 'out' | null>(null);
-  const [error, setError]           = useState<string | null>(null);
-  const [confirmation, setConfirm]  = useState<{ name: string; kind: 'in' | 'out'; at: string } | null>(null);
+  const [username, setUsername] = useState('');
+  const [pin, setPin]           = useState('');
+  const [busy, setBusy]         = useState<'in' | 'out' | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+  const [done, setDone]         = useState<{ name: string; kind: 'in' | 'out'; at: string; offline: boolean } | null>(null);
 
   const { data: punchesData } = useApi(apiKeys.punches(hotelCode));
   const recent: ApiPunchRow[] = punchesData?.punches ?? [];
 
-  const reset = () => {
-    setEmployeeId(''); setPin(''); setActive('employee'); setError(null);
-  };
+  // Who's on shift right now: each person's most recent punch; if it's an "in",
+  // they're currently clocked in. `recent` is newest-first, so the first punch
+  // we see per employee is their latest.
+  const onShift = (() => {
+    const latest = new Map<string, ApiPunchRow>();
+    for (const p of recent) if (!latest.has(p.employeeId)) latest.set(p.employeeId, p);
+    return [...latest.values()]
+      .filter((p) => p.kind === 'in')
+      .sort((a, b) => +new Date(a.punchedAt) - +new Date(b.punchedAt));
+  })();
 
   const punch = async (kind: 'in' | 'out') => {
+    if (busy) return;
     setError(null);
-    if (!employeeId.trim()) { setError('Enter your Employee ID.'); setActive('employee'); return; }
-    if (!pin.trim())        { setError('Enter your PIN.');         setActive('pin');      return; }
+    if (!username.trim()) { setError('Enter your username / Employee ID.'); return; }
+    if (!pin.trim())      { setError('Enter your password.'); return; }
     setBusy(kind);
+
+    const punchedAt = new Date().toISOString();
+    const queued = {
+      id: `pq-${punchedAt}-${username.trim()}`,
+      hotelCode, employeeId: username.trim(), pin: pin.trim(), kind, punchedAt,
+    };
+    enqueue(queued); // record on this device first — never lose a punch
+
     try {
-      const res = await fetch('/api/employees/punch', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ hotelCode, employeeId: employeeId.trim(), pin: pin.trim(), kind }),
-      });
-      const j = await res.json();
-      if (!res.ok || !j.ok) {
-        setError(typeof j?.error === 'string' ? j.error : 'Punch failed');
+      const result = await flushQueue(hotelCode);
+      mutate(apiKeys.punches(hotelCode)[0]);
+
+      if (result.rejected.find((r) => r.id === queued.id)) {
+        setError('Invalid username or password — punch not recorded.');
         return;
       }
-      setConfirm({ name: j.punch.fullName, kind, at: j.punch.punchedAt });
-      mutate(apiKeys.punches(hotelCode)[0]);
-      reset();
-      // Auto-dismiss the confirmation after 4s.
-      setTimeout(() => setConfirm(null), 4000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Network error');
+      const offline = result.remaining > 0;
+      setDone({ name: username.trim(), kind, at: punchedAt, offline });
+      // Clear the form for the next person.
+      setUsername(''); setPin('');
+      setTimeout(() => setDone(null), offline ? 5000 : 4000);
+    } catch {
+      setDone({ name: username.trim(), kind, at: punchedAt, offline: true });
+      setUsername(''); setPin('');
+      setTimeout(() => setDone(null), 5000);
     } finally {
       setBusy(null);
     }
-  };
-
-  const press = (digit: string) => {
-    setError(null);
-    if (active === 'employee') {
-      if (employeeId.length < 8) setEmployeeId((s) => s + digit);
-    } else {
-      if (pin.length < 6) setPin((s) => s + digit);
-    }
-  };
-  const back = () => {
-    if (active === 'employee') setEmployeeId((s) => s.slice(0, -1));
-    else                       setPin((s) => s.slice(0, -1));
-  };
-  const clear = () => {
-    if (active === 'employee') setEmployeeId('');
-    else                       setPin('');
   };
 
   return (
@@ -76,79 +77,104 @@ export function PunchClient({ hotelCode }: Props) {
       <div>
         <h1 className="text-2xl font-bold" style={{ color: '#222' }}>Punch In / Punch Out</h1>
         <p className="text-sm mt-1" style={{ color: '#929292' }}>
-          {hotelCode} · Enter your employee ID and PIN, then choose Punch In or Punch Out.
+          {hotelCode} · Enter your username and password, then choose Punch In or Punch Out.
         </p>
       </div>
 
-      {confirmation && (
-        <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: '#f0fdf4', border: '1px solid #86efac' }}>
-          <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#15803d' }}>
-            <Check className="w-5 h-5" style={{ color: '#fff' }} />
+      {done && (
+        <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: done.offline ? '#fff7ed' : '#f0fdf4', border: `1px solid ${done.offline ? '#fed7aa' : '#86efac'}` }}>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: done.offline ? '#b45309' : '#15803d' }}>
+            {done.offline ? <WifiOff className="w-5 h-5" style={{ color: '#fff' }} /> : <Check className="w-5 h-5" style={{ color: '#fff' }} />}
           </div>
-          <p className="text-sm font-semibold" style={{ color: '#15803d' }}>
-            {confirmation.name} punched {confirmation.kind === 'in' ? 'IN' : 'OUT'} · {fmtTime(confirmation.at)}
-          </p>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: done.offline ? '#9a3412' : '#15803d' }}>
+              {done.name} punched {done.kind === 'in' ? 'IN' : 'OUT'} · {fmtTime(done.at)}
+            </p>
+            {done.offline && (
+              <p className="text-xs mt-0.5" style={{ color: '#9a3412' }}>
+                Saved on this computer — the internet looks down. It will sync automatically when the connection is back.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left: input fields + keypad */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Left: credentials + buttons */}
         <section className="flex flex-col gap-4">
-          <Field
-            label="Employee ID"
-            value={employeeId}
-            placeholder="e.g. 1001"
-            active={active === 'employee'}
-            onFocus={() => setActive('employee')}
-            mask={false}
-          />
-          <Field
-            label="PIN"
-            value={pin}
-            placeholder="••••"
-            active={active === 'pin'}
-            onFocus={() => setActive('pin')}
-            mask={true}
-          />
-
-          {/* Keypad */}
-          <div className="grid grid-cols-3 gap-2">
-            {[1,2,3,4,5,6,7,8,9].map((n) => (
-              <KeypadBtn key={n} label={String(n)} onClick={() => press(String(n))} />
-            ))}
-            <KeypadBtn label="Clear" onClick={clear} variant="muted" />
-            <KeypadBtn label="0" onClick={() => press('0')} />
-            <KeypadBtn label={<Delete className="w-5 h-5" />} onClick={back} variant="muted" />
-          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Username / Employee ID</span>
+            <input
+              type="text" value={username} autoComplete="off" autoCapitalize="none" spellCheck={false}
+              onChange={(e) => { setError(null); setUsername(e.target.value); }}
+              className="h-12 px-3 rounded-xl text-base outline-none focus:ring-2 focus:ring-[#ff385c]"
+              style={{ border: '1px solid #dddddd', background: '#fff', color: '#222' }}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Password</span>
+            <input
+              type="password" value={pin} autoComplete="off"
+              onChange={(e) => { setError(null); setPin(e.target.value); }}
+              className="h-12 px-3 rounded-xl text-base outline-none focus:ring-2 focus:ring-[#ff385c]"
+              style={{ border: '1px solid #dddddd', background: '#fff', color: '#222' }}
+            />
+          </label>
 
           {error && <p className="text-sm" style={{ color: '#b91c1c' }}>{error}</p>}
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              type="button"
-              onClick={() => punch('in')}
-              disabled={busy !== null}
-              className="h-14 rounded-2xl text-base font-bold inline-flex items-center justify-center gap-2 transition-opacity"
+              type="button" onClick={() => punch('in')} disabled={busy !== null}
+              className="h-16 rounded-2xl text-lg font-bold inline-flex items-center justify-center gap-2 transition-opacity"
               style={{ background: '#15803d', color: '#fff', opacity: busy ? 0.5 : 1 }}
             >
-              <LogIn className="w-5 h-5" />
-              {busy === 'in' ? 'Punching In…' : 'Punch In'}
+              <LogIn className="w-6 h-6" /> {busy === 'in' ? 'Punching In…' : 'Punch In'}
             </button>
             <button
-              type="button"
-              onClick={() => punch('out')}
-              disabled={busy !== null}
-              className="h-14 rounded-2xl text-base font-bold inline-flex items-center justify-center gap-2 transition-opacity"
+              type="button" onClick={() => punch('out')} disabled={busy !== null}
+              className="h-16 rounded-2xl text-lg font-bold inline-flex items-center justify-center gap-2 transition-opacity"
               style={{ background: '#b91c1c', color: '#fff', opacity: busy ? 0.5 : 1 }}
             >
-              <LogOut className="w-5 h-5" />
-              {busy === 'out' ? 'Punching Out…' : 'Punch Out'}
+              <LogOut className="w-6 h-6" /> {busy === 'out' ? 'Punching Out…' : 'Punch Out'}
             </button>
           </div>
+          <p className="text-xs text-center" style={{ color: '#929292' }}>
+            Anyone can punch here — enter your own login. No need to sign into the computer.
+          </p>
         </section>
 
-        {/* Right: recent punches */}
-        <section>
+        {/* Right: who's on shift now + recent punches */}
+        <section className="flex flex-col gap-6">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style={{ color: '#6a6a6a' }}>
+              On shift now
+              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold" style={{ background: '#f0fdf4', color: '#15803d' }}>{onShift.length}</span>
+            </h2>
+            {onShift.length === 0 ? (
+              <div className="rounded-2xl px-6 py-6 text-center text-sm" style={{ border: '1px solid #dddddd', color: '#929292', background: '#fff' }}>
+                Nobody clocked in right now.
+              </div>
+            ) : (
+              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #dddddd', background: '#fff' }}>
+                {onShift.map((p, i) => (
+                  <div key={p.employeeId} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: i < onShift.length - 1 ? '1px solid #f0f0f0' : undefined }}>
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#15803d' }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate" style={{ color: '#222' }}>{p.fullName}</p>
+                      <p className="text-xs" style={{ color: '#929292' }}>#{p.employeeId}{p.department ? ` · ${p.department}` : ''}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold" style={{ color: '#15803d' }}>{fmtTime(p.punchedAt)}</p>
+                      <p className="text-[11px]" style={{ color: '#929292' }}>in for {sinceLabel(p.punchedAt)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
           <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#6a6a6a' }}>Today&rsquo;s punches</h2>
           {recent.length === 0 ? (
             <div className="rounded-2xl px-6 py-8 text-center text-sm" style={{ border: '1px solid #dddddd', color: '#929292', background: '#fff' }}>
@@ -190,53 +216,22 @@ export function PunchClient({ hotelCode }: Props) {
               </table>
             </div>
           )}
+          </div>
         </section>
       </div>
     </div>
   );
 }
 
-function Field({
-  label, value, placeholder, active, onFocus, mask,
-}: { label: string; value: string; placeholder: string; active: boolean; onFocus: () => void; mask: boolean }) {
-  const display = mask ? '•'.repeat(value.length) : value;
-  return (
-    <button
-      type="button"
-      onClick={onFocus}
-      className="text-left rounded-2xl px-4 py-3"
-      style={{
-        background: '#ffffff',
-        border: `2px solid ${active ? '#ff385c' : '#dddddd'}`,
-      }}
-    >
-      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>{label}</p>
-      <p className="text-2xl font-bold tabular-nums mt-1" style={{ color: value ? '#222' : '#c1c1c1' }}>
-        {display || placeholder}
-      </p>
-    </button>
-  );
-}
-
-function KeypadBtn({
-  label, onClick, variant,
-}: { label: React.ReactNode; onClick: () => void; variant?: 'muted' }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="h-16 rounded-2xl text-2xl font-bold inline-flex items-center justify-center transition-colors"
-      style={{
-        background: variant === 'muted' ? '#f7f7f7' : '#ffffff',
-        color:      variant === 'muted' ? '#6a6a6a' : '#222',
-        border: '1px solid #dddddd',
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+/** Compact "time since" label, e.g. "2h 15m" or "12m". */
+function sinceLabel(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }

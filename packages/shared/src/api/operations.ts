@@ -178,6 +178,9 @@ export const PunchRequestSchema = z.object({
   employeeId: z.string().min(1),
   pin:        z.string().min(1),
   kind:       z.enum(['in', 'out']),
+  /** Client time of the punch (ISO). Set for offline punches synced later, so the
+   *  recorded time is when the employee actually punched, not when it reached us. */
+  punchedAt:  z.string().datetime().optional(),
 });
 export type PunchRequest = z.infer<typeof PunchRequestSchema>;
 

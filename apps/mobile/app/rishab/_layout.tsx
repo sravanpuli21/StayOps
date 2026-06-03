@@ -1,57 +1,22 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { C, F, S } from '../../src/theme';
-import { CambriaLogo } from '../../src/components/CambriaLogo';
 import { PreferencesProvider } from '../../src/store/preferencesContext';
-
-function BackToPicker() {
-  const router = useRouter();
-  return (
-    <TouchableOpacity
-      onPress={() => router.replace('/')}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-      style={styles.back}
-      activeOpacity={0.7}
-    >
-      <Ionicons name="chevron-back" size={22} color={C.text} />
-      <Text style={styles.backText}>Switch user</Text>
-    </TouchableOpacity>
-  );
-}
-
-function PropertyBadge() {
-  return (
-    <View style={styles.badge}>
-      <CambriaLogo size="sm" />
-    </View>
-  );
-}
+import { tone } from '../../src/ui/tokens';
 
 export default function RishabLayout() {
   return (
     <PreferencesProvider>
       <Tabs
         screenOptions={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: C.card,
-            borderBottomColor: C.border,
-            borderBottomWidth: 1,
-            height: Platform.OS === 'ios' ? 88 : 56,
-          },
-          headerTitleAlign: 'center',
-          headerTitleStyle: { fontSize: F.md, fontWeight: '700', color: C.text },
-          headerLeft: () => <BackToPicker />,
-          headerRight: () => <PropertyBadge />,
-          tabBarActiveTintColor: C.ink,
-          tabBarInactiveTintColor: C.hint,
+          headerShown: false,
+          tabBarActiveTintColor: tone.accent,
+          tabBarInactiveTintColor: tone.textHint,
           tabBarStyle: {
-            backgroundColor: C.card,
-            borderTopColor: C.border,
+            backgroundColor: tone.surface,
+            borderTopColor: tone.line,
             borderTopWidth: 1,
-            height: 80,
-            paddingBottom: 20,
+            height: 84,
+            paddingBottom: 24,
             paddingTop: 8,
           },
           tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
@@ -102,21 +67,3 @@ export default function RishabLayout() {
     </PreferencesProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: S.sm,
-    marginLeft: 4,
-  },
-  backText: {
-    fontSize: F.sm,
-    fontWeight: '600',
-    color: C.text,
-    marginLeft: -2,
-  },
-  badge: {
-    marginRight: S.md,
-  },
-});

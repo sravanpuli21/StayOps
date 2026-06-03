@@ -26,6 +26,7 @@ export const RISHAB_NAV_ITEMS: readonly NavItem[] = [
   { label: 'Assets',       href: '/web/rishab/assets',       icon: 'Building2'       },
   { label: 'SOP',          href: '/web/rishab/sop',          icon: 'BookOpen'        },
   { label: 'Alerts',       href: '/web/rishab/alerts',       icon: 'Bell'            },
+  { label: 'Admin',        href: '/web/rishab/admin',        icon: 'UserCheck'       },
   { label: 'Settings',     href: '/web/rishab/settings',     icon: 'Settings'        },
 ] as const;
 
