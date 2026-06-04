@@ -107,6 +107,18 @@ export const SRAVAN_NAV_ITEMS: readonly NavItem[] = [
   { label: 'Profile',      href: '/web/sravan/profile',      icon: 'UserCircle'      },
 ] as const;
 
+// Kwanisha — Director of Sales (group / recurring business CRM)
+export const KWANISHA_NAV_ITEMS: readonly NavItem[] = [
+  { label: 'Dashboard',     href: '/web/kwanisha/dashboard',     icon: 'LayoutDashboard' },
+  { label: 'Demand Radar',  href: '/web/kwanisha/demand',        icon: 'Sparkles'        },
+  { label: 'Opportunities', href: '/web/kwanisha/opportunities', icon: 'Target'          },
+  { label: 'Accounts',      href: '/web/kwanisha/accounts',      icon: 'Building2'       },
+  { label: 'Group RFPs',    href: '/web/kwanisha/rfps',          icon: 'ClipboardList'   },
+  { label: 'Activities',    href: '/web/kwanisha/activities',    icon: 'Calendar'        },
+  { label: 'Reports',       href: '/web/kwanisha/reports',       icon: 'TrendingDown'    },
+  { label: 'Settings',      href: '/web/kwanisha/settings',      icon: 'Settings'        },
+] as const;
+
 export const DATE_RANGE_OPTIONS = [
   { label: 'Today',           value: 'today'      },
   { label: 'Yesterday',       value: 'yesterday'  },

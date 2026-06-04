@@ -37,7 +37,7 @@ export default function PersonaPickerPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {PERSONAS.map((persona) => {
             const isHighlight = persona.id === 'kris';
-            const isBuilt = persona.id === 'kris' || persona.id === 'harshal' || persona.id === 'rishab' || persona.id === 'sravan' || persona.id === 'emma' || persona.id === 'sydney' || persona.id === 'sanjay';
+            const isBuilt = persona.id === 'kris' || persona.id === 'harshal' || persona.id === 'rishab' || persona.id === 'sravan' || persona.id === 'emma' || persona.id === 'sydney' || persona.id === 'sanjay' || persona.id === 'kwanisha';
 
             return (
               <Link

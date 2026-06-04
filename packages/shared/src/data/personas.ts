@@ -82,4 +82,14 @@ export const PERSONAS: Persona[] = [
     avatarColor: '#0f766e',
     route: '/web/sravan/home',
   },
+  {
+    id: 'kwanisha',
+    name: 'Kwanisha Brown',
+    title: 'Director of Sales',
+    role: 'director-of-sales',
+    scope: 'property',
+    initials: 'KB',
+    avatarColor: '#7c3aed',
+    route: '/web/kwanisha/dashboard',
+  },
 ];

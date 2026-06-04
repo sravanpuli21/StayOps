@@ -43,3 +43,5 @@ export * from './labour-series';
 export * from './audit-checklist';
 export * from './management-company';
 export * from './pricing';
+export * from './crm';
+export * from './demand-signals';

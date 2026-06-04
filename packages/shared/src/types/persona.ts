@@ -6,7 +6,8 @@ export type PersonaRole =
   | 'agm'
   | 'housekeeping-supervisor'
   | 'maintenance-supervisor'
-  | 'front-desk';
+  | 'front-desk'
+  | 'director-of-sales';
 
 export type PersonaScope = 'portfolio' | 'regional' | 'property';
 
