@@ -45,3 +45,6 @@ export * from './management-company';
 export * from './pricing';
 export * from './crm';
 export * from './demand-signals';
+// accounting-os is exported via its own subpath '@hos/shared/accounting-os'
+// (kept out of the global barrel to avoid type-name collisions with the legacy
+// accounting module: CloseStatus / ReceiptStatus / TxSource).

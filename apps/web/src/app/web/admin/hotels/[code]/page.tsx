@@ -2,11 +2,12 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Lock, MapPin, Phone, Calendar, BedDouble, Building2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Lock, MapPin, Phone, Calendar, BedDouble, Building2, ShieldCheck, Landmark, CreditCard } from 'lucide-react';
 import {
   HOS_PROPERTIES, HOS_USERS, HOS_COMPANY,
   canViewSensitive, hotelAdminsForCode, ROLE_META, scopeLabel,
 } from '@hos/shared';
+import { bankAccountsForHotel, creditCardsForHotel } from '@hos/shared/accounting-os';
 import { useAdminAccess } from '@/lib/admin-access-context';
 import { LogoUpload } from '@/components/admin/LogoUpload';
 
@@ -94,6 +95,38 @@ export default function HotelDetailPage({ params }: { params: Promise<{ code: st
                 value={showTaxId ? hotel.taxId : 'Hidden — company-level only'}
                 sensitive={!showTaxId}
               />
+            </Section>
+
+            {/* Bank accounts (from Accounting OS) */}
+            <Section title={`Bank Accounts · ${bankAccountsForHotel(hotel.code).length}`}>
+              <div className="col-span-2 flex flex-col gap-2">
+                {bankAccountsForHotel(hotel.code).map((a) => (
+                  <div key={a.id} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: '#fafafa', border: '1px solid #f0f0f0' }}>
+                    <div className="flex items-center gap-2">
+                      <Landmark className="w-4 h-4" style={{ color: '#1d4ed8' }} />
+                      <div><p className="text-sm font-medium" style={{ color: '#222' }}>{a.name}</p><p className="text-[11px]" style={{ color: '#929292' }}>{a.bank} · ••{a.last4} · {a.type}</p></div>
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: '#222' }}>${a.currentBalance.toLocaleString()}</span>
+                  </div>
+                ))}
+                {bankAccountsForHotel(hotel.code).length === 0 && <p className="text-sm" style={{ color: '#929292' }}>No bank accounts on file.</p>}
+              </div>
+            </Section>
+
+            {/* Credit cards (from Accounting OS) */}
+            <Section title={`Credit Cards · ${creditCardsForHotel(hotel.code).length}`}>
+              <div className="col-span-2 flex flex-col gap-2">
+                {creditCardsForHotel(hotel.code).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: '#fafafa', border: '1px solid #f0f0f0' }}>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" style={{ color: '#b45309' }} />
+                      <div><p className="text-sm font-medium" style={{ color: '#222' }}>{c.name}</p><p className="text-[11px]" style={{ color: '#929292' }}>{c.issuer} · ••{c.last4} · {c.cardHolder}</p></div>
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: '#b45309' }}>${c.currentBalance.toLocaleString()}</span>
+                  </div>
+                ))}
+                {creditCardsForHotel(hotel.code).length === 0 && <p className="text-sm" style={{ color: '#929292' }}>No credit cards on file.</p>}
+              </div>
             </Section>
 
             {/* Hotel Admins */}

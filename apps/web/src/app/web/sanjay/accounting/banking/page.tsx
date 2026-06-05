@@ -10,15 +10,17 @@ import { OtaPayoutSplitter } from '@/components/accounting/OtaPayoutSplitter';
 import { ReconcileSheet } from '@/components/accounting/ReconcileSheet';
 import { VendorRulesPanel } from '@/components/accounting/VendorRulesPanel';
 import { formatCurrency } from '@hos/shared';
+import { resolveReviewRow, useAccountingState } from '@/lib/accounting-store';
 
 type Source = 'Bank' | 'Credit Card' | 'Payroll' | 'OTA';
 
 export default function BankingPage() {
   const data = useAccountingData();
+  const acctState = useAccountingState();
   const [source, setSource] = useState<Source>('Bank');
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [reconcileOpenId, setReconcileOpenId] = useState<string | null>(null);
+  const coaById = useMemo(() => new Map(data.coa.map((a) => [a.id, a])), [data.coa]);
 
   const hotelLabelById = useMemo(() => {
     const m = new Map<string, string>();
@@ -55,12 +57,23 @@ export default function BankingPage() {
     [data.otaRows],
   );
 
-  const visibleReview = reviewRows.filter((r) => !resolved.has(r.id));
+  // Rows the accountant has already categorized (persisted) drop out of review.
+  const visibleReview = reviewRows.filter((r) => !acctState.resolvedRows[r.id]);
   const reconcileAccount = data.bankAccounts.find((b) => b.id === reconcileOpenId) ?? null;
   const reconcileRows = reconcileAccount ? data.bankRows.filter((r) => r.bankAccountId === reconcileAccount.id) : [];
 
-  const handleAdd = (rowId: string) => setResolved((p) => new Set(p).add(rowId));
-  const handleSkip = (rowId: string) => setResolved((p) => new Set(p).add(rowId));
+  const handleAdd = (rowId: string, accountId: string) => {
+    const row = reviewRows.find((r) => r.id === rowId);
+    const acctName = coaById.get(accountId)?.name ?? accountId;
+    resolveReviewRow(
+      { id: rowId, hotelId: data.hotelId, description: row?.description ?? rowId },
+      accountId, acctName,
+    );
+  };
+  const handleSkip = (rowId: string) => {
+    // Skip = defer to a generic "uncategorized/suspense" — for the demo, just resolve it out of the queue.
+    resolveReviewRow({ id: rowId, hotelId: data.hotelId, description: 'Skipped — deferred' }, 'acc-1010', 'Deferred');
+  };
 
   const sourceTab = (s: Source) => (
     <button

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { Bill, Vendor, Hotel } from '@hos/shared';
 import { formatCurrency, daysOverdue } from '@hos/shared';
+import { payBills } from '@/lib/accounting-store';
 
 type Filter = 'all' | 'open' | 'overdue' | 'paid';
 
@@ -10,6 +11,8 @@ interface Props {
   bills: Bill[];
   vendors: Vendor[];
   hotels: Hotel[];
+  /** Date to stamp paid bills with (statement close date). */
+  paidIso?: string;
 }
 
 const STATUS_STYLE: Record<Bill['status'], { bg: string; color: string; label: string }> = {
@@ -18,10 +21,20 @@ const STATUS_STYLE: Record<Bill['status'], { bg: string; color: string; label: s
   paid:    { bg: '#dcfce7', color: '#15803d', label: 'PAID' },
 };
 
-export function BillsTable({ bills, vendors, hotels }: Props) {
+export function BillsTable({ bills, vendors, hotels, paidIso }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
   const [vendorQuery, setVendorQuery] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const handlePay = () => {
+    const toPay = bills.filter((b) => selected.has(b.id) && b.status !== 'paid');
+    if (toPay.length === 0) return;
+    payBills(
+      toPay.map((b) => ({ id: b.id, hotelId: b.hotelId, vendorId: b.vendorId, amount: b.amount })),
+      paidIso ?? new Date().toISOString().slice(0, 10),
+    );
+    setSelected(new Set());
+  };
 
   const vendorById = useMemo(() => new Map(vendors.map((v) => [v.id, v])), [vendors]);
   const hotelById = useMemo(() => new Map(hotels.map((h) => [h.id, h])), [hotels]);
@@ -96,7 +109,7 @@ export function BillsTable({ bills, vendors, hotels }: Props) {
               color: selected.size === 0 ? '#929292' : '#ffffff',
               cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
             }}
-            onClick={() => alert(`Demo only — would pay ${selected.size} bills (${formatCurrency(selectedTotal)})`)}
+            onClick={handlePay}
           >
             Pay Selected · {formatCurrency(selectedTotal)}
           </button>

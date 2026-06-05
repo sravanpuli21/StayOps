@@ -34,6 +34,22 @@ export default function PersonaPickerPage() {
           </p>
         </div>
 
+        {/* StayOps Accounting OS — standalone product */}
+        <Link href="/web/accounting/dashboard"
+          className="group flex items-center gap-4 mb-6 rounded-2xl p-5 transition-all hover:shadow-md"
+          style={{ background: 'linear-gradient(90deg,#0F172A,#3b2f6b)', border: '1px solid #0F172A' }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.12)' }}>
+            <span className="text-white font-bold text-xl">S</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-bold text-base">StayOps Accounting OS</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Hotel-by-hotel bookkeeping for HOS Management · 16 entities · open Sanjay&apos;s books →
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#6a4ec0', color: '#fff' }}>New</span>
+        </Link>
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {PERSONAS.map((persona) => {
             const isHighlight = persona.id === 'kris';

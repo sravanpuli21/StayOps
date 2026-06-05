@@ -11,6 +11,8 @@ interface TopBarProps {
   firstName?: string;
   accentColor?: string;
   avatarUrl?: string;
+  /** Hide the global hotel/date filters (e.g. accounting uses its own scope bar). */
+  hideFilters?: boolean;
 }
 
 export function TopBar({
@@ -18,6 +20,7 @@ export function TopBar({
   firstName = 'Kris',
   accentColor = '#ff385c',
   avatarUrl,
+  hideFilters = false,
 }: TopBarProps) {
   const criticalCount = RED_FLAGS.filter((f) => f.severity === 'critical').length;
   const pathname = usePathname();
@@ -47,8 +50,8 @@ export function TopBar({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        <HotelSelector />
-        <DateFilter />
+        {!hideFilters && <HotelSelector />}
+        {!hideFilters && <DateFilter />}
 
         {/* Print */}
         {!hidePrint && (

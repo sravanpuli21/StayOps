@@ -59,3 +59,43 @@ out.push({
 export const CLOSE_PERIODS: ClosePeriod[] = out;
 export const closeStatusForAccount = (accountId: string, periodEndIso: string): ClosePeriod | undefined =>
   CLOSE_PERIODS.find((c) => c.accountId === accountId && c.periodEndIso === periodEndIso);
+
+/** The canonical statement periods (closing dates), newest first. */
+export const STATEMENT_PERIODS = [...PERIODS].reverse().map((p) => p.end);
+
+export interface HotelPeriod {
+  periodEndIso: string;
+  /** First day of the period month (period window start). */
+  periodStartIso: string;
+  label: string;        // e.g. "May 2026"
+  /** Rolled-up status for the hotel across its accounts in this period. */
+  status: ClosePeriod['status'];
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Statement periods for one hotel (newest first) with a rolled-up close status. */
+export function periodsForHotel(hotelId: string): HotelPeriod[] {
+  return STATEMENT_PERIODS.map((end) => {
+    const [y, m] = end.split('-').map(Number);
+    const rows = CLOSE_PERIODS.filter((c) => c.hotelId === hotelId && c.periodEndIso === end);
+    // Roll up: exceptions > reopened > open > closed.
+    let status: ClosePeriod['status'] = 'closed';
+    if (rows.some((r) => r.status === 'closed-with-exceptions')) status = 'closed-with-exceptions';
+    else if (rows.some((r) => r.status === 'reopened')) status = 'reopened';
+    else if (rows.some((r) => r.status === 'open')) status = 'open';
+    else if (rows.length === 0) status = 'open';
+    return {
+      periodEndIso: end,
+      periodStartIso: `${y}-${String(m).padStart(2, '0')}-01`,
+      label: `${MONTHS[m - 1]} ${y}`,
+      status,
+    };
+  });
+}
+
+/** The period the accountant should land on: latest OPEN one, else the newest. */
+export function defaultPeriodForHotel(hotelId: string): HotelPeriod {
+  const ps = periodsForHotel(hotelId);
+  return ps.find((p) => p.status === 'open' || p.status === 'reopened') ?? ps[0];
+}

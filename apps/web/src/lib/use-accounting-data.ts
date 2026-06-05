@@ -2,69 +2,65 @@
 
 import { useMemo } from 'react';
 import {
-  HOTELS, REGIONAL_ROSTER, resolveDateRange, type DateRangeKind,
+  HOTELS,
   CHART_OF_ACCOUNTS, VENDORS, ALL_BANK_ACCOUNTS, BANK_IMPORT_ROWS, CC_IMPORT_ROWS,
   PAYROLL_IMPORT_ROWS, OTA_REMITTANCE_ROWS, LEDGER_TRANSACTIONS, BILLS, CATEGORY_RULES,
   SPLIT_PARENT_TRANSACTIONS, RECEIPTS, AUDIT_LOG, APPROVAL_REQUESTS, CLOSE_PERIODS,
-  type Hotel,
+  periodsForHotel,
+  type Hotel, type Bill, type LedgerTransaction,
 } from '@hos/shared';
-import { useHotelFilter } from './hotel-filter-context';
-import { useDateFilter, DATE_RANGE_META } from './date-filter-context';
+import { useAccountingScope } from './accounting-scope-context';
 import { useAccountingDemo } from './accounting-demo-context';
+import { useAccountingState } from './accounting-store';
 
 function inWindow(iso: string, from: string, to: string): boolean {
   return iso >= from && iso <= to;
 }
 
 export function useAccountingData() {
-  const { selection, viewerRegionalId } = useHotelFilter();
-  const { range, customFrom, customTo } = useDateFilter();
+  const { hotelId, periodEndIso } = useAccountingScope();
   const { mode } = useAccountingDemo();
-  const meta = DATE_RANGE_META[range];
+  const overrides = useAccountingState();
 
+  // Single hotel = single entity. No collective/portfolio view here.
   const selectedHotels: Hotel[] = useMemo(() => {
-    if (selection.kind === 'my-territory' && viewerRegionalId) {
-      const reg = REGIONAL_ROSTER.find((r) => r.id === viewerRegionalId);
-      if (reg) return HOTELS.filter((h) => reg.hotelIds.includes(h.id));
-    }
-    if (selection.kind === 'regional') {
-      const reg = REGIONAL_ROSTER.find((r) => r.id === selection.regionalId);
-      if (reg) return HOTELS.filter((h) => reg.hotelIds.includes(h.id));
-    }
-    if (selection.kind === 'single') {
-      const h = HOTELS.find((x) => x.id === selection.hotelId);
-      if (h) return [h];
-    }
-    return HOTELS;
-  }, [selection, viewerRegionalId]);
+    const h = HOTELS.find((x) => x.id === hotelId);
+    return h ? [h] : [HOTELS[0]];
+  }, [hotelId]);
 
   const hotelIdSet = useMemo(() => new Set(selectedHotels.map((h) => h.id)), [selectedHotels]);
 
-  const { from, to } = useMemo(() => {
-    if (range === 'custom') {
-      const f = customFrom || customTo;
-      const t = customTo || customFrom;
-      if (f && t) return { from: f, to: t };
-    }
-    const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
-    const today = frozen ? new Date(`${frozen}T00:00:00Z`) : new Date();
-    const kind: DateRangeKind = range;
-    return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
-  }, [range, customFrom, customTo]);
+  // Period window = the statement month, keyed off its closing date.
+  const periodMeta = useMemo(() => {
+    const ps = periodsForHotel(hotelId);
+    return ps.find((p) => p.periodEndIso === periodEndIso) ?? ps[0];
+  }, [hotelId, periodEndIso]);
+  const from = periodMeta.periodStartIso;
+  const to = periodMeta.periodEndIso;
+  const meta = { label: periodMeta.label };
 
   const isEmpty = mode === 'empty';
 
   const transactions = useMemo(() => {
     if (isEmpty) return [];
     const all = [...LEDGER_TRANSACTIONS, ...SPLIT_PARENT_TRANSACTIONS];
-    return all.filter((t) => hotelIdSet.has(t.hotelId) && inWindow(t.dateIso, from, to))
+    return all
+      .filter((t) => hotelIdSet.has(t.hotelId) && inWindow(t.dateIso, from, to))
+      // Apply the accountant's categorization overrides.
+      .map((t): LedgerTransaction => {
+        const o = overrides.txOverrides[t.id];
+        return o ? { ...t, accountId: o.accountId, aiSuggested: false, ruleId: null } : t;
+      })
       .sort((a, b) => (a.dateIso > b.dateIso ? -1 : 1));
-  }, [hotelIdSet, from, to, isEmpty]);
+  }, [hotelIdSet, from, to, isEmpty, overrides.txOverrides]);
 
   const bills = useMemo(() => {
     if (isEmpty) return [];
-    return BILLS.filter((b) => hotelIdSet.has(b.hotelId));
-  }, [hotelIdSet, isEmpty]);
+    return BILLS.filter((b) => hotelIdSet.has(b.hotelId)).map((b): Bill => {
+      const o = overrides.billOverrides[b.id];
+      return o ? { ...b, status: o.status, paidIso: o.paidIso } : b;
+    });
+  }, [hotelIdSet, isEmpty, overrides.billOverrides]);
 
   const bankRows = useMemo(() => {
     if (isEmpty) return [];
@@ -86,32 +82,15 @@ export function useAccountingData() {
     return OTA_REMITTANCE_ROWS.filter((r) => hotelIdSet.has(r.hotelId) && inWindow(r.dateIso, from, to));
   }, [hotelIdSet, from, to, isEmpty]);
 
+  // Single entity only — never the CONSOLIDATED pseudo-account.
   const bankAccounts = useMemo(() => {
     if (isEmpty) return [];
-    return ALL_BANK_ACCOUNTS.filter(
-      (b) => b.hotelId === 'CONSOLIDATED' || hotelIdSet.has(b.hotelId as string),
-    );
+    return ALL_BANK_ACCOUNTS.filter((b) => hotelIdSet.has(b.hotelId as string));
   }, [hotelIdSet, isEmpty]);
 
-  const scopeLabel = useMemo(() => {
-    if (selection.kind === 'my-territory' && viewerRegionalId) {
-      const reg = REGIONAL_ROSTER.find((r) => r.id === viewerRegionalId);
-      if (reg) return `${reg.name.split(' ')[0]}'s Region`;
-    }
-    if (selection.kind === 'regional') {
-      const reg = REGIONAL_ROSTER.find((r) => r.id === selection.regionalId);
-      if (reg) return `${reg.name.split(' ')[0]}'s Region`;
-    }
-    if (selection.kind === 'single' && selectedHotels[0]) return selectedHotels[0].shortName;
-    return 'Portfolio';
-  }, [selection, viewerRegionalId, selectedHotels]);
+  const scopeLabel = useMemo(() => selectedHotels[0]?.shortName ?? 'Hotel', [selectedHotels]);
 
-  const scopeSub = useMemo(() => {
-    const hotelText = selectedHotels.length === HOTELS.length
-      ? `All ${HOTELS.length} Hotels`
-      : `${selectedHotels.length} Hotel${selectedHotels.length === 1 ? '' : 's'}`;
-    return `${meta.label} · ${hotelText}`;
-  }, [selectedHotels, meta.label]);
+  const scopeSub = useMemo(() => `${meta.label} · close ${periodMeta.periodEndIso}`, [meta.label, periodMeta.periodEndIso]);
 
   // Aggregates
   const cashByAccount = useMemo(() => bankAccounts.map((b) => ({ id: b.id, name: b.name, balance: b.bookBalance, kind: b.kind })), [bankAccounts]);
@@ -131,8 +110,13 @@ export function useAccountingData() {
     [hotelIdSet, isEmpty],
   );
   const auditLog = useMemo(
-    () => (isEmpty ? [] : AUDIT_LOG.filter((e) => !e.hotelId || hotelIdSet.has(e.hotelId))),
-    [hotelIdSet, isEmpty],
+    () => {
+      if (isEmpty) return overrides.audit.filter((e) => e.hotelId && hotelIdSet.has(e.hotelId));
+      const seeded = AUDIT_LOG.filter((e) => !e.hotelId || hotelIdSet.has(e.hotelId));
+      const session = overrides.audit.filter((e) => e.hotelId && hotelIdSet.has(e.hotelId));
+      return [...session, ...seeded];
+    },
+    [hotelIdSet, isEmpty, overrides.audit],
   );
   const approvals = useMemo(
     () => (isEmpty ? [] : APPROVAL_REQUESTS.filter((a) => hotelIdSet.has(a.hotelId))),
@@ -145,9 +129,9 @@ export function useAccountingData() {
 
   return {
     mode,
-    selection,
+    hotelId,
+    periodEndIso,
     period,
-    range,
     hotels: selectedHotels,
     hotelIdSet,
     scopeLabel,

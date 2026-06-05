@@ -5,7 +5,7 @@ import { BillsTable } from '@/components/accounting/BillsTable';
 import { DemoDataToggle } from '@/components/accounting/DemoDataToggle';
 
 export default function BillsPage() {
-  const { bills, vendors, hotels, scopeLabel, scopeSub, mode } = useAccountingData();
+  const { bills, vendors, hotels, scopeLabel, scopeSub, mode, periodEndIso } = useAccountingData();
 
   return (
     <div className="flex flex-col gap-8">
@@ -25,7 +25,7 @@ export default function BillsPage() {
           </p>
         </div>
       ) : (
-        <BillsTable bills={bills} vendors={vendors} hotels={hotels} />
+        <BillsTable bills={bills} vendors={vendors} hotels={hotels} paidIso={periodEndIso} />
       )}
     </div>
   );
