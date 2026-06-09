@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import {
   HOTELS, REGIONAL_ROSTER, resolveDateRange,
+  mockRevenueRows, mockLabourRows, mockDailyRows,
   type DateRangeKind,
   type ApiRevenueSummary, type ApiLabourMetrics, type ApiDailyMetrics, type ApiAnomalyFinding,
 } from '@hos/shared';
@@ -74,9 +75,35 @@ export function useScopedData() {
   const day = useApi(apiKeys.dailyScoped(hotelIds, from, to));
   const an  = useApi(apiKeys.anomalies());
 
-  const revenueRows: ApiRevenueSummary[] = rev.data?.rows ?? [];
-  const labourRows:  ApiLabourMetrics[]  = lab.data?.rows ?? [];
-  const dailyRows:   ApiDailyMetrics[]   = day.data?.rows ?? [];
+  const apiRevenueRows: ApiRevenueSummary[] = rev.data?.rows ?? [];
+  const apiLabourRows:  ApiLabourMetrics[]  = lab.data?.rows ?? [];
+  const apiDailyRows:   ApiDailyMetrics[]   = day.data?.rows ?? [];
+
+  // Phase-1 demo fallback: when the API responded but the DB has no rows for
+  // this hotel × date window (local dev / fresh deploy), synthesize realistic
+  // per-hotel, per-day numbers so every filter combination shows believable,
+  // self-consistent data. Once the DB is seeded, real rows take over verbatim.
+  // Keyed on the resolved [from,to] + hotelIds so it varies by date AND hotel.
+  const revenueRows = useMemo<ApiRevenueSummary[]>(() => {
+    if (apiRevenueRows.length > 0) return apiRevenueRows;
+    if (!rev.data || hotelIds.length === 0) return apiRevenueRows;
+    return mockRevenueRows(hotelIds, from, to, revAgg);
+  }, [apiRevenueRows, rev.data, hotelIds, from, to, revAgg]);
+
+  const labourRows = useMemo<ApiLabourMetrics[]>(() => {
+    // Labour API returns a zero-filled row (not []) when the DB has no shifts,
+    // so treat "every row has no hours" as empty too.
+    const hasReal = apiLabourRows.some((r) => r.scheduledHours > 0 || r.clockedHours > 0 || r.payrollCost > 0);
+    if (hasReal) return apiLabourRows;
+    if (!lab.data || hotelIds.length === 0) return apiLabourRows;
+    return mockLabourRows(hotelIds, from, to);
+  }, [apiLabourRows, lab.data, hotelIds, from, to]);
+
+  const dailyRows = useMemo<ApiDailyMetrics[]>(() => {
+    if (apiDailyRows.length > 0) return apiDailyRows;
+    if (!day.data || hotelIds.length === 0) return apiDailyRows;
+    return mockDailyRows(hotelIds, from, to);
+  }, [apiDailyRows, day.data, hotelIds, from, to]);
 
   // Keep hotels aligned with the rows we actually have. During initial load,
   // hotels is empty → pages render no rows instead of `find()→undefined` crashes.

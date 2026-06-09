@@ -160,6 +160,8 @@ export const UpdateTicketStatusSchema = z.object({
   status: z.enum([
     'open', 'assigned', 'in_progress', 'completed',
     'callback_pending', 'closed', 'reopened', 'escalated',
+    // Maintenance work orders can park on 'pending_part' while waiting for a part.
+    'pending_part',
   ]),
   note:   z.string().optional(),
   actor:  z.string().optional(),

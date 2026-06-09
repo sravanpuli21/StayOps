@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { fetchLiveTickets } from './ticketsApi';
 
 export interface TimelineEntry {
   time: string;
@@ -58,6 +59,25 @@ export interface Ticket {
 }
 
 const INITIAL_TICKETS: Record<string, Ticket> = {
+  // Raised at the shared front-desk computer (StayOps Front Desk Access) and
+  // routed to Maintenance & Engineering — shows in Sydney's queue and, once
+  // assigned, in Amir's queue too.
+  FD201: {
+    id: 'FD201', room: '303', floor: 3, area: 'Bedroom',
+    type: 'reactive', priority: 'normal', status: 'open',
+    guestContext: 'occupied_urgent',
+    title: 'TV remote not working',
+    description: 'Guest in room 303 said the TV remote is not working. Please check and replace if needed.',
+    reportedBy: 'Front Desk',
+    assignee: 'Amir Lopez',
+    createdAt: '15m ago', updatedAt: '15m ago',
+    estimatedCost: 25, revenueLost: 0,
+    activity: [
+      { time: 'Just now', actor: 'Sydney Rivera', action: 'Assigned to Amir Lopez',            icon: 'person-outline',     kind: 'system' },
+      { time: '15m ago',  actor: 'Front Desk',    action: 'Work order created (Front Desk PC)', icon: 'add-circle-outline', kind: 'system' },
+    ],
+    aiFeedback: null,
+  },
   T003: {
     id: 'T003', room: '315', floor: 3, area: 'HVAC / Climate',
     type: 'reactive', priority: 'urgent', status: 'open',
@@ -339,8 +359,34 @@ const TicketContext = createContext<TicketContextValue | null>(null);
 
 export function TicketProvider({ children }: { children: ReactNode }) {
   const [tickets, setTickets] = useState<Record<string, Ticket>>(INITIAL_TICKETS);
+  // Ids the tech has acted on locally — live sync must not clobber these.
+  const touched = useRef<Set<string>>(new Set());
+
+  // Live sync: pull front-desk tickets from the backend and merge them in.
+  // No-op when EXPO_PUBLIC_API_URL is unset (pure-seed demo mode).
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      const live = await fetchLiveTickets();
+      if (cancelled || live.length === 0) return;
+      setTickets((prev) => {
+        const next = { ...prev };
+        for (const t of live) {
+          if (touched.current.has(t.id)) continue; // keep the tech's local change
+          // Preserve any richer seed fields (AI insight, cost) if this id was seeded.
+          const seeded = prev[t.id];
+          next[t.id] = seeded ? { ...t, ai: seeded.ai, estimatedCost: seeded.estimatedCost, revenueLost: seeded.revenueLost } : t;
+        }
+        return next;
+      });
+    };
+    sync();
+    const interval = setInterval(sync, 20_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
 
   const updateStatus = useCallback((id: string, newStatus: TicketStatus, actor: string = 'Amir Lopez') => {
+    touched.current.add(id);
     setTickets((prev) => {
       const t = prev[id];
       if (!t) return prev;
@@ -365,6 +411,7 @@ export function TicketProvider({ children }: { children: ReactNode }) {
 
   const addNote = useCallback((id: string, text: string, actor: string = 'Amir Lopez') => {
     if (!text.trim()) return;
+    touched.current.add(id);
     setTickets((prev) => {
       const t = prev[id];
       if (!t) return prev;

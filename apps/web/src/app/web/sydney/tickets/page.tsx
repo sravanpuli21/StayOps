@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import type { TicketType, TicketPriority, TicketStatus } from '@hos/shared';
-import { Wrench, Clock, Filter, Search, ChevronRight, AlertTriangle, X, MapPin, User } from 'lucide-react';
-import { SYDNEY_HOTEL, useHotelTicketsAll, TICKET_TYPE_META, PRIORITY_META } from '@/lib/sydney-data';
+import { Wrench, Clock, Filter, Search, ChevronRight, Inbox } from 'lucide-react';
+import { SYDNEY_HOTEL, SYDNEY_HOTEL_ID, useHotelTicketsAll, TICKET_TYPE_META, PRIORITY_META } from '@/lib/sydney-data';
+import { TicketActionModal, isFrontDesk } from '@/components/operations/TicketActionModal';
 
 const VALID_TYPES: (TicketType | 'all')[] = ['all', 'reactive', 'preventive', 'audit', 'escalation'];
 
@@ -54,13 +55,19 @@ export default function SydneyTicketsPage() {
   const [typeFilter, setTypeFilter] = useState<TicketType | 'all'>(initialTypeFromUrl);
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>(initialPriorityFromUrl);
   const [q, setQ] = useState('');
+  const [fdOnly, setFdOnly] = useState(false);
   const [openTicket, setOpenTicket] = useState<any | null>(null);
 
   const activeTickets = allTickets.filter((t) => !RESOLVED_STATUSES.has(t.status));
   const archivedTickets = allTickets.filter((t) => RESOLVED_STATUSES.has(t.status));
   const tickets = scope === 'active' ? activeTickets : archivedTickets;
 
+  // Items that arrived from the front desk and haven't been picked up yet
+  // (status 'open' or 'assigned') — the supervisor's inbox.
+  const newFromFrontDesk = activeTickets.filter((t) => isFrontDesk(t) && (t.status === 'open' || t.status === 'assigned'));
+
   const filtered = tickets.filter((t) => {
+    if (fdOnly && !isFrontDesk(t)) return false;
     if (typeFilter !== 'all' && t.type !== typeFilter) return false;
     if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
     if (q) {
@@ -106,6 +113,30 @@ export default function SydneyTicketsPage() {
         </div>
       </div>
 
+      {/* New from Front Desk — the supervisor's inbox of incoming work orders */}
+      {newFromFrontDesk.length > 0 && scope === 'active' && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid #fbcfe8', borderLeft: '4px solid #ff385c' }}>
+          <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0f0f0', background: '#fff5f7' }}>
+            <Inbox className="w-4 h-4" style={{ color: '#ff385c' }} />
+            <p className="text-sm font-bold" style={{ color: '#222' }}>New from Front Desk</p>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#ff385c', color: '#fff' }}>{newFromFrontDesk.length}</span>
+            <span className="ml-auto text-xs" style={{ color: '#929292' }}>Work orders raised at the desk — acknowledge & assign</span>
+          </div>
+          {newFromFrontDesk.slice(0, 5).map((t, i, arr) => {
+            const pmeta = PRIORITY_META[t.priority as keyof typeof PRIORITY_META];
+            return (
+              <button key={t.id} onClick={() => setOpenTicket(t)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#fafafa]" style={{ borderBottom: i < arr.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: pmeta.bg, color: pmeta.color }}>{pmeta.label}</span>
+                <span className="text-sm font-semibold flex-1 min-w-0 truncate" style={{ color: '#222' }}>{t.title}</span>
+                {t.roomNumber && <span className="text-xs flex-shrink-0" style={{ color: '#6a6a6a' }}>Room {t.roomNumber}</span>}
+                <span className="text-[11px] flex-shrink-0" style={{ color: '#929292' }}>{timeAgo(t.createdAt)}</span>
+                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#c1c1c1' }} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Type tabs with visually distinct styling per memory */}
       <div className="flex gap-2 flex-wrap">
         <TypeTab
@@ -149,6 +180,13 @@ export default function SydneyTicketsPage() {
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setFdOnly((v) => !v)}
+          className="px-3 h-8 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+          style={{ background: fdOnly ? '#ff385c' : '#fff', border: `1px solid ${fdOnly ? '#ff385c' : '#dddddd'}`, color: fdOnly ? '#fff' : '#6a6a6a' }}
+        >
+          <Inbox className="w-3.5 h-3.5" /> Front Desk
+        </button>
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#c1c1c1' }} />
           <input
@@ -191,6 +229,11 @@ export default function SydneyTicketsPage() {
                   <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: smeta.bg, color: smeta.color }}>
                     {smeta.label}
                   </span>
+                  {isFrontDesk(t) && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1" style={{ background: '#fff0f3', color: '#ff385c' }}>
+                      <Inbox className="w-2.5 h-2.5" /> Front Desk
+                    </span>
+                  )}
                   {t.roomNumber && (
                     <span className="text-xs font-semibold" style={{ color: '#222' }}>Room {t.roomNumber}</span>
                   )}
@@ -215,90 +258,13 @@ export default function SydneyTicketsPage() {
       </div>
 
       {openTicket && (
-        <TicketDetailModal ticket={openTicket} onClose={() => setOpenTicket(null)} />
+        <TicketActionModal
+          ticket={{ ...openTicket, __actor: 'Sydney Rivera' }}
+          hotelId={SYDNEY_HOTEL_ID}
+          accent="#ff385c"
+          onClose={() => setOpenTicket(null)}
+        />
       )}
-    </div>
-  );
-}
-
-function TicketDetailModal({ ticket, onClose }: { ticket: any; onClose: () => void }) {
-  const tmeta = TICKET_TYPE_META[ticket.type as keyof typeof TICKET_TYPE_META] ?? TICKET_TYPE_META.reactive;
-  const pmeta = PRIORITY_META[ticket.priority as keyof typeof PRIORITY_META] ?? PRIORITY_META.normal;
-  const smeta = STATUS_META[ticket.status as TicketStatus] ?? STATUS_META.open;
-  const where = ticket.roomNumber ? `Room ${ticket.roomNumber}` : ticket.area ?? '—';
-  const activity: Array<{ actor: string; action: string; note?: string; timestamp: string }> =
-    Array.isArray(ticket.activity) ? ticket.activity : [];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[85vh]"
-        style={{ border: '1px solid #dddddd' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 flex items-start justify-between gap-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: tmeta.bg, color: tmeta.color }}>{tmeta.icon} {tmeta.label}</span>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: pmeta.bg, color: pmeta.color }}>{pmeta.label}</span>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: smeta.bg, color: smeta.color }}>{smeta.label}</span>
-            </div>
-            <h2 className="text-base font-bold" style={{ color: '#222' }}>{ticket.title}</h2>
-          </div>
-          <button onClick={onClose} className="text-[#6a6a6a] hover:text-[#222] flex-shrink-0"><X className="w-5 h-5" /></button>
-        </div>
-
-        <div className="px-6 py-5 overflow-y-auto flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Detail icon={<MapPin className="w-3.5 h-3.5" />} label="Where" value={where} />
-            <Detail icon={<User className="w-3.5 h-3.5" />} label="Assigned to" value={ticket.assignedTo ?? 'Unassigned'} />
-            <Detail icon={<Wrench className="w-3.5 h-3.5" />} label="Department" value={ticket.department ?? 'Maintenance'} />
-            <Detail icon={<Clock className="w-3.5 h-3.5" />} label="Created" value={new Date(ticket.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} />
-          </div>
-
-          {ticket.description && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: '#929292' }}>Description</p>
-              <p className="text-sm whitespace-pre-wrap" style={{ color: '#3f3f3f' }}>{ticket.description}</p>
-            </div>
-          )}
-
-          {activity.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: '#929292' }}>Timeline</p>
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #f0f0f0' }}>
-                {[...activity].reverse().map((a, i, arr) => (
-                  <div key={i} className="px-3 py-2" style={{ borderBottom: i < arr.length - 1 ? '1px solid #f0f0f0' : undefined, background: '#fafafa' }}>
-                    <p className="text-xs" style={{ color: '#222' }}>
-                      <span className="font-semibold">{a.actor}</span>
-                      <span className="ml-1.5" style={{ color: '#6a6a6a' }}>· {a.action.replace(/[:_]/g, ' ')}</span>
-                    </p>
-                    {a.note && <p className="text-xs mt-0.5" style={{ color: '#3f3f3f' }}>{a.note}</p>}
-                    <p className="text-[10px] mt-0.5" style={{ color: '#929292' }}>{new Date(a.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="px-6 py-4 flex justify-end" style={{ borderTop: '1px solid #f0f0f0' }}>
-          <button onClick={onClose} className="h-9 px-4 rounded-lg text-sm font-semibold" style={{ background: '#f7f7f7', color: '#222' }}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Detail({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1" style={{ color: '#929292' }}>
-        {icon} {label}
-      </p>
-      <p className="text-sm mt-0.5" style={{ color: '#222' }}>{value}</p>
     </div>
   );
 }

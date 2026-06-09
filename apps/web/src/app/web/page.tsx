@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Monitor } from 'lucide-react';
 import { PERSONAS } from '@hos/shared';
 
 const scopeLabel: Record<string, string> = {
@@ -48,6 +49,22 @@ export default function PersonaPickerPage() {
             </p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#6a4ec0', color: '#fff' }}>New</span>
+        </Link>
+
+        {/* Front Desk Access — the shared lobby computer, not a single persona */}
+        <Link href="/web/front-desk/BTRCI/home"
+          className="group flex items-center gap-4 mb-6 rounded-2xl p-5 transition-all hover:shadow-md bg-white"
+          style={{ border: '1px solid #dddddd' }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fff0f3' }}>
+            <Monitor className="w-6 h-6" style={{ color: '#ff385c' }} />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-base" style={{ color: '#222222' }}>Front Desk Access</p>
+            <p className="text-xs mt-0.5" style={{ color: '#6a6a6a' }}>
+              Shared lobby computer · work orders, service requests, punch, hotel pulse →
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-white" style={{ background: '#ff385c' }}>Live</span>
         </Link>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

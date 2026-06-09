@@ -25,9 +25,15 @@ interface Props {
   initialType: RequestType | null;
   initialRoom: string;
   initialArea: string;
+  /** Where the back link + success "Back to" button go. Lets this flow render
+   *  inside either the desk shell or the Front Desk Access shell. */
+  homeHref?:   string;
+  homeLabel?:  string;
 }
 
-export function NewRequestClient({ hotelCode, initialType, initialRoom, initialArea }: Props) {
+export function NewRequestClient({ hotelCode, initialType, initialRoom, initialArea, homeHref, homeLabel }: Props) {
+  const backHref = homeHref ?? `/web/desk/${hotelCode}/home`;
+  const backLabel = homeLabel ?? 'Front Desk';
   const [type,         setType]         = useState<RequestType | null>(initialType);
   const [locationType, setLocationType] = useState<LocationType | null>(
     initialRoom ? 'room' : initialArea ? 'hotel-area' : null,
@@ -44,11 +50,14 @@ export function NewRequestClient({ hotelCode, initialType, initialRoom, initialA
 
   // Picker step uses the full available width for the floor grid; the other
   // steps stay narrow so the inputs don't stretch into a giant column.
-  const wrapperWidth = step === 'pick-place' && locationType === 'room' ? '' : 'max-w-2xl';
+  const isRoomPick = step === 'pick-place' && locationType === 'room';
+  // For the room grid, fill the height so the Continue bar pins to the bottom
+  // of the screen on any size; other steps stay natural-height + narrow.
+  const rootCls = isRoomPick ? 'flex flex-col gap-4 h-full min-h-0' : 'flex flex-col gap-6 max-w-2xl';
 
   return (
-    <div className={`flex flex-col gap-6 ${wrapperWidth}`}>
-      <BackLink hotelCode={hotelCode} step={step} type={type} onBack={(target) => {
+    <div className={rootCls}>
+      <BackLink backHref={backHref} backLabel={backLabel} step={step} type={type} onBack={(target) => {
         if (target === 'home') {
           // clear, then let DeskShell's back nav handle it
         } else if (target === 'pick-type') {
@@ -76,6 +85,8 @@ export function NewRequestClient({ hotelCode, initialType, initialRoom, initialA
           type={type}
           roomNumber={locationType === 'room' ? roomNumber : ''}
           hotelArea={locationType === 'hotel-area' ? hotelArea : ''}
+          backHref={backHref}
+          backLabel={backLabel}
         />
       )}
     </div>
@@ -84,9 +95,10 @@ export function NewRequestClient({ hotelCode, initialType, initialRoom, initialA
 
 /* ─── Back link ─── */
 function BackLink({
-  hotelCode, step,
+  backHref, backLabel, step,
 }: {
-  hotelCode: string;
+  backHref: string;
+  backLabel: string;
   step: Step;
   type: RequestType | null;
   onBack: (target: 'home' | 'pick-type' | 'pick-location-type' | 'pick-place') => void;
@@ -94,12 +106,12 @@ function BackLink({
   if (step === 'success') return null;
   return (
     <Link
-      href={`/web/desk/${hotelCode}/home`}
+      href={backHref}
       className="flex items-center gap-1 text-sm font-semibold hover:underline"
       style={{ color: '#ff385c' }}
     >
       <ChevronLeft className="w-4 h-4" />
-      Front Desk
+      {backLabel}
     </Link>
   );
 }
@@ -196,7 +208,7 @@ function RoomPicker({
       </header>
 
       <div
-        className="rounded-2xl px-4 py-4"
+        className="rounded-2xl px-4 py-4 flex-1 min-h-0 overflow-y-auto"
         style={{ background: '#ffffff', border: '1px solid #dddddd' }}
       >
         {floors.length === 0 ? (
@@ -241,10 +253,10 @@ function RoomPicker({
         ))}
       </div>
 
-      {/* Sticky CTA — stays pinned to the bottom of the viewport while the
-          floor grid scrolls behind it. */}
+      {/* Bottom CTA — the grid above grows + scrolls internally, so this bar
+          always rests at the bottom of the screen on any size (no float). */}
       <div
-        className="sticky bottom-0 -mx-6 px-6 py-3 flex items-center gap-3"
+        className="flex-shrink-0 -mx-6 px-6 py-3 flex items-center gap-3"
         style={{
           background: 'rgba(247,247,247,0.92)',
           backdropFilter: 'blur(6px)',
@@ -316,8 +328,8 @@ function HotelAreaPicker({ type, onPick }: { type: RequestType; onPick: (a: stri
 
 /* ─── Step 4: Form ─── */
 function RequestForm({
-  hotelCode, type, roomNumber, hotelArea,
-}: { hotelCode: string; type: RequestType; roomNumber: string; hotelArea: string }) {
+  hotelCode, type, roomNumber, hotelArea, backHref, backLabel,
+}: { hotelCode: string; type: RequestType; roomNumber: string; hotelArea: string; backHref: string; backLabel: string }) {
   // For a hotel-area work order the Area is locked to the selected hotel area;
   // the room-area picker only applies to room-scoped work orders.
   const isHotelAreaWorkOrder = type === 'work-order' && !!hotelArea;
@@ -398,7 +410,7 @@ function RequestForm({
   };
 
   if (created) {
-    return <SuccessSummary hotelCode={hotelCode} type={type} ticket={created} reset={() => {
+    return <SuccessSummary backHref={backHref} backLabel={backLabel} type={type} ticket={created} reset={() => {
       setWoArea(''); setWoItem(''); setSrCategory(''); setSrItem(''); setQuantity(1);
       setRequestedBy('Guest'); setPriority('Normal'); setDetails(''); setCreated(null);
     }} />;
@@ -575,8 +587,8 @@ function RequestForm({
 
 /* ─── Step 5: Success summary ─── */
 function SuccessSummary({
-  hotelCode, type, ticket, reset,
-}: { hotelCode: string; type: RequestType; ticket: MaintenanceTicket; reset: () => void }) {
+  backHref, backLabel, type, ticket, reset,
+}: { backHref: string; backLabel: string; type: RequestType; ticket: MaintenanceTicket; reset: () => void }) {
   const where = ticket.roomNumber ? `Room ${ticket.roomNumber}` : ticket.area ?? '—';
   const accent = type === 'work-order' ? '#ff385c' : '#0ea5e9';
   const sentTo = type === 'work-order' ? 'Engineering' : 'Housekeeping';
@@ -616,11 +628,11 @@ function SuccessSummary({
           Create Another Request
         </button>
         <Link
-          href={`/web/desk/${hotelCode}/home`}
+          href={backHref}
           className="h-11 px-5 rounded-xl text-sm font-semibold inline-flex items-center"
           style={{ background: '#f7f7f7', color: '#222' }}
         >
-          Back to Front Desk
+          Back to {backLabel}
         </Link>
       </div>
     </>

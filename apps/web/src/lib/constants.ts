@@ -109,14 +109,19 @@ export const SRAVAN_NAV_ITEMS: readonly NavItem[] = [
 
 // Kwanisha — Director of Sales (group / recurring business CRM)
 export const KWANISHA_NAV_ITEMS: readonly NavItem[] = [
-  { label: 'Dashboard',     href: '/web/kwanisha/dashboard',     icon: 'LayoutDashboard' },
-  { label: 'Demand Radar',  href: '/web/kwanisha/demand',        icon: 'Sparkles'        },
-  { label: 'Opportunities', href: '/web/kwanisha/opportunities', icon: 'Target'          },
-  { label: 'Accounts',      href: '/web/kwanisha/accounts',      icon: 'Building2'       },
-  { label: 'Group RFPs',    href: '/web/kwanisha/rfps',          icon: 'ClipboardList'   },
-  { label: 'Activities',    href: '/web/kwanisha/activities',    icon: 'Calendar'        },
-  { label: 'Reports',       href: '/web/kwanisha/reports',       icon: 'TrendingDown'    },
-  { label: 'Settings',      href: '/web/kwanisha/settings',      icon: 'Settings'        },
+  { label: 'Dashboard',             href: '/web/kwanisha/dashboard',        icon: 'LayoutDashboard' },
+  { label: 'Pulse Inbox',           href: '/web/kwanisha/pulse',            icon: 'Inbox'           },
+  { label: 'Opportunities',         href: '/web/kwanisha/opportunities',    icon: 'Target'          },
+  { label: 'Leads',                 href: '/web/kwanisha/leads',            icon: 'UserPlus'        },
+  { label: 'Accounts',              href: '/web/kwanisha/accounts',         icon: 'Building2'       },
+  { label: 'Contacts',              href: '/web/kwanisha/contacts',         icon: 'Contact'         },
+  { label: 'Market Calendar',       href: '/web/kwanisha/market-calendar',  icon: 'CalendarDays'    },
+  { label: 'Prospecting',           href: '/web/kwanisha/prospecting',      icon: 'Search'          },
+  { label: 'Tasks',                 href: '/web/kwanisha/tasks',            icon: 'CheckSquare'     },
+  { label: 'Rate Requests',         href: '/web/kwanisha/rate-requests',    icon: 'Percent'         },
+  { label: 'Proposals & Contracts', href: '/web/kwanisha/proposals',        icon: 'FileText'        },
+  { label: 'Reports',               href: '/web/kwanisha/reports',          icon: 'TrendingDown'    },
+  { label: 'Settings',              href: '/web/kwanisha/settings',         icon: 'Settings'        },
 ] as const;
 
 export const DATE_RANGE_OPTIONS = [

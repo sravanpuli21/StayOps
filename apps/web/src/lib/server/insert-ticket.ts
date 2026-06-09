@@ -157,6 +157,19 @@ export function rowToTicket(
     requestType:     row.request_type ?? undefined,
     callbackRequired: row.callback_required,
     callbackStatus:  (row.callback_status as MaintenanceTicket['callbackStatus']) ?? null,
-    items:           Array.isArray(row.items) ? (row.items as MaintenanceTicket['items']) : undefined,
+    items:           parseItems(row.items),
   };
+}
+
+/** jsonb may arrive parsed (array) or as a JSON string depending on the driver
+ *  path — normalize both to MaintenanceTicket['items']. */
+function parseItems(raw: unknown): MaintenanceTicket['items'] {
+  if (Array.isArray(raw)) return raw as MaintenanceTicket['items'];
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as MaintenanceTicket['items']) : undefined;
+    } catch { return undefined; }
+  }
+  return undefined;
 }

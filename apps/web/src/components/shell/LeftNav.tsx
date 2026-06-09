@@ -24,6 +24,14 @@ import {
   Bed,
   TrendingDown,
   ExternalLink,
+  Inbox,
+  UserPlus,
+  Contact,
+  CalendarDays,
+  Search,
+  CheckSquare,
+  FileText,
+  Percent,
   LucideIcon,
 } from 'lucide-react';
 import { NAV_ITEMS, type NavItem } from '@/lib/constants';
@@ -50,6 +58,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
   UserCircle,
   Bed,
   TrendingDown,
+  Inbox,
+  UserPlus,
+  Contact,
+  CalendarDays,
+  Search,
+  CheckSquare,
+  FileText,
+  Percent,
 };
 
 interface LeftNavProps {

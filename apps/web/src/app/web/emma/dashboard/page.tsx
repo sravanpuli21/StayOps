@@ -6,7 +6,7 @@ import type { Room } from '@hos/shared';
 import { KpiCard } from '@/components/common/KpiCard';
 import {
   Bed, CheckCircle2, AlertTriangle, Wrench, Printer, Users, ChevronRight,
-  Sparkles, UserPlus, X, Globe,
+  Sparkles, UserPlus, X, Globe, Inbox,
 } from 'lucide-react';
 import {
   EMMA_HOTEL, useHkStaff, useHkCallouts, useAllHotelRooms, useQueueRooms,
@@ -25,6 +25,8 @@ export default function EmmaDashboard() {
   const hotel = EMMA_HOTEL;
   const allRooms = useAllHotelRooms();
   const tickets = useHotelTickets();
+  // Guest service requests raised at the front desk, not yet picked up.
+  const newFromFrontDesk = tickets.filter((t: any) => typeof t.reportedBy === 'string' && t.reportedBy.startsWith('Front Desk') && (t.status === 'open' || t.status === 'assigned'));
   const ops = useHotelOpsSummary();
   const hkStaff = useHkStaff();
   const calloutCount = useHkCallouts().length;
@@ -143,6 +145,18 @@ export default function EmmaDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* New from Front Desk — incoming guest service requests */}
+      {newFromFrontDesk.length > 0 && (
+        <Link href="/web/emma/tickets" className="rounded-2xl p-4 flex items-center gap-3 transition-colors hover:bg-[#f0f9ff]" style={{ background: '#fff', border: '1px solid #bae6fd', borderLeft: '4px solid #0ea5e9' }}>
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#f0f9ff' }}><Inbox className="w-4 h-4" style={{ color: '#0ea5e9' }} /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold" style={{ color: '#222' }}>{newFromFrontDesk.length} new guest request{newFromFrontDesk.length === 1 ? '' : 's'} from the front desk</p>
+            <p className="text-xs" style={{ color: '#929292' }}>Towels, water, bedding and more — acknowledge and send a runner.</p>
+          </div>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: '#0ea5e9', color: '#fff' }}>Review</span>
+        </Link>
+      )}
 
       {/* Morning briefing KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

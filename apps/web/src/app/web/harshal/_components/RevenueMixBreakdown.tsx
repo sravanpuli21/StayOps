@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  formatCurrency, resolveDateRange, type DateRangeKind,
+  formatCurrency, resolveDateRange, mockRevenueBreakdown, type DateRangeKind,
   type ApiRevenueBreakdown, type ApiRevenueLine,
 } from '@hos/shared';
 
@@ -78,7 +78,16 @@ export function RevenueMixBreakdown({
   const isCumulative = agg !== 'today';
   const fmt = (v: number): string => (isCumulative ? formatCurrency(v, true) : formatExact(v));
   const { data } = useApi(apiKeys.revenueBreakdown(sortedIds, from, to, agg));
-  const portfolio = data?.portfolio ?? null;
+  // Phase-1 demo fallback: when the DB has no night-audit rows for this window,
+  // the API returns an empty portfolio (total 0, no types). Synthesize the mix
+  // from the same per-day model the revenue cards use, so the drill-down always
+  // reconciles with the totals above instead of showing blank buckets.
+  const apiPortfolio = data?.portfolio ?? null;
+  const portfolio = useMemo(() => {
+    if (apiPortfolio && apiPortfolio.total > 0) return apiPortfolio;
+    if (!data || sortedIds.length === 0) return apiPortfolio;
+    return mockRevenueBreakdown(sortedIds, from, to).portfolio;
+  }, [apiPortfolio, data, sortedIds, from, to]);
 
   const buckets = useMemo(() => mapToBuckets(portfolio), [portfolio]);
   const total = buckets.reduce((s, b) => s + b.total, 0);

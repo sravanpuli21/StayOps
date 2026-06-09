@@ -15,19 +15,20 @@ export default function HarshalOtaLeakage() {
   const { hotels, scopeLabel, scopeSub, period } = useScopedData();
 
   const hotelIdSet = useMemo(() => new Set(hotels.map((h) => h.id)), [hotels]);
-  // Scale bookings by the date period multiplier so "Today" / "Week" / "YTD"
-  // all land on realistic numbers instead of showing the same monthly figure.
-  // Per-booking metrics (ADR, commission %, cancel %) stay constant — they're
-  // ratios, not accumulators.
+  // Scale bookings by the number of days in the selected range so "Today" /
+  // "Week" / "MTD" / "YTD" all land on realistic volumes instead of the same
+  // monthly figure. The seed rows are monthly, so days/30 converts to the
+  // window. Per-booking metrics (ADR, commission %, cancel %) stay constant —
+  // they're ratios, not accumulators.
   const rows = useMemo(
     () =>
       OTA_CHANNEL_ROWS
         .filter((r) => hotelIdSet.has(r.hotelId))
         .map((r) => ({
           ...r,
-          bookings: Math.max(1, Math.round(r.bookings * (period.multiplier / 30))),
+          bookings: Math.max(1, Math.round(r.bookings * (period.days / 30))),
         })),
-    [hotelIdSet, period.multiplier],
+    [hotelIdSet, period.days],
   );
   const aggregates = useMemo(() => aggregateOtaByChannel(rows), [rows]);
 

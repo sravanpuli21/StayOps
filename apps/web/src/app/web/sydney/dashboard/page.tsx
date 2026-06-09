@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import {
   Wrench, AlertTriangle, Calendar, CheckCircle2, ClipboardList, Package,
-  Bed, ChevronRight, Clock, Users,
+  Bed, ChevronRight, Clock, Users, Inbox,
 } from 'lucide-react';
 import { KpiCard } from '@/components/common/KpiCard';
 import {
@@ -33,6 +33,8 @@ export default function SydneyDashboard() {
 
   const openTickets = tickets.filter((t) => t.status !== 'resolved');
   const urgentTickets = openTickets.filter((t) => t.priority === 'urgent');
+  // Work orders raised at the front desk, not yet picked up.
+  const newFromFrontDesk = openTickets.filter((t: any) => typeof t.reportedBy === 'string' && t.reportedBy.startsWith('Front Desk') && (t.status === 'open' || t.status === 'assigned'));
   const reactive = openTickets.filter((t) => t.type === 'reactive');
   const preventive = openTickets.filter((t) => t.type === 'preventive');
   const escalated = openTickets.filter((t) => t.type === 'escalation' || t.status === 'escalated');
@@ -109,6 +111,18 @@ export default function SydneyDashboard() {
           size="medium"
         />
       </div>
+
+      {/* New from Front Desk — incoming work orders awaiting acknowledgement */}
+      {newFromFrontDesk.length > 0 && (
+        <Link href="/web/sydney/tickets" className="rounded-2xl p-4 flex items-center gap-3 transition-colors hover:bg-[#fff5f7]" style={{ background: '#fff', border: '1px solid #fbcfe8', borderLeft: '4px solid #ff385c' }}>
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fff0f3' }}><Inbox className="w-4 h-4" style={{ color: '#ff385c' }} /></span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold" style={{ color: '#222' }}>{newFromFrontDesk.length} new work order{newFromFrontDesk.length === 1 ? '' : 's'} from the front desk</p>
+            <p className="text-xs" style={{ color: '#929292' }}>Raised at the desk — acknowledge, assign a tech, and start work.</p>
+          </div>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: '#ff385c', color: '#fff' }}>Review</span>
+        </Link>
+      )}
 
       {/* Urgent queue */}
       {topUrgent.length > 0 && (

@@ -133,8 +133,9 @@ export function TicketDetail({ id, mode }: { id: string; mode: 'amir' | 'sydney'
               </>
             ) : (
               <>
+                <QuickAction icon="camera-outline" label="Photo" toneName="accent" onPress={() => setPhotoOpen(true)} />
+                <QuickAction icon="create-outline" label="Note" toneName="accent" onPress={() => setNoteOpen(true)} />
                 <QuickAction icon="flag-outline" label="Priority" toneName="warn" onPress={changePriority} />
-                <QuickAction icon="chatbubble-outline" label="Message" toneName="accent" onPress={() => setNoteOpen(true)} />
                 <QuickAction icon={isWatching ? 'eye' : 'eye-outline'} label={isWatching ? 'Watching' : 'Watch'} toneName="accent" onPress={() => toggleWatch(ticket.id, 'Sydney Rivera')} />
                 <QuickAction icon="arrow-up-circle-outline" label="Escalate" toneName="urgent" onPress={escalateUp} />
                 {ticket.status !== 'resolved' ? <QuickAction icon="checkmark-done-outline" label="Force close" toneName="go" onPress={overrideResolve} /> : null}
@@ -196,8 +197,8 @@ export function TicketDetail({ id, mode }: { id: string; mode: 'amir' | 'sydney'
         </View>
       </Screen>
 
-      <NoteModal visible={noteOpen} onClose={() => setNoteOpen(false)} onSave={(text) => addNote(ticket.id, mode === 'sydney' ? `Message to ${ticket.assignee}: "${text}"` : text, ACTOR)} />
-      <PhotoModal visible={photoOpen} onClose={() => setPhotoOpen(false)} onPick={(label) => addPhoto(ticket.id, label)} />
+      <NoteModal visible={noteOpen} onClose={() => setNoteOpen(false)} onSave={(text) => addNote(ticket.id, text, ACTOR)} />
+      <PhotoModal visible={photoOpen} onClose={() => setPhotoOpen(false)} onPick={(label) => addPhoto(ticket.id, label, ACTOR)} />
     </View>
   );
 }

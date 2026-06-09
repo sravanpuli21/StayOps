@@ -6,6 +6,7 @@ import { Wrench, Sparkles, TrendingUp, Repeat } from 'lucide-react';
 import { CATEGORY_LABEL, RECURRENCE_LABEL } from '@hos/shared';
 import { useDemandSignals } from '@/lib/demand-signals-store';
 import { DemandNoteModal } from './DemandNoteModal';
+import { HomeToggle } from '../home-v2/HomeBoardClient';
 
 interface Props { hotelCode: string }
 
@@ -23,7 +24,10 @@ export function HomeClient({ hotelCode }: Props) {
   return (
     <div className="flex flex-col gap-8 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: '#222' }}>Front Desk</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold" style={{ color: '#222' }}>Front Desk</h1>
+          <HomeToggle hotelCode={hotelCode} active="v1" />
+        </div>
         <p className="text-sm mt-1" style={{ color: '#929292' }}>What do you need to log?</p>
       </div>
 

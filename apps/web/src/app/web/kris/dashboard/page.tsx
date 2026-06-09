@@ -1,159 +1,204 @@
 'use client';
 
-import { formatCurrency, formatPct, formatVariance } from '@hos/shared';
-import { KpiCard } from '@/components/common/KpiCard';
-import { AIFlagsPanel } from '@/components/common/AIFlagsPanel';
-import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
-import { DashboardSkeleton } from '@/components/common/Skeleton';
-import { ErrorBanner } from '@/components/common/ErrorBanner';
-import { EmptyState } from '@/components/common/EmptyState';
+import Link from 'next/link';
+import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import {
+  GM_ROSTER, computeHotelScore, computeRegionalScore, REGIONAL_ROSTER,
+  getStaleDirtyRoomsForHotel, formatCurrency, formatPct, formatVariance,
+} from '@hos/shared';
 import { useScopedData } from '@/lib/use-scoped-data';
+import { MdKpi, MdHealth, MdDrawer, mdCsatTier } from './_kit';
+import {
+  OccupancyDetail, RevenueDetail, RoomsOooDetail, StaleDirtyDetail,
+  HoursDetail, PayrollDetail, CsatDetail, type ScopedData,
+} from './_details';
 
-export default function DashboardPage() {
+/**
+ * Kris's (Managing Director) command-center dashboard.
+ *
+ * Built fresh and self-contained — shares no components with the regional
+ * (Harshal) view. Same analytical depth: 10 clickable KPIs, a ranked
+ * portfolio table, and per-KPI drawers. Deliberately OMITS the
+ * "Needs attention" weakest-hotel call-out cards — the MD reads the full
+ * ranked table directly.
+ */
+type KpiKey =
+  | 'occupancy' | 'revenue' | 'ooo' | 'stale' | 'score'
+  | 'hours' | 'variance' | 'payroll-pct' | 'payroll-total' | 'csat' | null;
+
+export default function KrisDashboard() {
   const {
     hotels, scopeLabel, scopeSub, period,
-    revenueRows, labourRows, dailyRows, openAnomalies,
-    isSingleHotel, isRegional, loading, error,
+    revenueRows, labourRows, dailyRows, isSingleHotel, selection, loading, error,
   } = useScopedData();
 
-  if (error) return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
-        <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
-      </div>
-      <ErrorBanner error={error} />
-    </div>
-  );
-  if (loading) return <DashboardSkeleton kpiCount={4} large />;
+  const [openKpi, setOpenKpi] = useState<KpiKey>(null);
 
-  // No data anywhere — fresh deploy or post-wipe. Show a helpful empty state
-  // instead of a sea of zero-value KPI tiles.
-  const hasAnyData = revenueRows.length > 0 || labourRows.length > 0 || dailyRows.length > 0;
-  if (!hasAnyData) {
+  if (error) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+        <Header scopeLabel={scopeLabel} scopeSub={scopeSub} hotels={hotels.length} />
+        <div className="rounded-2xl p-6" style={{ background: '#fff1f3', border: '1px solid rgba(255,56,92,0.3)' }}>
+          <p className="text-sm font-semibold" style={{ color: '#b91c1c' }}>Couldn&apos;t load dashboard data.</p>
+          <p className="text-xs mt-1" style={{ color: '#6a6a6a' }}>{String(error)}</p>
         </div>
-        <EmptyState
-          icon="inbox"
-          title="No data yet"
-          message="Dashboards populate as Hilton OnQ exports arrive. Email today's final-audit / room-details / arrivals / high-balance CSVs to hos.stayops@gmail.com, or drop them manually below."
-          ctaHref="/web/admin/uploads"
-          ctaLabel="Upload CSV"
-          hint="Once one property reports in, its tile lights up here."
-        />
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Header scopeLabel={scopeLabel} scopeSub={scopeSub} hotels={hotels.length} />
+        <div className="grid grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-5 h-28 animate-pulse" style={{ border: '1px solid #dddddd' }} />
+          ))}
+        </div>
       </div>
     );
   }
 
+  // Aggregates
   const totalRooms = hotels.reduce((s, h) => s + h.rooms, 0);
   const totalRoomCapacity = totalRooms * period.days;
-  const totalRoomsSold = dailyRows.reduce((s, m) => s + m.roomsSold, 0);
-  // OOO is a current snapshot, scale lightly (capped at 2×) so it doesn't explode for YTD
-  const totalRoomsOoo = dailyRows.reduce((s, m) => s + m.roomsOoo, 0);
-  const occupancyPct = totalRoomCapacity > 0 ? (totalRoomsSold / totalRoomCapacity) * 100 : 0;
-  const roomsNotSold = totalRoomCapacity - totalRoomsSold;
+  const roomsSold = dailyRows.reduce((s, d) => s + d.roomsSold, 0);
+  const roomsOoo = dailyRows.reduce((s, d) => s + d.roomsOoo, 0);
+  const staleDirty = hotels.reduce((s, h) => s + getStaleDirtyRoomsForHotel(h.id).length, 0);
+  const occupancyPct = totalRoomCapacity > 0 ? (roomsSold / totalRoomCapacity) * 100 : 0;
   const totalRevenue = revenueRows.reduce((s, r) => s + r.totalRevenue, 0);
-  const totalRoomRevenue = revenueRows.reduce((s, r) => s + r.roomRevenue, 0);
   const totalScheduled = labourRows.reduce((s, l) => s + l.scheduledHours, 0);
   const totalClocked = labourRows.reduce((s, l) => s + l.clockedHours, 0);
+  const totalPayroll = labourRows.reduce((s, l) => s + l.payrollCost, 0);
   const labourVariance = totalClocked - totalScheduled;
-  const avgRating = dailyRows.length > 0
-    ? dailyRows.reduce((s, m) => s + m.avgCustomerRating, 0) / dailyRows.length
-    : 0;
+  const payrollPct = totalRevenue > 0 ? (totalPayroll / totalRevenue) * 100 : 0;
+  const avgCsat = dailyRows.length > 0 ? dailyRows.reduce((s, d) => s + d.avgCustomerRating, 0) / dailyRows.length : 0;
 
-  const portfolioRows = hotels
-    .map((hotel) => {
-      const revenue = revenueRows.find((r) => r.hotelId === hotel.id);
-      return revenue ? { hotel, revenue } : null;
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null);
+  // Per-hotel rows — only hotels present in all three result sets.
+  const rows = hotels.flatMap((hotel) => {
+    const rev = revenueRows.find((r) => r.hotelId === hotel.id);
+    const lab = labourRows.find((l) => l.hotelId === hotel.id);
+    const dm  = dailyRows.find((d) => d.hotelId === hotel.id);
+    if (!rev || !lab || !dm) return [];
+    const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id);
+    const score = computeHotelScore(hotel.id);
+    const hotelPayrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
+    return [{ hotel, rev, lab, dm, gm, score, hotelPayrollPct }];
+  }).sort((a, b) => a.score.composite - b.score.composite);
 
-  const roomsNotSoldAlert = roomsNotSold > totalRoomCapacity * 0.2;
-  const labourVarAlert = labourVariance > Math.max(50, totalScheduled * 0.04);
+  const regionalIdForScore = selection.kind === 'regional' ? selection.regionalId : null;
+  const portfolioScore = computeRegionalScore(
+    regionalIdForScore
+      ? REGIONAL_ROSTER.find((r) => r.id === regionalIdForScore)?.hotelIds ?? hotels.map((h) => h.id)
+      : hotels.map((h) => h.id),
+  );
+
+  const scoped: ScopedData = { hotels, revenueRows, labourRows, dailyRows };
+  const csat = mdCsatTier(avgCsat);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{scopeLabel} Dashboard</h1>
-        <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+      <Header scopeLabel={scopeLabel} scopeSub={scopeSub} hotels={hotels.length} />
+
+      {/* Row 1 — 5 large KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <MdKpi size="large" label="Occupancy" value={formatPct(occupancyPct, 1)} subtext={`${roomsSold.toLocaleString()} of ${totalRoomCapacity.toLocaleString()} room-nights`} onClick={() => setOpenKpi('occupancy')} />
+        <MdKpi size="large" label="Total Revenue" value={formatCurrency(totalRevenue, true)} subtext={isSingleHotel ? 'this property' : `across ${hotels.length} hotels`} onClick={() => setOpenKpi('revenue')} />
+        <MdKpi size="large" label="Rooms Out of Order" value={roomsOoo.toString()} subtext={totalRooms > 0 ? `${formatPct((roomsOoo / Math.max(totalRooms, 1)) * 100, 1)} of portfolio` : '—'} alert={roomsOoo > 3} onClick={() => setOpenKpi('ooo')} />
+        <MdKpi size="large" label="Stale Dirty" value={staleDirty.toString()} subtext="dirty 2+ days · no open ticket" alert={staleDirty > hotels.length * 3} onClick={() => setOpenKpi('stale')} />
+        <MdKpi size="large" label="Portfolio Score" value={`${portfolioScore.composite}`} subtext={`${portfolioScore.trendDirection === 'up' ? '↗' : portfolioScore.trendDirection === 'down' ? '↘' : '→'} ${formatVariance(portfolioScore.trendDelta)} vs last period`} onClick={() => setOpenKpi('score')} />
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <KpiCard
-          label="Occupancy"
-          value={formatPct(occupancyPct, 1)}
-          subtext={`${totalRoomsSold.toLocaleString()} of ${totalRoomCapacity.toLocaleString()} room-nights sold`}
-          size="large"
-        />
-        <KpiCard
-          label="Room Revenue"
-          value={formatCurrency(totalRoomRevenue, true)}
-          subtext="Rooms only, excl. F&B / retail"
-          size="large"
-        />
-        <KpiCard
-          label="Total Revenue"
-          value={formatCurrency(totalRevenue, true)}
-          subtext="All revenue streams"
-          size="large"
-        />
-        <KpiCard
-          label="Rooms Not Sold"
-          value={roomsNotSold.toLocaleString()}
-          subtext={`${totalRoomsOoo} rooms out of order`}
-          alert={roomsNotSoldAlert}
-          size="large"
-        />
+      {/* Row 2 — 5 medium KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <MdKpi label="Hours Clocked / Sched" value={`${totalClocked.toLocaleString()} / ${totalScheduled.toLocaleString()}`} subtext={period.label} onClick={() => setOpenKpi('hours')} />
+        <MdKpi label="Labour Variance" value={formatVariance(labourVariance) + ' hrs'} subtext="vs scheduled" trend={labourVariance > 0 ? 'down' : 'up'} alert={labourVariance > Math.max(50, totalScheduled * 0.04)} onClick={() => setOpenKpi('variance')} />
+        <MdKpi label="Payroll %" value={formatPct(payrollPct, 1)} subtext="of revenue" alert={payrollPct > 28} onClick={() => setOpenKpi('payroll-pct')} />
+        <MdKpi label="Total Payroll" value={formatCurrency(totalPayroll, true)} subtext={`${period.label} labour cost`} onClick={() => setOpenKpi('payroll-total')} />
+        <MdKpi label="Customer Satisfaction" value={`${avgCsat.toFixed(1)} / 5.0`} subtext={`${csat.label} · ${isSingleHotel ? 'this property' : `across ${hotels.length} hotels`}`} alert={csat.alert} onClick={() => setOpenKpi('csat')} />
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <KpiCard
-          label="Rooms Out of Order"
-          value={totalRoomsOoo.toString()}
-          subtext={isSingleHotel ? 'This property' : 'Across properties'}
-          size="medium"
-        />
-        <KpiCard
-          label="Hours Clocked / Scheduled"
-          value={`${totalClocked.toLocaleString()} / ${totalScheduled.toLocaleString()}`}
-          subtext={period.label}
-          size="medium"
-        />
-        <KpiCard
-          label="Labour Variance"
-          value={formatVariance(labourVariance) + ' hrs'}
-          subtext="vs. scheduled hours"
-          trend={labourVariance > 0 ? 'down' : 'up'}
-          alert={labourVarAlert}
-          size="medium"
-        />
-        <KpiCard
-          label="Avg Customer Rating"
-          value={avgRating.toFixed(1)}
-          subtext={isSingleHotel ? 'this property' : `across ${hotels.length} hotels`}
-          size="medium"
-        />
-      </div>
-
-      <div>
-        <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#6a6a6a' }}>
-          {isSingleHotel ? 'Property' : isRegional ? `Properties (${hotels.length})` : 'All Properties'}
-        </h2>
-        <PortfolioTable rows={portfolioRows} />
-      </div>
-
-      {openAnomalies.length > 0 ? (
-        <AIFlagsPanel findings={openAnomalies} />
-      ) : (
-        <div className="rounded-2xl p-6 text-center" style={{ background: '#ffffff', border: '1px solid #dddddd' }}>
-          <p className="text-sm font-semibold" style={{ color: '#222' }}>No open AI findings for {scopeLabel}</p>
-          <p className="text-xs mt-1" style={{ color: '#929292' }}>Everything at this scope is within tolerance.</p>
+      {/* Ranked portfolio table — no "needs attention" call-out cards */}
+      {hotels.length > 1 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Hotel Performance — Ranked</h2>
+            <span className="text-xs" style={{ color: '#929292' }}>Tap row to drill in · weakest → strongest</span>
+          </div>
+          <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid #dddddd', background: '#fff' }}>
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr style={{ borderBottom: '1px solid #dddddd', background: '#f7f7f7' }}>
+                  {['Hotel / GM', 'Rooms', 'Occ %', 'ADR', 'RevPAR', 'Revenue', 'Payroll %', 'Var hrs', 'OOO', 'Score', 'Health', ''].map((h) => (
+                    <th key={h} className="text-xs font-semibold uppercase tracking-wide py-3 px-4 whitespace-nowrap" style={{ color: '#6a6a6a', textAlign: h === 'Hotel / GM' ? 'left' : 'right' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={row.hotel.id} className="cursor-pointer hover:bg-[#fafafa] transition-colors" style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }} onClick={() => { window.location.href = `/web/harshal/hotel/${row.hotel.id}`; }}>
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-sm" style={{ color: '#222' }}>{row.hotel.shortName}</p>
+                      {row.gm && <p className="text-xs mt-0.5" style={{ color: '#929292' }}>GM · {row.gm.name}</p>}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm" style={{ color: '#3f3f3f' }}>{row.hotel.rooms}</td>
+                    <td className="py-3 px-4 text-right text-sm font-medium" style={{ color: '#3f3f3f' }}>{formatPct(row.rev.occupancyPct, 0)}</td>
+                    <td className="py-3 px-4 text-right text-sm" style={{ color: '#3f3f3f' }}>{formatCurrency(row.rev.adr)}</td>
+                    <td className="py-3 px-4 text-right text-sm" style={{ color: '#3f3f3f' }}>{formatCurrency(row.rev.revPar)}</td>
+                    <td className="py-3 px-4 text-right text-sm font-semibold" style={{ color: '#222' }}>{formatCurrency(row.rev.totalRevenue, true)}</td>
+                    <td className="py-3 px-4 text-right text-sm font-medium" style={{ color: row.hotelPayrollPct > 28 ? '#b91c1c' : row.hotelPayrollPct > 24 ? '#b45309' : '#15803d' }}>{formatPct(row.hotelPayrollPct, 1)}</td>
+                    <td className="py-3 px-4 text-right text-sm font-semibold" style={{ color: row.lab.variance > 20 ? '#b91c1c' : row.lab.variance > 0 ? '#b45309' : '#15803d' }}>{formatVariance(row.lab.variance)}</td>
+                    <td className="py-3 px-4 text-right text-sm" style={{ color: row.dm.roomsOoo > 0 ? '#b91c1c' : '#3f3f3f' }}>{row.dm.roomsOoo}</td>
+                    <td className="py-3 px-4 text-right text-sm font-bold" style={{ color: row.score.composite < 65 ? '#b91c1c' : row.score.composite < 75 ? '#b45309' : '#15803d' }}>{row.score.composite}</td>
+                    <td className="py-3 px-4"><MdHealth health={row.rev.health} /></td>
+                    <td className="py-3 px-4 text-right">
+                      <Link href={`/web/harshal/hotel/${row.hotel.id}`} className="inline-flex items-center gap-0.5 text-xs font-semibold hover:underline" style={{ color: '#ff385c' }} onClick={(e) => e.stopPropagation()}>View <ChevronRight className="w-3 h-3" /></Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+
+      <MdDrawer open={openKpi !== null} onClose={() => setOpenKpi(null)} title={KPI_META[openKpi ?? 'revenue']?.title ?? ''} subtitle={`${scopeLabel} · ${period.label}`}>
+        {openKpi === 'occupancy'     && <OccupancyDetail  {...scoped} />}
+        {openKpi === 'revenue'       && <RevenueDetail    {...scoped} />}
+        {openKpi === 'ooo'           && <RoomsOooDetail   {...scoped} />}
+        {openKpi === 'stale'         && <StaleDirtyDetail {...scoped} />}
+        {openKpi === 'score'         && <OccupancyDetail  {...scoped} />}
+        {openKpi === 'hours'         && <HoursDetail      {...scoped} />}
+        {openKpi === 'variance'      && <HoursDetail      {...scoped} />}
+        {openKpi === 'payroll-pct'   && <PayrollDetail    {...scoped} />}
+        {openKpi === 'payroll-total' && <PayrollDetail    {...scoped} />}
+        {openKpi === 'csat'          && <CsatDetail       {...scoped} />}
+      </MdDrawer>
     </div>
   );
 }
+
+function Header({ scopeLabel, scopeSub, hotels }: { scopeLabel: string; scopeSub: string; hotels: number }) {
+  return (
+    <div>
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <h1 className="text-xl font-bold" style={{ color: '#222' }}>{scopeLabel} Dashboard</h1>
+        <span className="text-sm" style={{ color: '#6a6a6a' }}>{hotels} hotel{hotels === 1 ? '' : 's'} · Kris Patel</span>
+      </div>
+      <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub}</p>
+    </div>
+  );
+}
+
+const KPI_META: Record<Exclude<KpiKey, null>, { title: string }> = {
+  occupancy:       { title: 'Occupancy — by hotel' },
+  revenue:         { title: 'Total Revenue — mix by source' },
+  ooo:             { title: 'Rooms Out of Order — by hotel' },
+  stale:           { title: 'Stale Dirty — rooms sitting too long' },
+  score:           { title: 'Portfolio Score — by hotel' },
+  hours:           { title: 'Hours Clocked vs. Scheduled' },
+  variance:        { title: 'Labour Variance — by hotel' },
+  'payroll-pct':   { title: 'Payroll % — by hotel' },
+  'payroll-total': { title: 'Total Payroll — by hotel' },
+  csat:            { title: 'Customer Satisfaction — by hotel' },
+};

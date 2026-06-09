@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import type { TicketType, TicketPriority, TicketStatus } from '@hos/shared';
-import { EMMA_HOTEL, useHotelTicketsAll } from '@/lib/emma-data';
-import { Wrench, AlertTriangle, Clock, Filter, Search, ChevronRight, X, MapPin, User } from 'lucide-react';
+import { EMMA_HOTEL, EMMA_HOTEL_ID, useHotelTicketsAll } from '@/lib/emma-data';
+import { Wrench, AlertTriangle, Clock, Filter, Search, ChevronRight, Inbox } from 'lucide-react';
+import { TicketActionModal, isFrontDesk } from '@/components/operations/TicketActionModal';
 
 const PRIORITY_META: Record<TicketPriority, { label: string; bg: string; color: string }> = {
   urgent: { label: 'Urgent', bg: '#fef2f2', color: '#b91c1c' },
@@ -45,13 +46,18 @@ export default function EmmaTicketsPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [q, setQ] = useState('');
+  const [fdOnly, setFdOnly] = useState(false);
   const [openTicket, setOpenTicket] = useState<any | null>(null);
 
   const activeTickets = allTickets.filter((t) => !RESOLVED_STATUSES.has(t.status));
   const archivedTickets = allTickets.filter((t) => RESOLVED_STATUSES.has(t.status));
   const tickets = scope === 'active' ? activeTickets : archivedTickets;
 
+  // Guest service requests raised at the front desk, not yet picked up.
+  const newFromFrontDesk = activeTickets.filter((t) => isFrontDesk(t) && (t.status === 'open' || t.status === 'assigned'));
+
   const filtered = tickets.filter((t) => {
+    if (fdOnly && !isFrontDesk(t)) return false;
     if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
     if (typeFilter !== 'all' && t.type !== typeFilter) return false;
     if (q) {
@@ -71,7 +77,7 @@ export default function EmmaTicketsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>Maintenance Tickets</h1>
+          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>Service Requests &amp; Tickets</h1>
           <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
             {EMMA_HOTEL.shortName} · {tickets.length} {scope === 'active' ? 'active' : 'archived'} ticket{tickets.length === 1 ? '' : 's'}
             {scope === 'active' ? ` · ${counts.urgent} urgent` : ''}
@@ -103,6 +109,32 @@ export default function EmmaTicketsPage() {
         <SummaryCard label="In progress" value={counts.inProgress} bg="#eff6ff" color="#1d4ed8" />
       </div>
 
+      {/* New from Front Desk — incoming guest service requests */}
+      {newFromFrontDesk.length > 0 && scope === 'active' && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid #bae6fd', borderLeft: '4px solid #0ea5e9' }}>
+          <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #f0f0f0', background: '#f0f9ff' }}>
+            <Inbox className="w-4 h-4" style={{ color: '#0ea5e9' }} />
+            <p className="text-sm font-bold" style={{ color: '#222' }}>New from Front Desk</p>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#0ea5e9', color: '#fff' }}>{newFromFrontDesk.length}</span>
+            <span className="ml-auto text-xs" style={{ color: '#929292' }}>Guest requests raised at the desk — acknowledge & deliver</span>
+          </div>
+          {newFromFrontDesk.slice(0, 5).map((t, i, arr) => {
+            const pmeta = PRIORITY_META[t.priority as TicketPriority];
+            const items: any[] = Array.isArray(t.items) ? t.items : [];
+            return (
+              <button key={t.id} onClick={() => setOpenTicket(t)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#fafafa]" style={{ borderBottom: i < arr.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: pmeta.bg, color: pmeta.color }}>{pmeta.label}</span>
+                <span className="text-sm font-semibold flex-1 min-w-0 truncate" style={{ color: '#222' }}>{t.title}</span>
+                {items.length > 0 && <span className="text-xs flex-shrink-0" style={{ color: '#0ea5e9' }}>{items.length} item{items.length === 1 ? '' : 's'}</span>}
+                {t.roomNumber && <span className="text-xs flex-shrink-0" style={{ color: '#6a6a6a' }}>Room {t.roomNumber}</span>}
+                <span className="text-[11px] flex-shrink-0" style={{ color: '#929292' }}>{timeAgo(t.createdAt)}</span>
+                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#c1c1c1' }} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="inline-flex items-center gap-1 text-xs" style={{ color: '#6a6a6a' }}>
@@ -124,6 +156,13 @@ export default function EmmaTicketsPage() {
           <option value="all">All types</option>
           {TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
         </select>
+        <button
+          onClick={() => setFdOnly((v) => !v)}
+          className="px-3 h-8 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+          style={{ background: fdOnly ? '#0ea5e9' : '#fff', border: `1px solid ${fdOnly ? '#0ea5e9' : '#dddddd'}`, color: fdOnly ? '#fff' : '#6a6a6a' }}
+        >
+          <Inbox className="w-3.5 h-3.5" /> Front Desk
+        </button>
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#c1c1c1' }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, room, tech…" className="w-full h-8 pl-8 pr-3 text-xs rounded-lg outline-none" style={{ background: '#ffffff', border: '1px solid #dddddd', color: '#222' }} />
@@ -159,6 +198,11 @@ export default function EmmaTicketsPage() {
                   <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: smeta.bg, color: smeta.color }}>
                     {smeta.label}
                   </span>
+                  {isFrontDesk(t) && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1" style={{ background: '#f0f9ff', color: '#0ea5e9' }}>
+                      <Inbox className="w-2.5 h-2.5" /> Front Desk
+                    </span>
+                  )}
                   <span className="text-[10px] uppercase font-semibold capitalize" style={{ color: '#929292' }}>{t.type}</span>
                   {t.roomNumber && (
                     <span className="text-xs font-semibold" style={{ color: '#222' }}>Room {t.roomNumber}</span>
@@ -184,93 +228,13 @@ export default function EmmaTicketsPage() {
       </div>
 
       {openTicket && (
-        <TicketDetailModal ticket={openTicket} onClose={() => setOpenTicket(null)} />
+        <TicketActionModal
+          ticket={{ ...openTicket, __actor: 'Emma Johnson' }}
+          hotelId={EMMA_HOTEL_ID}
+          accent="#0ea5e9"
+          onClose={() => setOpenTicket(null)}
+        />
       )}
-    </div>
-  );
-}
-
-function TicketDetailModal({ ticket, onClose }: { ticket: any; onClose: () => void }) {
-  const pmeta = PRIORITY_META[ticket.priority as TicketPriority] ?? PRIORITY_META.normal;
-  const smeta = STATUS_META[ticket.status as TicketStatus] ?? STATUS_META.open;
-  const where = ticket.roomNumber ? `Room ${ticket.roomNumber}` : ticket.area ?? '—';
-  const activity: Array<{ actor: string; action: string; note?: string; timestamp: string }> =
-    Array.isArray(ticket.activity) ? ticket.activity : [];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[85vh]"
-        style={{ border: '1px solid #dddddd' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 flex items-start justify-between gap-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: pmeta.bg, color: pmeta.color }}>{pmeta.label}</span>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: smeta.bg, color: smeta.color }}>{smeta.label}</span>
-              <span className="text-[10px] uppercase font-semibold capitalize" style={{ color: '#929292' }}>{ticket.type}</span>
-            </div>
-            <h2 className="text-base font-bold" style={{ color: '#222' }}>{ticket.title}</h2>
-          </div>
-          <button onClick={onClose} className="text-[#6a6a6a] hover:text-[#222] flex-shrink-0"><X className="w-5 h-5" /></button>
-        </div>
-
-        <div className="px-6 py-5 overflow-y-auto flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Detail icon={<MapPin className="w-3.5 h-3.5" />} label="Where" value={where} />
-            <Detail icon={<User className="w-3.5 h-3.5" />} label="Assigned to" value={ticket.assignedTo ?? 'Unassigned'} />
-            <Detail icon={<Wrench className="w-3.5 h-3.5" />} label="Department" value={ticket.department ?? '—'} />
-            <Detail icon={<Clock className="w-3.5 h-3.5" />} label="Created" value={new Date(ticket.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} />
-          </div>
-
-          {ticket.description && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: '#929292' }}>Description</p>
-              <p className="text-sm whitespace-pre-wrap" style={{ color: '#3f3f3f' }}>{ticket.description}</p>
-            </div>
-          )}
-
-          {activity.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: '#929292' }}>Timeline</p>
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #f0f0f0' }}>
-                {[...activity].reverse().map((a, i, arr) => (
-                  <div key={i} className="px-3 py-2" style={{ borderBottom: i < arr.length - 1 ? '1px solid #f0f0f0' : undefined, background: '#fafafa' }}>
-                    <p className="text-xs" style={{ color: '#222' }}>
-                      <span className="font-semibold">{a.actor}</span>
-                      <span className="ml-1.5" style={{ color: '#6a6a6a' }}>· {a.action.replace(/[:_]/g, ' ')}</span>
-                    </p>
-                    {a.note && <p className="text-xs mt-0.5" style={{ color: '#3f3f3f' }}>{a.note}</p>}
-                    <p className="text-[10px] mt-0.5" style={{ color: '#929292' }}>{new Date(a.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p className="text-[11px]" style={{ color: '#929292' }}>
-            Housekeeping has read-only visibility here. Status changes are made by Maintenance from the operations console.
-          </p>
-        </div>
-
-        <div className="px-6 py-4 flex justify-end" style={{ borderTop: '1px solid #f0f0f0' }}>
-          <button onClick={onClose} className="h-9 px-4 rounded-lg text-sm font-semibold" style={{ background: '#f7f7f7', color: '#222' }}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Detail({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1" style={{ color: '#929292' }}>
-        {icon} {label}
-      </p>
-      <p className="text-sm mt-0.5" style={{ color: '#222' }}>{value}</p>
     </div>
   );
 }
