@@ -14,8 +14,6 @@ import {
   formatCurrency, resolveDateRange, mockRevenueBreakdown,
   type DateRangeKind, type ApiRevenueBreakdown, type ApiRevenueLine,
 } from '@hos/shared';
-import { useApi } from '@/lib/use-api';
-import { apiKeys } from '@/lib/swr-keys';
 import { useDateFilter } from '@/lib/date-filter-context';
 
 /* ── KPI tile ─────────────────────────────────────────────────────────── */
@@ -135,14 +133,12 @@ export function MdRevenueMix({ hotelIds }: { hotelIds: string[] }) {
     return resolveDateRange(kind === 'custom' ? 'yesterday' : kind, today);
   }, [range, customFrom, customTo]);
 
-  const agg: 'today' | 'mtd' | 'ytd' = range === 'month' ? 'mtd' : range === 'ytd' ? 'ytd' : 'today';
-  const { data } = useApi(apiKeys.revenueBreakdown(sortedIds, from, to, agg));
-  const apiPortfolio = data?.portfolio ?? null;
-  const portfolio = useMemo(() => {
-    if (apiPortfolio && apiPortfolio.total > 0) return apiPortfolio;
-    if (!data || sortedIds.length === 0) return apiPortfolio;
-    return mockRevenueBreakdown(sortedIds, from, to).portfolio;
-  }, [apiPortfolio, data, sortedIds, from, to]);
+  // Phase-1 demo data: always synthesize the portfolio mix for every hotel in
+  // scope (see use-scoped-data for the rationale).
+  const portfolio = useMemo(
+    () => (sortedIds.length === 0 ? null : mockRevenueBreakdown(sortedIds, from, to).portfolio),
+    [sortedIds, from, to],
+  );
 
   const buckets = useMemo(() => mapToBuckets(portfolio), [portfolio]);
   const total = buckets.reduce((s, b) => s + b.total, 0);

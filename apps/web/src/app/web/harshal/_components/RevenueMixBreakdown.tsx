@@ -10,8 +10,6 @@ import {
 /** Full currency w/ cents for daily numbers; compact $k for MTD / YTD totals. */
 const formatExact = (v: number): string =>
   v.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-import { useApi } from '@/lib/use-api';
-import { apiKeys } from '@/lib/swr-keys';
 import { useDateFilter } from '@/lib/date-filter-context';
 
 type DisplayBucket = 'room' | 'fb' | 'retail' | 'events' | 'other';
@@ -77,17 +75,14 @@ export function RevenueMixBreakdown({
     range === 'month' ? 'mtd' : range === 'ytd' ? 'ytd' : 'today';
   const isCumulative = agg !== 'today';
   const fmt = (v: number): string => (isCumulative ? formatCurrency(v, true) : formatExact(v));
-  const { data } = useApi(apiKeys.revenueBreakdown(sortedIds, from, to, agg));
-  // Phase-1 demo fallback: when the DB has no night-audit rows for this window,
-  // the API returns an empty portfolio (total 0, no types). Synthesize the mix
-  // from the same per-day model the revenue cards use, so the drill-down always
-  // reconciles with the totals above instead of showing blank buckets.
-  const apiPortfolio = data?.portfolio ?? null;
-  const portfolio = useMemo(() => {
-    if (apiPortfolio && apiPortfolio.total > 0) return apiPortfolio;
-    if (!data || sortedIds.length === 0) return apiPortfolio;
-    return mockRevenueBreakdown(sortedIds, from, to).portfolio;
-  }, [apiPortfolio, data, sortedIds, from, to]);
+  // Phase-1 demo data: always synthesize the portfolio mix from the same
+  // per-day model the revenue cards use, so the drill-down covers every hotel
+  // in scope and reconciles with the totals above (rather than reflecting only
+  // the one or two hotels that happen to have uploaded night-audit rows).
+  const portfolio = useMemo(
+    () => (sortedIds.length === 0 ? null : mockRevenueBreakdown(sortedIds, from, to).portfolio),
+    [sortedIds, from, to],
+  );
 
   const buckets = useMemo(() => mapToBuckets(portfolio), [portfolio]);
   const total = buckets.reduce((s, b) => s + b.total, 0);

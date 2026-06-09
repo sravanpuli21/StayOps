@@ -75,43 +75,24 @@ export function useScopedData() {
   const day = useApi(apiKeys.dailyScoped(hotelIds, from, to));
   const an  = useApi(apiKeys.anomalies());
 
-  const apiRevenueRows: ApiRevenueSummary[] = rev.data?.rows ?? [];
-  const apiLabourRows:  ApiLabourMetrics[]  = lab.data?.rows ?? [];
-  const apiDailyRows:   ApiDailyMetrics[]   = day.data?.rows ?? [];
-
-  // Phase-1 demo fallback: GAP-FILL. For every hotel in scope that has no real
-  // DB row for this date window, synthesize realistic per-hotel, per-day numbers
-  // so the page always shows the FULL selected set — not just the one or two
-  // hotels that happen to have uploaded data. Hotels with real rows keep them
-  // verbatim; only the missing ones are mocked. Local dev (empty DB) → all
-  // mocked; production with partial data → real where present, mock for the rest.
+  // Phase-1 demo data: ALWAYS synthesize realistic per-hotel, per-day numbers
+  // for the full hotel set in scope, regardless of what's in the DB. This keeps
+  // every dashboard consistent and complete (all 16 hotels, every date range)
+  // instead of mixing a couple of real uploaded hotels with the rest. When the
+  // product moves past the demo phase, swap these back to the api* rows.
   // Keyed on [from,to] + hotelIds so it varies by date AND hotel.
-  const revenueRows = useMemo<ApiRevenueSummary[]>(() => {
-    if (!rev.data || hotelIds.length === 0) return apiRevenueRows;
-    const have = new Set(apiRevenueRows.map((r) => r.hotelId));
-    const missing = hotelIds.filter((id) => !have.has(id));
-    if (missing.length === 0) return apiRevenueRows;
-    return [...apiRevenueRows, ...mockRevenueRows(missing, from, to, revAgg)];
-  }, [apiRevenueRows, rev.data, hotelIds, from, to, revAgg]);
-
-  const labourRows = useMemo<ApiLabourMetrics[]>(() => {
-    if (!lab.data || hotelIds.length === 0) return apiLabourRows;
-    // Labour API returns a zero-filled row (not absent) when a hotel has no
-    // shifts, so treat a zero-hours row as "missing" and replace it with mock.
-    const real = apiLabourRows.filter((r) => r.scheduledHours > 0 || r.clockedHours > 0 || r.payrollCost > 0);
-    const have = new Set(real.map((r) => r.hotelId));
-    const missing = hotelIds.filter((id) => !have.has(id));
-    if (missing.length === 0) return real;
-    return [...real, ...mockLabourRows(missing, from, to)];
-  }, [apiLabourRows, lab.data, hotelIds, from, to]);
-
-  const dailyRows = useMemo<ApiDailyMetrics[]>(() => {
-    if (!day.data || hotelIds.length === 0) return apiDailyRows;
-    const have = new Set(apiDailyRows.map((r) => r.hotelId));
-    const missing = hotelIds.filter((id) => !have.has(id));
-    if (missing.length === 0) return apiDailyRows;
-    return [...apiDailyRows, ...mockDailyRows(missing, from, to)];
-  }, [apiDailyRows, day.data, hotelIds, from, to]);
+  const revenueRows = useMemo<ApiRevenueSummary[]>(
+    () => (hotelIds.length === 0 ? [] : mockRevenueRows(hotelIds, from, to, revAgg)),
+    [hotelIds, from, to, revAgg],
+  );
+  const labourRows = useMemo<ApiLabourMetrics[]>(
+    () => (hotelIds.length === 0 ? [] : mockLabourRows(hotelIds, from, to)),
+    [hotelIds, from, to],
+  );
+  const dailyRows = useMemo<ApiDailyMetrics[]>(
+    () => (hotelIds.length === 0 ? [] : mockDailyRows(hotelIds, from, to)),
+    [hotelIds, from, to],
+  );
 
   // Keep hotels aligned with the rows we actually have. During initial load,
   // hotels is empty → pages render no rows instead of `find()→undefined` crashes.
