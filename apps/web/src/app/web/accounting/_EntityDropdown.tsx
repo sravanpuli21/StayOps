@@ -33,10 +33,7 @@ export function EntityDropdown() {
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 h-9 pl-1.5 pr-3 rounded-xl text-left max-w-[280px]"
-        style={{
-          background: oneHotel ? '#1d4ed8' : '#f7f7f7',
-          border: `1px solid ${oneHotel ? '#1d4ed8' : '#dddddd'}`,
-        }}>
+        style={{ background: oneHotel ? '#1d4ed8' : '#f7f7f7', border: `1px solid ${oneHotel ? '#1d4ed8' : '#dddddd'}` }}>
         <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: oneHotel ? 'rgba(255,255,255,0.2)' : '#ece4fb' }}>
           {oneHotel ? <Building2 className="w-3.5 h-3.5" style={{ color: '#fff' }} /> : <LayoutGrid className="w-3.5 h-3.5" style={{ color: '#6a4ec0' }} />}
         </div>
@@ -58,12 +55,11 @@ export function EntityDropdown() {
           </div>
           <div className="max-h-[420px] overflow-y-auto">
             <button onClick={() => { selectAll(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[#f7f7f7]"
-              style={{ borderBottom: '1px solid #f0f0f0' }}>
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[#f7f7f7]" style={{ borderBottom: '1px solid #f0f0f0' }}>
               <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#ece4fb' }}><LayoutGrid className="w-4 h-4" style={{ color: '#6a4ec0' }} /></div>
               <div className="flex-1">
                 <p className="text-sm font-semibold" style={{ color: '#222' }}>All Hotels</p>
-                <p className="text-[11px]" style={{ color: '#929292' }}>Portfolio view · {HOTEL_ENTITIES.length} entities</p>
+                <p className="text-[11px]" style={{ color: '#929292' }}>Portfolio queues &amp; close status · {HOTEL_ENTITIES.length} entities</p>
               </div>
               {selection.kind === 'all' && <Check className="w-4 h-4" style={{ color: '#6a4ec0' }} />}
             </button>
@@ -71,8 +67,7 @@ export function EntityDropdown() {
               const sel = selection.kind === 'hotel' && selection.hotelId === h.id;
               return (
                 <button key={h.id} onClick={() => { selectHotel(h.id); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[#f7f7f7]"
-                  style={{ borderBottom: '1px solid #f7f7f7' }}>
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[#f7f7f7]" style={{ borderBottom: '1px solid #f7f7f7' }}>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f0eefb' }}><Building2 className="w-4 h-4" style={{ color: '#6a4ec0' }} /></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: '#222' }}>{h.hotelName}</p>

@@ -2,7 +2,7 @@ import { AcctOsProvider } from './_context';
 import { AcctTopBar } from './_TopBar';
 import { AcctLeftNav } from './_LeftNav';
 
-export default function AccountingLayout({ children }: { children: React.ReactNode }) {
+export default function Accounting2Layout({ children }: { children: React.ReactNode }) {
   return (
     <AcctOsProvider>
       <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#f7f7f7' }}>

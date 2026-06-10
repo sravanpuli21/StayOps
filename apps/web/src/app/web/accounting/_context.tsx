@@ -1,9 +1,12 @@
 'use client';
 
 /**
- * StayOps Accounting OS — app context. Holds the global selection that scopes
- * every screen: the company (HOS) and the entity (All Hotels OR one hotel).
- * Persisted to localStorage. Also tracks left-nav collapse.
+ * StayOps Accounting OS (v2 — Statement-to-Books) — app context.
+ *
+ * Holds the global selection that scopes every screen: the company (HOS) and the
+ * entity (All Hotels OR one hotel). Persisted to localStorage. Also tracks the
+ * left-nav collapse state. Kept separate from the v1 `accounting` module so the
+ * redesigned flow can evolve independently.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
@@ -17,8 +20,8 @@ interface AcctOsCtx {
   toggleNav: () => void;
 }
 
-const KEY = 'stayops.acctos.selection';
-const NAV_KEY = 'stayops.acctos.nav';
+const KEY = 'stayops.acctos2.selection';
+const NAV_KEY = 'stayops.acctos2.nav';
 const Ctx = createContext<AcctOsCtx | null>(null);
 
 export function AcctOsProvider({ children }: { children: ReactNode }) {

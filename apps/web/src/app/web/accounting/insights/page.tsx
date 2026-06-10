@@ -1,55 +1,41 @@
 'use client';
 
-import Link from 'next/link';
-import { AlertTriangle, Receipt, Copy, CalendarClock, TrendingUp, CheckCheck } from 'lucide-react';
+import { Lightbulb, TrendingUp, AlertTriangle, Clock, Receipt } from 'lucide-react';
 import { useAcctOs } from '../_context';
-import { useAcctState, allTransactions } from '../_store';
-import { card, Badge } from '../_ui';
-
-type Sev = 'High' | 'Medium' | 'Low';
-const SEV: Record<Sev, { fg: string; bg: string }> = { High: { fg: '#b91c1c', bg: '#fee2e2' }, Medium: { fg: '#b45309', bg: '#fef3c7' }, Low: { fg: '#1d4ed8', bg: '#dbeafe' } };
+import { useStore2 } from '../_store2';
+import { portfolioSummary, allSessionRows } from '../_recon2';
+import { hotelLabel } from '../_domain';
+import { card, PageHeader, Kpi, PURPLE } from '../_ui';
 
 export default function InsightsPage() {
   const { selection } = useAcctOs();
-  const state = useAcctState();
-  const txs = allTransactions(state);
-  const scoped = selection.kind === 'hotel' ? txs.filter((t) => t.hotelId === selection.hotelId) : txs;
+  const store = useStore2();
+  const hotelId = selection.kind === 'hotel' ? selection.hotelId : undefined;
+  const sum = portfolioSummary(store, hotelId);
+  const rows = allSessionRows(store, hotelId);
+  const pctReconciled = rows.length ? Math.round((sum.reconciled / rows.length) * 100) : 0;
 
-  const insights: Array<{ sev: Sev; icon: React.ReactNode; msg: string; action: string; href: string }> = [
-    { sev: 'High', icon: <AlertTriangle className="w-4 h-4" />, msg: 'Cambria Hotel - Savannah has 18 transactions waiting for review.', action: 'Review Transactions', href: '/web/accounting/transactions' },
-    { sev: 'High', icon: <Receipt className="w-4 h-4" />, msg: 'Home2 Suites Baton Rouge has 6 missing receipts over $250.', action: 'View Missing', href: '/web/accounting/transactions?tab=missing' },
-    { sev: 'Medium', icon: <TrendingUp className="w-4 h-4" />, msg: 'Home Depot spend increased 32% compared to last month.', action: 'View Vendor', href: '/web/accounting/vendors?v=HOME%20DEPOT' },
-    { sev: 'Medium', icon: <CalendarClock className="w-4 h-4" />, msg: 'Cotton Sail Hotel has not uploaded a credit card statement for May 2026.', action: 'Upload Statement', href: '/web/accounting/credit-cards/upload' },
-    { sev: 'High', icon: <CheckCheck className="w-4 h-4" />, msg: 'Four Points by Marriott reconciliation difference is $187.42.', action: 'Reconcile Account', href: '/web/accounting/reconciliation' },
-    { sev: 'Low', icon: <Copy className="w-4 h-4" />, msg: `${scoped.filter((t) => t.status === 'duplicate').length} possible duplicate transactions detected.`, action: 'Review Duplicates', href: '/web/accounting/transactions?tab=duplicate' },
-  ];
-
-  const cards = [
-    { label: 'High Expense Alerts', value: 4, tone: '#b91c1c' },
-    { label: 'Missing Receipts', value: scoped.filter((t) => t.receipt === 'missing').length, tone: '#b45309' },
-    { label: 'Duplicate Warnings', value: scoped.filter((t) => t.status === 'duplicate').length, tone: '#b91c1c' },
-    { label: 'Hotels Behind Close', value: 4, tone: '#b45309' },
-    { label: 'Reconciliation Differences', value: 3, tone: '#b91c1c' },
-    { label: 'Vendor Spend Increases', value: 2, tone: '#1d4ed8' },
-  ];
+  const insights = [
+    sum.linesToCode > 0 && { icon: <Clock className="w-4 h-4" />, color: '#b45309', title: `${sum.linesToCode} statement lines still need coding`, body: 'Code them in the workbench so they can be posted, cleared, and reconciled before close.' },
+    sum.differences > 0 && { icon: <AlertTriangle className="w-4 h-4" />, color: '#b91c1c', title: `${sum.differences} account${sum.differences === 1 ? '' : 's'} show a difference`, body: 'Open the difference drawer to see exactly which line is unposted or duplicated.' },
+    sum.missingReceipts > 0 && { icon: <Receipt className="w-4 h-4" />, color: '#b91c1c', title: `${sum.missingReceipts} receipts missing on posted/required lines`, body: 'Request receipts from GMs to unblock posting and month close.' },
+    { icon: <TrendingUp className="w-4 h-4" />, color: '#15803d', title: `${pctReconciled}% of statements reconciled`, body: `${sum.reconciled} of ${rows.length} workbench sessions are complete.` },
+  ].filter(Boolean) as { icon: React.ReactNode; color: string; title: string; body: string }[];
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-5">
-      <div><h1 className="text-xl font-bold" style={{ color: '#222' }}>Insights</h1><p className="text-sm mt-0.5" style={{ color: '#929292' }}>Find accounting issues, unusual expenses, missing receipts, and close blockers.</p></div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {cards.map((c) => (
-          <div key={c.label} className="p-4" style={card}><p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#929292' }}>{c.label}</p><p className="text-2xl font-bold mt-1" style={{ color: c.tone }}>{c.value}</p></div>
-        ))}
+    <div className="max-w-3xl mx-auto flex flex-col gap-5">
+      <PageHeader scope={hotelId ? hotelLabel(hotelId).name : 'All Hotels'} scopeFg={hotelId ? '#1d4ed8' : PURPLE} scopeBg={hotelId ? '#dbeafe' : '#ece4fb'} title="Insights" subtitle="What needs attention to close the month." />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Statements" value={String(sum.statements)} />
+        <Kpi label="Reconciled" value={`${pctReconciled}%`} accent="#15803d" />
+        <Kpi label="Differences" value={String(sum.differences)} accent={sum.differences ? '#b91c1c' : '#15803d'} />
+        <Kpi label="Close Blockers" value={String(sum.blockers)} accent={sum.blockers ? '#b91c1c' : '#15803d'} />
       </div>
-
-      <div className="rounded-2xl overflow-hidden" style={card}>
-        {insights.map((it, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: i < insights.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
-            <span style={{ color: SEV[it.sev].fg }}>{it.icon}</span>
-            <Badge label={it.sev} fg={SEV[it.sev].fg} bg={SEV[it.sev].bg} />
-            <p className="flex-1 text-sm" style={{ color: '#222' }}>{it.msg}</p>
-            <Link href={it.href} className="text-xs font-semibold whitespace-nowrap" style={{ color: '#6a4ec0' }}>{it.action}</Link>
+      <div className="flex flex-col gap-3">
+        {insights.map((ins, i) => (
+          <div key={i} className="flex items-start gap-3 p-4 rounded-2xl" style={card}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#f7f7f7', color: ins.color }}>{ins.icon}</div>
+            <div><p className="text-sm font-bold" style={{ color: '#222' }}>{ins.title}</p><p className="text-xs mt-0.5" style={{ color: '#929292' }}>{ins.body}</p></div>
           </div>
         ))}
       </div>

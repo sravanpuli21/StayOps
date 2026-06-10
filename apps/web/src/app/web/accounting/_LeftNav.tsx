@@ -3,22 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Building2, Landmark, CreditCard, ArrowLeftRight, Users,
-  ListTree, Wand2, CheckCheck, BarChart3, CalendarCheck, FolderOpen, Lightbulb,
+  LayoutDashboard, Building2, Inbox, CheckCheck, ArrowLeftRight, Users,
+  ListTree, Wand2, BarChart3, CalendarCheck, FolderOpen, Lightbulb,
   Shield, Settings, PanelLeftClose, PanelLeft,
 } from 'lucide-react';
 import { useAcctOs } from './_context';
 
+/** New Statement-to-Books navigation. Banking & Credit Cards are no longer
+ *  primary items — they live under Hotel Entities setup + the Statement Inbox. */
 const ITEMS = [
   { label: 'Dashboard', href: '/web/accounting/dashboard', icon: LayoutDashboard },
   { label: 'Hotel Entities', href: '/web/accounting/entities', icon: Building2 },
-  { label: 'Banking', href: '/web/accounting/banking', icon: Landmark },
-  { label: 'Credit Cards', href: '/web/accounting/credit-cards', icon: CreditCard },
+  { label: 'Statement Inbox', href: '/web/accounting/statements', icon: Inbox },
+  { label: 'Reconciliation Workbench', href: '/web/accounting/reconciliation-workbench', icon: CheckCheck },
   { label: 'Transactions', href: '/web/accounting/transactions', icon: ArrowLeftRight },
   { label: 'Vendors', href: '/web/accounting/vendors', icon: Users },
   { label: 'Chart of Accounts', href: '/web/accounting/chart-of-accounts', icon: ListTree },
   { label: 'Rules', href: '/web/accounting/rules', icon: Wand2 },
-  { label: 'Reconciliation', href: '/web/accounting/reconciliation', icon: CheckCheck },
   { label: 'Reports', href: '/web/accounting/reports', icon: BarChart3 },
   { label: 'Month Close', href: '/web/accounting/month-close', icon: CalendarCheck },
   { label: 'Documents', href: '/web/accounting/documents', icon: FolderOpen },
@@ -30,7 +31,7 @@ const ITEMS = [
 export function AcctLeftNav() {
   const pathname = usePathname() ?? '';
   const { navCollapsed, toggleNav } = useAcctOs();
-  const w = navCollapsed ? 60 : 220;
+  const w = navCollapsed ? 60 : 232;
 
   return (
     <aside className="flex flex-col flex-shrink-0 h-full" style={{ width: w, background: '#fff', borderRight: '1px solid #dddddd', transition: 'width 0.15s' }}>
