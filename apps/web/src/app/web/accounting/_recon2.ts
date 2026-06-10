@@ -253,6 +253,8 @@ export function portfolioSummary(store: Store2, hotelId?: string) {
     readyToReconcile: rows.filter((r) => r.status === 'ready-to-reconcile').length,
     reconciled: rows.filter((r) => r.status === 'reconciled').length,
     investigation: sum((r) => r.counts.investigation),
+    timingDiffs: sum((r) => r.counts.timingDiffs),
+    activeSessions: rows.filter((r) => r.status !== 'reconciled' && r.status !== 'not-started').length,
     blockers: rows.filter((r) => r.blockerCount > 0 && r.status !== 'reconciled').length,
   };
 }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeftRight, Search, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeftRight, Search, FileText, ExternalLink, Plus, Download } from 'lucide-react';
 import { getEntity } from '@hos/shared/accounting-os';
 import { useAcctOs } from '../_context';
 import { useStore2 } from '../_store2';
@@ -60,6 +60,12 @@ export default function TransactionsPage() {
         scope={hotelId ? hotelLabel(hotelId).name : 'All Hotels'} scopeFg={hotelId ? '#1d4ed8' : PURPLE} scopeBg={hotelId ? '#dbeafe' : '#ece4fb'}
         title="Transactions"
         subtitle="A searchable ledger of accounting transactions after they are posted from the workbench."
+        actions={
+          <>
+            <Link href="/web/accounting/reconciliation-workbench" className="h-9 px-3.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: PURPLE, color: '#fff' }}><Plus className="w-4 h-4" /> Add Transaction</Link>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><Download className="w-3.5 h-3.5" /> Export</button>
+          </>
+        }
       />
 
       <div className="flex flex-wrap gap-2">

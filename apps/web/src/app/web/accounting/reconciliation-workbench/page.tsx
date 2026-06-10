@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ClipboardList, Send, CheckCheck, AlertTriangle, Receipt, FileCheck2, CalendarX2, ArrowRight, Plus,
-  Building2, Landmark, CreditCard, Search,
+  Building2, Landmark, CreditCard, Search, History, Layers, Clock,
 } from 'lucide-react';
 import { HOTEL_ENTITIES, bankAccountsForHotel, creditCardsForHotel, getEntity } from '@hos/shared/accounting-os';
 import { useAcctOs } from '../_context';
@@ -107,18 +107,22 @@ function HotelWorkbench({ hotelId }: { hotelId: string }) {
         title="Reconciliation Workbench"
         subtitle={`${h.legalEntity} · ${h.propertyCode} · select an account to reconcile.`}
         actions={
-          <Link href={`/web/accounting/reconciliation-workbench/start?hotel=${hotelId}`} className="h-9 px-3.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: PURPLE, color: '#fff' }}><Plus className="w-4 h-4" /> Start Reconciliation</Link>
+          <>
+            <Link href={`/web/accounting/reconciliation-workbench/start?hotel=${hotelId}`} className="h-9 px-3.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: PURPLE, color: '#fff' }}><Plus className="w-4 h-4" /> Start Reconciliation</Link>
+            <Link href="/web/accounting/reconciliation-workbench/history" className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><History className="w-3.5 h-3.5" /> History</Link>
+          </>
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi icon={<Layers className="w-4 h-4" />} label="Active Sessions" value={String(sum.activeSessions)} accent="#1d4ed8" onClick={() => setTab('active')} />
         <Kpi icon={<ClipboardList className="w-4 h-4" />} label="Lines to Code" value={String(sum.linesToCode)} accent={sum.linesToCode ? '#b45309' : '#15803d'} onClick={() => setTab('active')} />
         <Kpi icon={<Send className="w-4 h-4" />} label="Ready to Post" value={String(sum.readyToPost)} accent="#1d4ed8" />
         <Kpi icon={<CheckCheck className="w-4 h-4" />} label="Posted & Cleared" value={String(sum.cleared)} accent="#15803d" />
         <Kpi icon={<AlertTriangle className="w-4 h-4" />} label="Difference Found" value={String(sum.differences)} accent={sum.differences ? '#b91c1c' : '#15803d'} onClick={() => setTab('difference')} />
         <Kpi icon={<Receipt className="w-4 h-4" />} label="Missing Receipts" value={String(sum.missingReceipts)} accent={sum.missingReceipts ? '#b91c1c' : '#15803d'} onClick={() => setTab('missing-support')} />
+        <Kpi icon={<Clock className="w-4 h-4" />} label="Timing Differences" value={String(sum.timingDiffs)} accent={sum.timingDiffs ? '#b45309' : '#15803d'} />
         <Kpi icon={<FileCheck2 className="w-4 h-4" />} label="Ready to Finish" value={String(sum.readyToReconcile)} accent={PURPLE} />
-        <Kpi icon={<CalendarX2 className="w-4 h-4" />} label="Close Blockers" value={String(sum.blockers)} accent={sum.blockers ? '#b91c1c' : '#15803d'} onClick={() => router.push('/web/accounting/month-close')} />
       </div>
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} />

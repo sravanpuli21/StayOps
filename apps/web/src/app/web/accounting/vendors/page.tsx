@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, Search, Building2 } from 'lucide-react';
+import { Users, Search, Building2, Plus, GitMerge, Download, Upload } from 'lucide-react';
 import { ACCT_VENDORS } from '@hos/shared/accounting-os';
 import { useAcctOs } from '../_context';
 import { hotelLabel } from '../_domain';
@@ -22,7 +22,15 @@ export default function VendorsPage() {
     <div className="max-w-[1200px] mx-auto flex flex-col gap-5">
       <PageHeader
         scope={hotelId ? hotelLabel(hotelId).name : 'All Hotels'} scopeFg={hotelId ? '#1d4ed8' : PURPLE} scopeBg={hotelId ? '#dbeafe' : '#ece4fb'}
-        title="Vendors" subtitle="Vendors are hotel-specific. The same name can exist under multiple hotels as separate records." />
+        title="Vendors" subtitle="Vendors are hotel-specific. The same name can exist under multiple hotels as separate records."
+        actions={
+          <>
+            <button className="h-9 px-3.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: PURPLE, color: '#fff' }}><Plus className="w-4 h-4" /> Add Vendor</button>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><GitMerge className="w-3.5 h-3.5" /> Review Duplicates</button>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><Upload className="w-3.5 h-3.5" /> Import</button>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><Download className="w-3.5 h-3.5" /> Export</button>
+          </>
+        } />
       <div className="flex items-center gap-2 h-9 px-2.5 rounded-lg max-w-sm" style={inputStyle}>
         <Search className="w-3.5 h-3.5" style={{ color: '#929292' }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendors…" className="flex-1 bg-transparent text-sm outline-none" style={{ color: '#222' }} />

@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderOpen, FileText, Receipt } from 'lucide-react';
+import { FolderOpen, FileText, Receipt, Upload, FolderPlus, Download } from 'lucide-react';
 import { useAcctOs } from '../_context';
 import { useStore2 } from '../_store2';
 import { allImports, liveLines } from '../_recon2';
@@ -22,7 +22,14 @@ export default function DocumentsPage() {
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-5">
-      <PageHeader scope={hotelId ? hotelLabel(hotelId).name : 'All Hotels'} scopeFg={hotelId ? '#1d4ed8' : PURPLE} scopeBg={hotelId ? '#dbeafe' : '#ece4fb'} title="Documents" subtitle="Receipts and supporting documents attached to statement lines." />
+      <PageHeader scope={hotelId ? hotelLabel(hotelId).name : 'All Hotels'} scopeFg={hotelId ? '#1d4ed8' : PURPLE} scopeBg={hotelId ? '#dbeafe' : '#ece4fb'} title="Documents" subtitle="Receipts and supporting documents attached to statement lines."
+        actions={
+          <>
+            <button className="h-9 px-3.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: PURPLE, color: '#fff' }}><Upload className="w-4 h-4" /> Upload Document</button>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><FolderPlus className="w-3.5 h-3.5" /> Create Folder</button>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><Download className="w-3.5 h-3.5" /> Export</button>
+          </>
+        } />
       {unique.length === 0 ? (
         <EmptyState icon={<FolderOpen className="w-8 h-8" />} title="No documents yet." body="Attach receipts to statement lines in the workbench and they appear here." />
       ) : (

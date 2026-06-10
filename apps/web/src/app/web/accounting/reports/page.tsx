@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, ArrowRight, FileText } from 'lucide-react';
+import { BarChart3, ArrowRight, FileText, Package, Download } from 'lucide-react';
 import { useAcctOs } from '../_context';
 import { useStore2 } from '../_store2';
 import { unpostedCount, REPORT_LIST } from './_reports';
@@ -19,6 +19,12 @@ export default function ReportsPage() {
       <PageHeader
         scope={hotelId ? hotelLabel(hotelId).name : 'All Hotels'} scopeFg={hotelId ? '#1d4ed8' : PURPLE} scopeBg={hotelId ? '#dbeafe' : '#ece4fb'}
         title="Reports" subtitle="Reports use only posted accounting data. Click any number to trace it back to the source statement line."
+        actions={
+          <>
+            <button className="h-9 px-3.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: PURPLE, color: '#fff' }}><Package className="w-4 h-4" /> Create CPA Package</button>
+            <button className="h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5" style={{ background: '#fff', border: '1px solid #dddddd', color: '#6a6a6a' }}><Download className="w-3.5 h-3.5" /> Export</button>
+          </>
+        }
       />
       {unposted > 0 && (
         <div className="px-4 py-3 rounded-xl text-sm" style={{ background: '#fff7ed', color: '#b45309', border: '1px solid #fed7aa' }}>
