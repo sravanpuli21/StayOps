@@ -103,7 +103,11 @@ export interface StatementImport {
   lastReconciledBalance?: number;
   pdfName?: string;           // attached PDF/printed statement, manual mode
   notes?: string;
+  scenario?: SeedScenario;    // demo scenario shaping line statuses + difference
 }
+
+/** Demo scenario per statement so a fresh browser shows a realistic spread. */
+export type SeedScenario = 'reconciled' | 'ready-to-reconcile' | 'difference' | 'ready-to-post' | 'needs-coding';
 
 export type StatementSource = 'csv' | 'pdf-printed' | 'existing' | 'manual';
 export type ReconMode = 'statement-line' | 'classic';
@@ -196,6 +200,34 @@ function bankCode(type: string): string {
   return CODE.operating;
 }
 
+/** Deterministic demo scenario per account, with a deliberate spread so the
+ *  portfolio shows the whole pipeline (reconciled → difference → needs-coding).
+ *  A few hotels have EVERY account reconciled so "Hotels Ready to Close" > 0. */
+function pickScenario(accountId: string, hotelIdx: number, slot: number): SeedScenario {
+  // 5 of 16 hotels are fully closed-ready: all their accounts reconcile.
+  if (hotelIdx % 3 === 0) return 'reconciled';
+  const r = seeded(accountId + 'scn')();
+  if (r < 0.22) return 'reconciled';
+  if (r < 0.40) return 'ready-to-reconcile';
+  if (r < 0.60) return 'difference';
+  if (r < 0.80) return 'ready-to-post';
+  return 'needs-coding';
+}
+function statusForScenario(s: SeedScenario): StatementStatus {
+  switch (s) {
+    case 'reconciled': return 'reconciled';
+    case 'ready-to-reconcile': return 'ready-to-reconcile';
+    case 'difference': return 'in-review';
+    case 'ready-to-post': return 'in-review';
+    case 'needs-coding': return 'imported';
+  }
+}
+/** A stable, recognizable difference amount per session (e.g. $187.42). */
+function differenceGap(id: string): number {
+  const r = seeded(id + 'gap')();
+  return round(40 + r * 900); // money "missing" from the cleared side
+}
+
 /** A believable working set: operating checking + one card per hotel, plus a few
  *  extra accounts, for May 2026. ~40 statements across 16 hotels. */
 export const STATEMENT_IMPORTS: StatementImport[] = (() => {
@@ -208,15 +240,8 @@ export const STATEMENT_IMPORTS: StatementImport[] = (() => {
     const chosenBanks = banks.filter((b) => b.type === 'Operating Checking' || (b.type === 'Payroll Checking' && r() > 0.6) || (b.type === 'Reserve' && r() > 0.7));
     const chosenCards = cards.filter((_, i) => i === 0 || r() > 0.5);
 
-    chosenBanks.forEach((b) => {
-      const rr = seeded(b.id + 'imp');
-      // status spread across portfolio
-      const roll = rr();
-      let st: StatementStatus = 'imported';
-      if (hi % 7 === 0) st = 'reconciled';
-      else if (b.type === 'Operating Checking' && roll > 0.55) st = 'in-review';
-      else if (roll > 0.85) st = 'needs-mapping';
-      else if (roll > 0.7) st = 'ready-to-reconcile';
+    chosenBanks.forEach((b, bi) => {
+      const scenario = pickScenario(b.id, hi, bi);
       out.push({
         id: `stmt-${b.id}-${RECON_MONTH}`,
         hotelId: h.id, statementType: 'bank', accountId: b.id, accountName: b.name,
@@ -226,16 +251,11 @@ export const STATEMENT_IMPORTS: StatementImport[] = (() => {
         endingBalance: 0, // filled after lines generated
         fileName: `${b.bank.toLowerCase().replace(/\s+/g, '-')}-${b.type.split(' ')[0].toLowerCase()}-may-2026.csv`,
         uploadedBy: ACCOUNTANT, uploadedIso: `2026-06-0${1 + (hi % 5)}T09:${10 + (hi % 40)}:00Z`,
-        seedStatus: st,
+        seedStatus: statusForScenario(scenario), scenario,
       });
     });
-    chosenCards.forEach((c) => {
-      const rr = seeded(c.id + 'imp');
-      const roll = rr();
-      let st: StatementStatus = 'imported';
-      if (hi % 7 === 0) st = 'reconciled';
-      else if (roll > 0.6) st = 'in-review';
-      else if (roll > 0.85) st = 'needs-mapping';
+    chosenCards.forEach((c, ci) => {
+      const scenario = pickScenario(c.id, hi, ci + 5);
       out.push({
         id: `stmt-${c.id}-${RECON_MONTH}`,
         hotelId: h.id, statementType: 'credit-card', accountId: c.id, accountName: c.name,
@@ -246,7 +266,7 @@ export const STATEMENT_IMPORTS: StatementImport[] = (() => {
         endingBalance: 0,
         fileName: `${c.issuer.toLowerCase()}-${c.name.split(' ')[0].toLowerCase()}-may-2026.csv`,
         uploadedBy: ACCOUNTANT, uploadedIso: `2026-06-0${1 + (hi % 5)}T11:${10 + (hi % 40)}:00Z`,
-        seedStatus: st, paymentDueDate: `2026-06-${15 + (hi % 10)}`,
+        seedStatus: statusForScenario(scenario), scenario, paymentDueDate: `2026-06-${15 + (hi % 10)}`,
       });
     });
   });
@@ -255,13 +275,17 @@ export const STATEMENT_IMPORTS: StatementImport[] = (() => {
   // here) and _lineCache (declared below), causing a temporal-dead-zone error.
   out.forEach((imp) => {
     const lines = generate(imp);
-    const net = lines.reduce((s, l) => s + l.amount, 0);
-    if (imp.statementType === 'bank') imp.endingBalance = round(imp.beginningBalance + net);
-    else {
+    // For a 'difference' scenario, the statement ending balance is intentionally
+    // off from the cleared/posted activity so a real non-zero difference shows.
+    const gap = imp.scenario === 'difference' ? differenceGap(imp.id) : 0;
+    if (imp.statementType === 'bank') {
+      const net = lines.reduce((s, l) => s + l.amount, 0);
+      imp.endingBalance = round(imp.beginningBalance + net + gap);
+    } else {
       // card statement balance = charges - credits (positive owed)
       const charges = lines.filter((l) => l.amount < 0).reduce((s, l) => s + Math.abs(l.amount), 0);
       const credits = lines.filter((l) => l.amount > 0).reduce((s, l) => s + l.amount, 0);
-      imp.endingBalance = round(imp.beginningBalance + charges - credits);
+      imp.endingBalance = round(imp.beginningBalance + charges - credits + gap);
     }
   });
   return out;
@@ -301,12 +325,32 @@ function generate(imp: StatementImport): StatementLineSeed[] {
     i++;
   };
 
+  const scenario = imp.scenario ?? (reconciled ? 'reconciled' : 'needs-coding');
   const initStatus = (hasRule: boolean): LineStatus => {
-    if (reconciled) return 'reconciled';
     const roll = r();
-    if (roll > 0.82) return 'cleared';
-    if (roll > 0.7) return 'posted';
-    return hasRule ? 'suggested' : 'needs-coding';
+    switch (scenario) {
+      case 'reconciled':
+        return 'reconciled';
+      case 'ready-to-reconcile':
+        // Everything posted & cleared; finishing is one click away.
+        return 'cleared';
+      case 'difference':
+        // All lines coded & posted; the gap comes from the statement balance,
+        // not from uncoded lines — so the session reads "Difference Found".
+        if (roll > 0.78) return 'posted';
+        return 'cleared';
+      case 'ready-to-post':
+        // A healthy chunk coded & ready to post, the rest already posted/cleared.
+        if (roll > 0.55) return 'ready-to-post';
+        if (roll > 0.30) return 'posted';
+        return 'cleared';
+      case 'needs-coding':
+      default:
+        if (roll > 0.78) return 'cleared';
+        if (roll > 0.62) return 'posted';
+        if (roll > 0.45) return 'ready-to-post';
+        return hasRule ? 'suggested' : 'needs-coding';
+    }
   };
 
   if (imp.statementType === 'bank') {
@@ -361,23 +405,30 @@ function generate(imp: StatementImport): StatementLineSeed[] {
         ruleName: 'PAYROLL → Payroll Expense', ruleScope: 'global', ruleId: 'gr-payroll', seedStatus: initStatus(true),
       });
       // Small payroll-PROVIDER fee — must NOT auto-classify as payroll wages.
+      // On reconciled/ready statements it's already handled; only show it as an
+      // open "needs coding" teaching line on still-in-progress statements.
+      const stillWorking = scenario === 'needs-coding' || scenario === 'ready-to-post' || scenario === 'difference';
       push({
         dateIso: day(imp.month, 6), rawDescription: 'GUSTO PAYROLL', referenceNumber: `SUB${1000 + Math.floor(r() * 8999)}`,
         amount: -round(23 + r() * 30), direction: 'out',
         suggestedResolution: 'create-transaction', suggestedTxnType: 'Expense',
         suggestedCategoryCode: CODE.software, suggestedCategoryName: 'Software Subscriptions', suggestedDepartment: 'Admin',
         suggestedVendor: 'Gusto', receiptRequirement: 'not-required', confidence: 0.62,
-        ruleName: 'Small payroll-provider charge — confirm: fee, subscription, tax, or wages', seedStatus: 'needs-coding',
+        ruleName: 'Small payroll-provider charge — confirm: fee, subscription, tax, or wages',
+        seedStatus: stillWorking ? 'needs-coding' : initStatus(true),
       });
-      // T+2 timing difference — deposit recorded but not yet on the statement.
-      push({
-        dateIso: day(imp.month, 31), rawDescription: 'PMS DEPOSIT - MERCHANT BATCH', referenceNumber: `DEP${1000 + Math.floor(r() * 8999)}`,
-        amount: round(2400 + r() * 5000), direction: 'in',
-        suggestedResolution: 'timing-difference', suggestedTxnType: 'Revenue Deposit',
-        suggestedCategoryCode: CODE.roomRevenue, suggestedCategoryName: 'Room Revenue', suggestedDepartment: 'Front Office',
-        suggestedVendor: 'PMS Deposit', receiptRequirement: 'not-required', confidence: 0.7,
-        ruleName: 'Recorded May 31, settles June 2 — Deposit in Transit', seedStatus: 'timing-difference',
-      });
+      // T+2 timing difference — only carried as an open reconciling item while the
+      // statement is still being worked; resolved statements don't carry it.
+      if (stillWorking) {
+        push({
+          dateIso: day(imp.month, 31), rawDescription: 'PMS DEPOSIT - MERCHANT BATCH', referenceNumber: `DEP${1000 + Math.floor(r() * 8999)}`,
+          amount: round(2400 + r() * 5000), direction: 'in',
+          suggestedResolution: 'timing-difference', suggestedTxnType: 'Revenue Deposit',
+          suggestedCategoryCode: CODE.roomRevenue, suggestedCategoryName: 'Room Revenue', suggestedDepartment: 'Front Office',
+          suggestedVendor: 'PMS Deposit', receiptRequirement: 'not-required', confidence: 0.7,
+          ruleName: 'Recorded May 31, settles June 2 — Deposit in Transit', seedStatus: 'timing-difference',
+        });
+      }
     }
     // Fill with normal expenses + a couple deposits
     const n = (isOperating ? 6 : 9) + Math.floor(r() * 5);
@@ -395,14 +446,15 @@ function generate(imp: StatementImport): StatementLineSeed[] {
         addExpense(push, r, imp, initStatus);
       }
     }
-    // a possible duplicate
-    if (isOperating && r() > 0.4) {
+    // a possible duplicate — only on still-in-progress operating statements, so
+    // reconciled/ready accounts aren't blocked by an open duplicate.
+    if (isOperating && (scenario === 'needs-coding' || scenario === 'difference') && r() > 0.4) {
       const amt = -round(150 + r() * 400);
       push({
         dateIso: day(imp.month, 18), rawDescription: 'HOME DEPOT #1247', referenceNumber: `${5000 + Math.floor(r() * 4000)}`,
         amount: amt, direction: 'out', suggestedResolution: 'duplicate',
         suggestedVendor: 'Home Depot', suggestedCategoryCode: CODE.rm, suggestedCategoryName: 'Repairs and Maintenance', suggestedDepartment: 'Engineering',
-        receiptRequirement: 'required', confidence: 0.72, ruleName: 'Possible duplicate of posted line', seedStatus: reconciled ? 'reconciled' : 'duplicate',
+        receiptRequirement: 'required', confidence: 0.72, ruleName: 'Possible duplicate of posted line', seedStatus: 'duplicate',
       });
     }
   } else {

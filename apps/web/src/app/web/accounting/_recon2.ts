@@ -26,6 +26,9 @@ export interface LiveLine extends StatementLineSeed {
 }
 
 function resolveLineStatus(seed: StatementLineSeed, coding: CodingDecision | undefined, posted: boolean, cleared: boolean, excluded: boolean): LineStatus {
+  // A seed line marked reconciled stays reconciled even without a store action,
+  // so a fresh demo browser shows fully-closed accounts (not just "cleared").
+  if (!coding && seed.seedStatus === 'reconciled') return 'reconciled';
   if (cleared && posted) return 'cleared';
   if (excluded) return 'excluded';
   if (coding) {

@@ -24,7 +24,7 @@ import {
 } from '../_recon2';
 import { postedJournalLines } from '../reports/_reports';
 import { accountCycle } from '../_cycle';
-import { payrollGuidance, resolutionLabel, RECON_MONTH, hotelLabel, type StatementType } from '../_domain';
+import { payrollGuidance, resolutionLabel, RECON_MONTH, hotelLabel, ACCOUNTANT, type StatementType } from '../_domain';
 import type { CloseStatus } from '../_ui';
 import { isClosed } from '../_store2';
 
@@ -269,12 +269,34 @@ export function cashPosition(store: Store2, hotelId?: string): CashRow[] {
   });
 }
 
-/* ── Recent activity (from store audit log) ───────────────────────────── */
-export function recentActivity(store: Store2, hotelId?: string, limit = 8) {
-  return store.activity
+/* ── Recent activity ──────────────────────────────────────────────────────
+ * Real store activity (what the accountant did this session) takes precedence.
+ * On a fresh browser the store is empty, so we synthesize a believable feed from
+ * the seed (recent uploads, postings, completed reconciliations) — the demo
+ * never shows an empty activity panel. */
+export interface ActivityItem { id: string; actor: string; action: string; detail?: string; hotelId?: string; hotelName?: string; ts: string }
+export function recentActivity(store: Store2, hotelId?: string, limit = 8): ActivityItem[] {
+  const real = store.activity
     .filter((a) => !hotelId || a.hotelId === hotelId)
     .slice(0, limit)
     .map((a) => ({ ...a, hotelName: a.hotelId ? hotelLabel(a.hotelId).name : undefined }));
+  if (real.length >= 3) return real;
+
+  // Synthesize from the seed so the panel is populated for the demo.
+  const seeded: ActivityItem[] = [];
+  const rows = allSessionRows(store, hotelId);
+  let n = 0;
+  const stamp = (i: number) => `2026-06-09T${String(9 + (i % 8)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}:00Z`;
+  rows.filter((r) => r.status === 'reconciled').slice(0, 3).forEach((r) => {
+    seeded.push({ id: `sa-rec-${n}`, actor: ACCOUNTANT, action: 'Reconciliation completed', detail: `${r.imp.accountName} · ${r.imp.month}`, hotelId: r.imp.hotelId, hotelName: hotelLabel(r.imp.hotelId).name, ts: stamp(n++) });
+  });
+  rows.filter((r) => r.counts.posted + r.counts.cleared > 0).slice(0, 3).forEach((r) => {
+    seeded.push({ id: `sa-post-${n}`, actor: ACCOUNTANT, action: 'Posted and cleared lines', detail: `${r.counts.cleared + r.counts.reconciled} cleared · ${r.imp.accountName}`, hotelId: r.imp.hotelId, hotelName: hotelLabel(r.imp.hotelId).name, ts: stamp(n++) });
+  });
+  rows.slice(0, 4).forEach((r) => {
+    seeded.push({ id: `sa-up-${n}`, actor: ACCOUNTANT, action: 'Uploaded statement', detail: `${r.imp.fileName}`, hotelId: r.imp.hotelId, hotelName: hotelLabel(r.imp.hotelId).name, ts: stamp(n++) });
+  });
+  return [...real, ...seeded].slice(0, limit);
 }
 
 /* ── Portfolio alert (top of dashboard) ───────────────────────────────── */

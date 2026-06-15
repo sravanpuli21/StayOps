@@ -5,46 +5,13 @@ import { useRouter } from 'next/navigation';
 import { CalendarCheck, Check, X, Lock, ArrowRight, AlertTriangle } from 'lucide-react';
 import { HOTEL_ENTITIES, getEntity } from '@hos/shared/accounting-os';
 import { useAcctOs } from '../_context';
-import { useStore2, closeMonth, reopenMonth, isClosed } from '../_store2';
-import { allSessionRows, portfolioSummary, type SessionRow } from '../_recon2';
+import { useStore2, closeMonth, reopenMonth } from '../_store2';
+import { portfolioSummary } from '../_recon2';
 import { hotelLabel, RECON_MONTH } from '../_domain';
-import { card, Badge, PageHeader, CLOSE_STATUS, PURPLE, fmtMonth, type CloseStatus } from '../_ui';
-
-/** Derive close status + checklist for one hotel from its workbench sessions. */
-function closeForHotel(store: ReturnType<typeof useStore2>, hotelId: string) {
-  const rows = allSessionRows(store, hotelId);
-  const bankUploaded = rows.some((r) => r.imp.statementType === 'bank');
-  const cardUploaded = rows.some((r) => r.imp.statementType === 'credit-card');
-  const allResolved = rows.every((r) => r.counts.needsCoding === 0);
-  const allPosted = rows.every((r) => r.counts.needsCoding === 0 && r.counts.readyToPost === 0);
-  const receiptsOk = rows.every((r) => r.counts.missingReceipts === 0);
-  const noDupes = rows.every((r) => r.blockerCount === 0 || r.status === 'reconciled');
-  const reconciled = rows.length > 0 && rows.every((r) => r.status === 'reconciled');
-  const diffZero = rows.every((r) => Math.abs(r.math.difference) < 0.005);
-  const closed = isClosed(store, hotelId, RECON_MONTH);
-
-  const checklist = [
-    { label: 'Bank statements uploaded', done: bankUploaded },
-    { label: 'Credit card statements uploaded', done: cardUploaded },
-    { label: 'All statement lines resolved', done: allResolved },
-    { label: 'All required lines posted to books', done: allPosted },
-    { label: 'All required receipts attached', done: receiptsOk },
-    { label: 'Duplicates resolved', done: noDupes },
-    { label: 'Bank accounts reconciled', done: rows.filter((r) => r.imp.statementType === 'bank').every((r) => r.status === 'reconciled') && bankUploaded },
-    { label: 'Credit cards reconciled', done: rows.filter((r) => r.imp.statementType === 'credit-card').every((r) => r.status === 'reconciled') && cardUploaded },
-    { label: 'Difference is zero for every account', done: diffZero },
-    { label: 'Reports reviewed', done: reconciled },
-  ];
-
-  let status: CloseStatus;
-  if (closed) status = 'closed';
-  else if (!bankUploaded || !cardUploaded) status = 'blocked';
-  else if (reconciled && receiptsOk && diffZero) status = 'ready-to-close';
-  else if (!allResolved || !receiptsOk) status = 'in-progress';
-  else status = 'in-progress';
-
-  return { rows, checklist, status, closed, canClose: checklist.every((c) => c.done) };
-}
+import { card, Badge, PageHeader, CLOSE_STATUS, PURPLE, fmtMonth } from '../_ui';
+// Single source of truth for close status — shared with the dashboard so the
+// "ready to close" / "blocked" counts always match across the app.
+import { closeForHotel } from '../dashboard/_data';
 
 export default function MonthClosePage() {
   const { selection } = useAcctOs();
