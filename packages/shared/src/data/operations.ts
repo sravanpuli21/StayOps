@@ -468,6 +468,33 @@ export function generateRoomAuditHistory(hotelId: string, roomNumber: string): A
   ];
 }
 
+// Realistic OOO reasons GMs log. Most OOO rooms get one; a small share are left
+// unlogged (which the UI flags in red) to drive the "log a reason" behavior.
+const OOO_REASONS = [
+  'HVAC replacement in progress',
+  'Water damage – ceiling repair in progress',
+  'Active repair – drywall work',
+  'Pest treatment – 72-hr quarantine',
+  'Full renovation – est. completion May 10',
+  'Plumbing leak – vanity replacement',
+  'Carpet replacement scheduled',
+  'Bathroom retile in progress',
+  'Mold remediation – sealed off',
+  'Electrical rewiring – permit pending',
+  'Bed frame & mattress replacement',
+  'Smoke damage – ozone treatment',
+  'Balcony door repair – parts on order',
+  'AC unit failure – awaiting technician',
+  'Soft goods refresh – paint & furnishings',
+];
+
+function oooReasonFor(hotelId: string, roomNumber: string): string | undefined {
+  const s = hash(`${hotelId}-${roomNumber}-ooo-reason`);
+  // ~88% of OOO rooms have a logged reason; ~12% left unlogged (shown in red).
+  if (s % 100 < 12) return undefined;
+  return OOO_REASONS[s % OOO_REASONS.length];
+}
+
 function generateRoomsForHotel(hotelId: string, totalRooms: number): Room[] {
   const floors = Math.ceil(totalRooms / 16);
   const rooms: Room[] = [];
@@ -496,6 +523,7 @@ function generateRoomsForHotel(hotelId: string, totalRooms: number): Room[] {
         lastCleaned: status !== 'ooo' ? '2026-04-25T08:30:00' : null,
         lastInspected: hkStatus === 'inspected' ? '2026-04-25T09:45:00' : null,
         hasOpenTicket: status === 'blocked',
+        oooReason: status === 'ooo' ? oooReasonFor(hotelId, roomNumber) : undefined,
         lastGuestRating: status === 'occupied' ? 3.6 + (seed % 14) / 10 : undefined,
       });
     }
@@ -1315,9 +1343,45 @@ export function getActiveTicketsForHotel(hotelId: string): MaintenanceTicket[] {
 }
 
 export function getActiveTicketsForRoom(hotelId: string, roomNumber: string): MaintenanceTicket[] {
-  return MAINTENANCE_TICKETS.filter(
+  const real = MAINTENANCE_TICKETS.filter(
     (t) => t.hotelId === hotelId && t.roomNumber === roomNumber && t.status !== 'resolved',
   );
+  if (real.length > 0) return real;
+  // An OOO room with no logged ticket gets a synthesized work order from its OOO
+  // reason, so the room detail's "Open Tickets" reflects the work in progress.
+  const room = getRoomByNumber(hotelId, roomNumber);
+  if (room?.status === 'ooo') return [synthesizeOooTicket(hotelId, roomNumber, room.oooReason)];
+  return real;
+}
+
+const OOO_TECHS = ['Amir Lopez', 'Marcus Chen', 'Dwayne Ellis', 'Priya Nair', 'Sofia Reyes', 'Tom Becker'];
+function synthesizeOooTicket(hotelId: string, roomNumber: string, reason?: string): MaintenanceTicket {
+  const s = hash(`ooo-ticket-${hotelId}-${roomNumber}`);
+  const title = reason ?? 'Out of order – reason pending GM log';
+  const urgent = /water|hvac|ac unit|electrical|mold|pest/i.test(reason ?? '');
+  const days = 1 + (s % 6);
+  const created = `2026-04-${String(Math.max(1, 26 - days)).padStart(2, '0')}T09:${String(s % 60).padStart(2, '0')}:00`;
+  return {
+    id: `OOO-${hotelId}-${roomNumber}`,
+    hotelId,
+    roomNumber,
+    type: 'reactive',
+    priority: urgent ? 'urgent' : 'high',
+    status: 'in_progress',
+    title,
+    description: reason
+      ? `Room ${roomNumber} is out of order: ${reason}. Room is blocked from sale until the work order is closed.`
+      : `Room ${roomNumber} is out of order but the GM has not logged a reason. Confirm the issue and update this work order.`,
+    reportedBy: 'Housekeeping',
+    assignedTo: OOO_TECHS[s % OOO_TECHS.length],
+    createdAt: created,
+    updatedAt: created,
+    estimatedCost: 120 + (s % 9) * 60,
+    revenueLost: days * 150,
+    activity: [
+      { timestamp: created, actor: 'Housekeeping', action: 'Ticket created', note: `Room flagged Out of Order${reason ? ` – ${reason}` : ''}` },
+    ],
+  };
 }
 
 export function getAuditTasksForHotel(hotelId: string): AuditTask[] {
@@ -1385,13 +1449,37 @@ export function getPropertyOpsSummary(hotelId: string) {
  * of those candidates so the count lands in the realistic 1–3 per property
  * range. Real-data variant would use `lastCleaned` / `lastOccupied` age.
  */
+/**
+ * Out-of-Order rooms for a hotel — the SINGLE source of truth for both the
+ * dashboard OOO headline and the by-hotel detail, so the two always reconcile.
+ * Realistic spread: most hotels have a handful, a couple have more, a few have
+ * none. Each room carries its logged reason (or none → flagged in the UI).
+ */
+export function getOooRoomsForHotel(hotelId: string): Room[] {
+  const all = getRoomsForHotel(hotelId).filter((r) => r.status === 'ooo');
+  // Cap to a believable per-hotel number (0–6) driven by a stable seed, so the
+  // portfolio total lands around the high-teens rather than 120+.
+  const roll = hash(`ooo-cap-${hotelId}`) % 100;
+  let cap: number;
+  if (roll < 18) cap = 0;        // ~3 hotels with none
+  else if (roll < 50) cap = 1;   // many with 1
+  else if (roll < 75) cap = 2;
+  else if (roll < 90) cap = 3;
+  else cap = 4 + (roll % 3);     // a couple of heavier hotels (4–6)
+  return all.slice(0, cap);
+}
+
 export function getStaleDirtyRoomsForHotel(hotelId: string): Room[] {
-  const rooms = getRoomsForHotel(hotelId);
-  return rooms.filter((r) => {
-    if (r.status !== 'dirty') return false;
-    if (r.hasOpenTicket) return false;
-    return hash(`stale-${r.hotelId}-${r.number}`) % 7 === 0;
-  });
+  // Realistic across the portfolio: only a few hotels have any stale-dirty rooms,
+  // and only 1–2 each — roughly 5–6 in total across all 16 hotels. We pick the
+  // affected hotels deterministically (so it's stable) and cap rooms per hotel.
+  const affected = hash(`stale-hotel-${hotelId}`) % 100 < 18; // 3 of 16 hotels
+  if (!affected) return [];
+  const cap = 1 + (hash(`stale-cap-${hotelId}`) % 2); // 1 or 2 rooms → ~5–6 total
+  const candidates = getRoomsForHotel(hotelId)
+    .filter((r) => r.status === 'dirty' && !r.hasOpenTicket)
+    .sort((a, b) => hash(`stale-${hotelId}-${a.number}`) - hash(`stale-${hotelId}-${b.number}`));
+  return candidates.slice(0, cap);
 }
 
 /**

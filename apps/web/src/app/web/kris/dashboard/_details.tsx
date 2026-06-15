@@ -5,12 +5,33 @@
  * table + the kit's revenue-mix breakdown. Mirrors the analytical depth of the
  * regional view without sharing any component with it.
  */
-import type { Hotel, ApiRevenueSummary, ApiLabourMetrics, ApiDailyMetrics } from '@hos/shared';
+import { useState } from 'react';
+import type { Hotel, ApiRevenueSummary, ApiLabourMetrics, ApiDailyMetrics, Room } from '@hos/shared';
 import {
-  getRoomsForHotel, getStaleDirtyRoomsForHotel,
+  getStaleDirtyRoomsForHotel, getOooRoomsForHotel,
+  getActiveTicketsForRoom, getInventoryForRoom, getAuditHistoryForRoom,
   formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
+import { RoomDetailPanel } from '@/components/operations/RoomDetailPanel';
 import { MdRevenueMix, mdCsatTier } from './_kit';
+
+/** Slide-over room detail shared by the OOO + Stale Dirty drawers. Clicking a
+ *  room number opens the full room panel (status, tickets, inventory, audits). */
+function useRoomDetail() {
+  const [room, setRoom] = useState<Room | null>(null);
+  const panel = room ? (
+    <RoomDetailPanel
+      room={room}
+      tickets={getActiveTicketsForRoom(room.hotelId, room.number)}
+      inventory={getInventoryForRoom(room.hotelId, room.number)}
+      auditHistory={getAuditHistoryForRoom(room.hotelId, room.number)}
+      onClose={() => setRoom(null)}
+      onTicketClick={() => {}}
+      onItemClick={() => {}}
+    />
+  ) : null;
+  return { openRoom: setRoom, roomPanel: panel };
+}
 
 export interface ScopedData {
   hotels: Hotel[];
@@ -81,13 +102,21 @@ export function RevenueDetail({ hotels, revenueRows }: ScopedData) {
   );
 }
 
-export function RoomsOooDetail({ hotels, dailyRows }: ScopedData) {
+export function RoomsOooDetail({ hotels }: ScopedData) {
+  const { openRoom, roomPanel } = useRoomDetail();
   const rows = hotels
-    .map((h) => ({ h, dm: dailyRows.find((d) => d.hotelId === h.id), oooRooms: getRoomsForHotel(h.id).filter((r) => r.status === 'ooo') }))
-    .sort((a, b) => (b.dm?.roomsOoo ?? 0) - (a.dm?.roomsOoo ?? 0));
+    .map((h) => {
+      // Same room-level source as the dashboard headline → always reconciles.
+      const oooRooms = getOooRoomsForHotel(h.id);
+      const unlogged = oooRooms.filter((r) => !r.oooReason).length;
+      return { h, oooRooms, unlogged };
+    })
+    // Highest OOO count first; ties broken by most "reason not logged" on top;
+    // zero-OOO hotels fall to the bottom.
+    .sort((a, b) => (b.oooRooms.length - a.oooRooms.length) || (b.unlogged - a.unlogged));
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-sm" style={{ color: '#3f3f3f', lineHeight: 1.55 }}>Rooms formally marked Out of Order, grouped by hotel. Reason is shown where the GM logged it.</p>
+      <p className="text-sm" style={{ color: '#3f3f3f', lineHeight: 1.55 }}>Rooms formally marked Out of Order, grouped by hotel. Reason is shown where the GM logged it. Click a room to see its full detail.</p>
       {rows.map(({ h, oooRooms }) => (
         <div key={h.id} className="rounded-2xl p-4" style={{ border: '1px solid #dddddd', background: '#fff' }}>
           <div className="flex items-center justify-between mb-2">
@@ -99,20 +128,24 @@ export function RoomsOooDetail({ hotels, dailyRows }: ScopedData) {
           ) : (
             <ul className="flex flex-col gap-1.5">
               {oooRooms.map((r) => (
-                <li key={r.number} className="flex items-start gap-2 text-xs" style={{ color: '#3f3f3f' }}>
-                  <span className="font-semibold" style={{ color: '#222', minWidth: 42 }}>#{r.number}</span>
-                  <span>{r.oooReason ?? 'Reason not logged'}</span>
+                <li key={r.number}>
+                  <button onClick={() => openRoom(r)} className="flex items-start gap-2 text-xs text-left w-full rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-[#f7f7f7]" style={{ color: '#3f3f3f' }}>
+                    <span className="font-semibold underline decoration-dotted" style={{ color: '#222', minWidth: 42 }}>#{r.number}</span>
+                    <span style={{ color: r.oooReason ? '#3f3f3f' : '#b91c1c', fontWeight: r.oooReason ? 400 : 600 }}>{r.oooReason ?? 'Reason not logged'}</span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </div>
       ))}
+      {roomPanel}
     </div>
   );
 }
 
 export function StaleDirtyDetail({ hotels }: ScopedData) {
+  const { openRoom, roomPanel } = useRoomDetail();
   const rows = hotels
     .map((h) => ({ h, stale: getStaleDirtyRoomsForHotel(h.id) }))
     .filter(({ stale }) => stale.length > 0)
@@ -136,13 +169,16 @@ export function StaleDirtyDetail({ hotels }: ScopedData) {
           </div>
           <ul className="flex flex-wrap gap-2">
             {stale.map((r) => (
-              <li key={r.number} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: '#f7f7f7', border: '1px solid #dddddd', color: '#222' }}>
-                <span>#{r.number}</span><span style={{ color: '#929292' }}>· Fl {r.floor}</span>
+              <li key={r.number}>
+                <button onClick={() => openRoom(r)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-[#efefef]" style={{ background: '#f7f7f7', border: '1px solid #dddddd', color: '#222' }}>
+                  <span className="underline decoration-dotted">#{r.number}</span><span style={{ color: '#929292' }}>· Fl {r.floor}</span>
+                </button>
               </li>
             ))}
           </ul>
         </div>
       ))}
+      {roomPanel}
     </div>
   );
 }

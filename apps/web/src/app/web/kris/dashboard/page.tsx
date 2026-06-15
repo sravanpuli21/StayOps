@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import {
   GM_ROSTER, computeHotelScore, computeRegionalScore, REGIONAL_ROSTER,
-  getStaleDirtyRoomsForHotel, formatCurrency, formatPct, formatVariance,
+  getStaleDirtyRoomsForHotel, getOooRoomsForHotel, formatCurrency, formatPct, formatVariance,
 } from '@hos/shared';
 import { useScopedData } from '@/lib/use-scoped-data';
 import { MdKpi, MdHealth, MdDrawer, mdCsatTier } from './_kit';
@@ -63,7 +63,9 @@ export default function KrisDashboard() {
   const totalRooms = hotels.reduce((s, h) => s + h.rooms, 0);
   const totalRoomCapacity = totalRooms * period.days;
   const roomsSold = dailyRows.reduce((s, d) => s + d.roomsSold, 0);
-  const roomsOoo = dailyRows.reduce((s, d) => s + d.roomsOoo, 0);
+  // OOO headline uses the same room-level source as the by-hotel detail so the
+  // two always reconcile.
+  const roomsOoo = hotels.reduce((s, h) => s + getOooRoomsForHotel(h.id).length, 0);
   const staleDirty = hotels.reduce((s, h) => s + getStaleDirtyRoomsForHotel(h.id).length, 0);
   const occupancyPct = totalRoomCapacity > 0 ? (roomsSold / totalRoomCapacity) * 100 : 0;
   const totalRevenue = revenueRows.reduce((s, r) => s + r.totalRevenue, 0);
@@ -83,7 +85,8 @@ export default function KrisDashboard() {
     const gm = GM_ROSTER.find((g) => g.hotelId === hotel.id);
     const score = computeHotelScore(hotel.id);
     const hotelPayrollPct = rev.totalRevenue > 0 ? (lab.payrollCost / rev.totalRevenue) * 100 : 0;
-    return [{ hotel, rev, lab, dm, gm, score, hotelPayrollPct }];
+    const ooo = getOooRoomsForHotel(hotel.id).length;
+    return [{ hotel, rev, lab, dm, gm, score, hotelPayrollPct, ooo }];
   }).sort((a, b) => a.score.composite - b.score.composite);
 
   const regionalIdForScore = selection.kind === 'regional' ? selection.regionalId : null;
@@ -148,7 +151,7 @@ export default function KrisDashboard() {
                     <td className="py-3 px-4 text-right text-sm font-semibold" style={{ color: '#222' }}>{formatCurrency(row.rev.totalRevenue, true)}</td>
                     <td className="py-3 px-4 text-right text-sm font-medium" style={{ color: row.hotelPayrollPct > 28 ? '#b91c1c' : row.hotelPayrollPct > 24 ? '#b45309' : '#15803d' }}>{formatPct(row.hotelPayrollPct, 1)}</td>
                     <td className="py-3 px-4 text-right text-sm font-semibold" style={{ color: row.lab.variance > 20 ? '#b91c1c' : row.lab.variance > 0 ? '#b45309' : '#15803d' }}>{formatVariance(row.lab.variance)}</td>
-                    <td className="py-3 px-4 text-right text-sm" style={{ color: row.dm.roomsOoo > 0 ? '#b91c1c' : '#3f3f3f' }}>{row.dm.roomsOoo}</td>
+                    <td className="py-3 px-4 text-right text-sm" style={{ color: row.ooo > 0 ? '#b91c1c' : '#3f3f3f' }}>{row.ooo}</td>
                     <td className="py-3 px-4 text-right text-sm font-bold" style={{ color: row.score.composite < 65 ? '#b91c1c' : row.score.composite < 75 ? '#b45309' : '#15803d' }}>{row.score.composite}</td>
                     <td className="py-3 px-4"><MdHealth health={row.rev.health} /></td>
                     <td className="py-3 px-4 text-right">
