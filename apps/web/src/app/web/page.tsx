@@ -10,10 +10,10 @@ const scopeLabel: Record<string, string> = {
 
 export default function PersonaPickerPage() {
   return (
-    <div className="min-h-screen" style={{ background: '#f7f7f7' }}>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#f7f7f7' }}>
       {/* Top bar */}
-      <div className="bg-white border-b" style={{ borderColor: '#dddddd' }}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="bg-white border-b flex-shrink-0" style={{ borderColor: '#dddddd' }}>
+        <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#ff385c' }} />
             <span className="font-bold text-base" style={{ color: '#222222' }}>HOS Management</span>
@@ -24,50 +24,52 @@ export default function PersonaPickerPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: '#222222' }}>
+      {/* Content — fills remaining height, no scroll */}
+      <div className="flex-1 min-h-0 max-w-5xl mx-auto w-full px-6 py-5 flex flex-col gap-4">
+        <div className="flex-shrink-0">
+          <h1 className="text-xl font-bold" style={{ color: '#222222' }}>
             Select your persona
           </h1>
-          <p className="text-sm" style={{ color: '#6a6a6a' }}>
+          <p className="text-xs" style={{ color: '#6a6a6a' }}>
             Web interface — choose a role to preview their dashboard
           </p>
         </div>
 
-        {/* StayOps Accounting OS — standalone product */}
-        <Link href="/web/accounting/dashboard"
-          className="group flex items-center gap-4 mb-6 rounded-2xl p-5 transition-all hover:shadow-md"
-          style={{ background: 'linear-gradient(90deg,#0F172A,#3b2f6b)', border: '1px solid #0F172A' }}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.12)' }}>
-            <span className="text-white font-bold text-xl">S</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-white font-bold text-base">StayOps Accounting OS</p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Hotel-by-hotel bookkeeping for HOS Management · 16 entities · open Sanjay&apos;s books →
-            </p>
-          </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#6a4ec0', color: '#fff' }}>New</span>
-        </Link>
+        {/* Feature access — two standalone entries, side by side */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-shrink-0">
+          <Link href="/web/accounting/dashboard"
+            className="group flex items-center gap-3 rounded-2xl p-4 transition-all hover:shadow-md"
+            style={{ background: 'linear-gradient(90deg,#0F172A,#3b2f6b)', border: '1px solid #0F172A' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <span className="text-white font-bold text-lg">S</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm">StayOps Accounting OS</p>
+              <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                Hotel-by-hotel bookkeeping · 16 entities →
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#6a4ec0', color: '#fff' }}>New</span>
+          </Link>
 
-        {/* Front Desk Access — the shared lobby computer, not a single persona */}
-        <Link href="/web/front-desk/BTRCI/home"
-          className="group flex items-center gap-4 mb-6 rounded-2xl p-5 transition-all hover:shadow-md bg-white"
-          style={{ border: '1px solid #dddddd' }}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fff0f3' }}>
-            <Monitor className="w-6 h-6" style={{ color: '#ff385c' }} />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-base" style={{ color: '#222222' }}>Front Desk Access</p>
-            <p className="text-xs mt-0.5" style={{ color: '#6a6a6a' }}>
-              Shared lobby computer · work orders, service requests, punch, hotel pulse →
-            </p>
-          </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-white" style={{ background: '#ff385c' }}>Live</span>
-        </Link>
+          <Link href="/web/front-desk/BTRCI/home"
+            className="group flex items-center gap-3 rounded-2xl p-4 transition-all hover:shadow-md bg-white"
+            style={{ border: '1px solid #dddddd' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fff0f3' }}>
+              <Monitor className="w-5 h-5" style={{ color: '#ff385c' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm" style={{ color: '#222222' }}>Front Desk Access</p>
+              <p className="text-xs mt-0.5 truncate" style={{ color: '#6a6a6a' }}>
+                Shared lobby computer · work orders, punch →
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white flex-shrink-0" style={{ background: '#ff385c' }}>Live</span>
+          </Link>
+        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* Persona grid — flexes to fill remaining space */}
+        <div className="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 content-start">
           {PERSONAS.map((persona) => {
             const isHighlight = persona.id === 'kris';
             const isBuilt = persona.id === 'kris' || persona.id === 'harshal' || persona.id === 'rishab' || persona.id === 'sravan' || persona.id === 'emma' || persona.id === 'sydney' || persona.id === 'sanjay' || persona.id === 'kwanisha';
@@ -76,7 +78,7 @@ export default function PersonaPickerPage() {
               <Link
                 key={persona.id}
                 href={persona.route}
-                className="group bg-white rounded-2xl p-6 flex flex-col items-center gap-3
+                className="group bg-white rounded-2xl p-4 flex flex-col items-center justify-center gap-2
                            transition-all duration-200 relative overflow-hidden"
                 style={{
                   border: isHighlight ? '2px solid #ff385c' : '1px solid #dddddd',
@@ -90,12 +92,12 @@ export default function PersonaPickerPage() {
                   <img
                     src={persona.avatarUrl}
                     alt={persona.name}
-                    className="w-14 h-14 rounded-full object-cover"
+                    className="w-12 h-12 rounded-full object-cover"
                     style={{ border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}
                   />
                 ) : (
                   <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base"
                     style={{ background: persona.avatarColor }}
                   >
                     {persona.initials}
@@ -104,17 +106,17 @@ export default function PersonaPickerPage() {
 
                 {/* Info */}
                 <div className="text-center">
-                  <p className="font-semibold text-sm leading-tight" style={{ color: '#222222' }}>
+                  <p className="font-semibold text-xs leading-tight" style={{ color: '#222222' }}>
                     {persona.name}
                   </p>
-                  <p className="text-xs mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>
+                  <p className="text-[11px] mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>
                     {persona.title}
                   </p>
                 </div>
 
                 {/* Scope badge */}
                 <span
-                  className="text-xs font-medium px-2 py-0.5 rounded-full"
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                   style={{
                     background: '#f7f7f7',
                     color: '#6a6a6a',
@@ -124,20 +126,17 @@ export default function PersonaPickerPage() {
                   {scopeLabel[persona.scope]}
                 </span>
 
-                {/* "Live" pill for built personas */}
-                {isBuilt && (
+                {/* "Live" / "Soon" pill */}
+                {isBuilt ? (
                   <span
-                    className="absolute top-3 right-3 text-xs font-semibold px-2 py-0.5 rounded-full text-white"
+                    className="absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
                     style={{ background: '#ff385c' }}
                   >
                     Live
                   </span>
-                )}
-
-                {/* Coming soon label for others */}
-                {!isBuilt && (
+                ) : (
                   <span
-                    className="absolute top-3 right-3 text-xs font-medium px-2 py-0.5 rounded-full"
+                    className="absolute top-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
                     style={{ background: '#f7f7f7', color: '#929292', border: '1px solid #dddddd' }}
                   >
                     Soon

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import type { Hotel, LabourMetrics } from '@hos/shared';
 import { formatCurrency, formatVariance, formatPct } from '@hos/shared';
@@ -21,7 +21,12 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
 export function HotelLabourTable({ rows }: { rows: Row[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // When scope narrows to a single hotel, auto-expand its department breakdown.
+  const [expandedId, setExpandedId] = useState<string | null>(rows.length === 1 ? rows[0].hotel.id : null);
+
+  useEffect(() => {
+    if (rows.length === 1) setExpandedId(rows[0].hotel.id);
+  }, [rows]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));

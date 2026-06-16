@@ -13,6 +13,9 @@ interface TopBarProps {
   avatarUrl?: string;
   /** Hide the global hotel/date filters (e.g. accounting uses its own scope bar). */
   hideFilters?: boolean;
+  /** Hide only the hotel selector — single-property personas (Rishab/Emma/Sydney)
+   *  are pinned to one hotel, so choosing a hotel is meaningless. Date stays. */
+  hideHotelSelector?: boolean;
 }
 
 export function TopBar({
@@ -21,10 +24,14 @@ export function TopBar({
   accentColor = '#ff385c',
   avatarUrl,
   hideFilters = false,
+  hideHotelSelector = false,
 }: TopBarProps) {
   const criticalCount = RED_FLAGS.filter((f) => f.severity === 'critical').length;
   const pathname = usePathname();
   const hidePrint = pathname === '/web/kris/am-pm-report' || pathname === '/web/harshal/am-pm-report';
+  // History pages carry their own period picker (Today/MTD/YTD/custom), so the
+  // global date filter is redundant there.
+  const hideDateFilter = !!pathname?.endsWith('/history');
 
   return (
     <header
@@ -50,8 +57,8 @@ export function TopBar({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        {!hideFilters && <HotelSelector />}
-        {!hideFilters && <DateFilter />}
+        {!hideFilters && !hideHotelSelector && <HotelSelector />}
+        {!hideFilters && !hideDateFilter && <DateFilter />}
 
         {/* Print */}
         {!hidePrint && (

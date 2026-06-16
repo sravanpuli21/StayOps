@@ -13,7 +13,7 @@ export default function SydneyLayout({ children }: { children: React.ReactNode }
           footerTitle="Maint Supervisor · Home2 Baton Rouge"
         />
         <div className="flex flex-col flex-1 overflow-hidden">
-          <TopBar initials="SR" firstName="Sydney" accentColor="#7c3aed" />
+          <TopBar initials="SR" firstName="Sydney" accentColor="#7c3aed" hideHotelSelector />
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
       </div>

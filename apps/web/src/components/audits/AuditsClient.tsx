@@ -189,19 +189,23 @@ type ViewLevel = { level: 'portfolio' } | { level: 'hotel'; hotelId: string };
 interface AuditsClientProps {
   hotelIds?: readonly string[];
   initialHotelId?: string;   // single-hotel scope → open that hotel directly
+  lockedHotelId?: string;    // single-property persona: KPIs + that hotel's grid, no portfolio
 }
 
-export function AuditsClient({ hotelIds, initialHotelId }: AuditsClientProps = {}) {
+export function AuditsClient({ hotelIds, initialHotelId, lockedHotelId }: AuditsClientProps = {}) {
   const [view, setView] = useState<ViewLevel>(
-    initialHotelId ? { level: 'hotel', hotelId: initialHotelId } : { level: 'portfolio' },
+    lockedHotelId || initialHotelId
+      ? { level: 'hotel', hotelId: (lockedHotelId ?? initialHotelId)! }
+      : { level: 'portfolio' },
   );
   const [panelStack, setPanelStack] = useState<PanelFrame[]>([]);
 
-  // Follow the global hotel selection.
+  // Follow the global hotel selection. (Skipped when pinned to one property.)
   useEffect(() => {
+    if (lockedHotelId) return;
     setView(initialHotelId ? { level: 'hotel', hotelId: initialHotelId } : { level: 'portfolio' });
     setPanelStack([]);
-  }, [initialHotelId]);
+  }, [initialHotelId, lockedHotelId]);
 
   const push = (frame: PanelFrame) => setPanelStack((s) => [...s, frame]);
   const pop = () => setPanelStack((s) => s.slice(0, -1));
@@ -230,16 +234,21 @@ export function AuditsClient({ hotelIds, initialHotelId }: AuditsClientProps = {
 
   return (
     <div className="relative">
-      {view.level === 'portfolio'
-        ? <PortfolioView onHotelClick={handleHotelClick} hotelIds={hotelIds} />
-        : (
-          <HotelAuditView
-            hotelId={view.hotelId}
-            onBack={() => { setView({ level: 'portfolio' }); closeAll(); }}
-            onRoomClick={handleRoomClick}
-          />
-        )
-      }
+      {lockedHotelId ? (
+        // Single-property persona: KPI cards on top, then the hotel's room grid.
+        <div>
+          <PortfolioKPIs hotelIds={hotelIds ?? [lockedHotelId]} />
+          <HotelAuditView hotelId={lockedHotelId} onRoomClick={handleRoomClick} />
+        </div>
+      ) : view.level === 'portfolio' ? (
+        <PortfolioView onHotelClick={handleHotelClick} hotelIds={hotelIds} />
+      ) : (
+        <HotelAuditView
+          hotelId={view.hotelId}
+          onBack={() => { setView({ level: 'portfolio' }); closeAll(); }}
+          onRoomClick={handleRoomClick}
+        />
+      )}
 
       <RoomAuditPanel
         hotelId={activePanel?.kind === 'room' ? activePanel.hotelId : null}

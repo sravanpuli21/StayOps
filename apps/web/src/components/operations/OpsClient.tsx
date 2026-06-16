@@ -22,21 +22,26 @@ type PanelFrame =
 interface OpsClientProps {
   hotelIds?: readonly string[];   // When provided, filters portfolio to this subset
   initialHotelId?: string;        // When set (single-hotel scope), open that property directly
+  lockedHotelId?: string;         // Single-property persona: always show this hotel, no portfolio
 }
 
-export function OpsClient({ hotelIds, initialHotelId }: OpsClientProps = {}) {
+export function OpsClient({ hotelIds, initialHotelId, lockedHotelId }: OpsClientProps = {}) {
   const [view, setView] = useState<ViewLevel>(
-    initialHotelId ? { level: 'property', hotelId: initialHotelId } : { level: 'portfolio' },
+    lockedHotelId || initialHotelId
+      ? { level: 'property', hotelId: (lockedHotelId ?? initialHotelId)! }
+      : { level: 'portfolio' },
   );
   const [panelStack, setPanelStack] = useState<PanelFrame[]>([]);
 
   // Follow the global hotel selection: switch directly into the property view
   // when a single hotel is chosen, back to portfolio when it's cleared.
+  // (Skipped when lockedHotelId pins the view to one property.)
   useEffect(() => {
+    if (lockedHotelId) return;
     if (initialHotelId) setView({ level: 'property', hotelId: initialHotelId });
     else setView({ level: 'portfolio' });
     setPanelStack([]);
-  }, [initialHotelId]);
+  }, [initialHotelId, lockedHotelId]);
 
   const activePanel = panelStack[panelStack.length - 1] ?? null;
   const prevPanel = panelStack[panelStack.length - 2] ?? null;
@@ -95,9 +100,10 @@ export function OpsClient({ hotelIds, initialHotelId }: OpsClientProps = {}) {
       ) : (
         <PropertyView
           hotelId={view.hotelId}
-          onBack={() => { setView({ level: 'portfolio' }); closeAll(); }}
+          onBack={lockedHotelId ? undefined : () => { setView({ level: 'portfolio' }); closeAll(); }}
           onRoomClick={handleRoomClick}
           onTicketClick={handleTicketClick}
+          showSummaryKpis={!!lockedHotelId}
         />
       )}
 

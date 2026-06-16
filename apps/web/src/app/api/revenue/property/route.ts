@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { GetRevenuePropertyResponseSchema, PropertyQuerySchema, resolveDateRange } from '@hos/shared';
+import { GetRevenuePropertyResponseSchema, PropertyQuerySchema, resolveDateRange, mockRevenueRows } from '@hos/shared';
 import { queryRevenueAggregates } from '@/lib/server/query-revenue';
 import { frozenToday } from '@/lib/server/frozen-today';
 
@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
   });
   const range = resolveDateRange('custom', today, { from: q.from, to: q.to });
   const rows = await queryRevenueAggregates([q.hotelId], q.from, q.to);
-  const body = GetRevenuePropertyResponseSchema.parse({ summary: rows[0] ?? null, range });
+  // Fall back to deterministic mock data when the property has no DB rows yet,
+  // so single-property dashboards (Rishab/Emma/Sydney) always populate.
+  const summary = rows[0] ?? mockRevenueRows([q.hotelId], q.from, q.to)[0] ?? null;
+  const body = GetRevenuePropertyResponseSchema.parse({ summary, range });
   return NextResponse.json(body);
 }

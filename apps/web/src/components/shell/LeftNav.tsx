@@ -32,6 +32,8 @@ import {
   CheckSquare,
   FileText,
   Percent,
+  History,
+  LineChart,
   LucideIcon,
 } from 'lucide-react';
 import { NAV_ITEMS, type NavItem } from '@/lib/constants';
@@ -66,6 +68,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   CheckSquare,
   FileText,
   Percent,
+  History,
+  LineChart,
 };
 
 interface LeftNavProps {

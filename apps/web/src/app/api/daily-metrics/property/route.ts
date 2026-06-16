@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { GetDailyPropertyResponseSchema, PropertyQuerySchema, resolveDateRange } from '@hos/shared';
+import { GetDailyPropertyResponseSchema, PropertyQuerySchema, resolveDateRange, mockDailyRows } from '@hos/shared';
 import { queryDailyAggregates } from '@/lib/server/query-daily';
 import { frozenToday } from '@/lib/server/frozen-today';
 
@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
   });
   const range = resolveDateRange('custom', today, { from: q.from, to: q.to });
   const rows = await queryDailyAggregates([q.hotelId], q.from, q.to);
-  const body = GetDailyPropertyResponseSchema.parse({ summary: rows[0] ?? null, range });
+  // Fall back to mock when the property has no daily metrics yet.
+  const summary = rows[0] ?? mockDailyRows([q.hotelId], q.from, q.to)[0] ?? null;
+  const body = GetDailyPropertyResponseSchema.parse({ summary, range });
   return NextResponse.json(body);
 }

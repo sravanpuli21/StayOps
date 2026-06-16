@@ -27,7 +27,7 @@ export default function OperationsPage() {
         <AIFlagsPanel findings={opsAnomalies} title="Operations AI Findings" />
       )}
 
-      <OpsClient hotelIds={[HOTEL_ID]} />
+      <OpsClient hotelIds={[HOTEL_ID]} lockedHotelId={HOTEL_ID} />
     </div>
   );
 }

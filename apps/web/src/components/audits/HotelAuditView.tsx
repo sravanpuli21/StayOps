@@ -8,7 +8,8 @@ import { ChevronLeft } from 'lucide-react';
 
 interface Props {
   hotelId: string;
-  onBack: () => void;
+  /** Back to the properties list. Omit for single-property personas. */
+  onBack?: () => void;
   onRoomClick: (roomNumber: string) => void;
 }
 
@@ -50,15 +51,19 @@ export function HotelAuditView({ hotelId, onBack, onRoomClick }: Props) {
         className="px-8 py-5 flex items-center gap-4 flex-shrink-0"
         style={{ borderBottom: '1px solid #dddddd', background: '#ffffff' }}
       >
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-70"
-          style={{ color: '#ff385c' }}
-        >
-          <ChevronLeft className="w-4 h-4" />
-          All Properties
-        </button>
-        <div className="w-px h-5" style={{ background: '#dddddd' }} />
+        {onBack && (
+          <>
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-70"
+              style={{ color: '#ff385c' }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              All Properties
+            </button>
+            <div className="w-px h-5" style={{ background: '#dddddd' }} />
+          </>
+        )}
         <div>
           <p className="text-base font-bold" style={{ color: '#222222' }}>{hotel.name}</p>
           <p className="text-xs" style={{ color: '#929292' }}>{hotel.brand} · {hotel.city}, {hotel.state} · {hotel.rooms} rooms</p>

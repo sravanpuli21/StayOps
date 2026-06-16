@@ -234,6 +234,93 @@ export function mockDailyRows(hotelIds: string[], from: string, to: string): Api
   });
 }
 
+// ── Historic strategy roll-up (GM year-over-year comparisons) ───────────────
+export interface HistoryWindow {
+  occupancyPct: number;   // %
+  adr: number;            // $
+  revPar: number;         // $
+  roomsSold: number;
+  roomNights: number;     // available room-nights in window
+  totalRevenue: number;   // $
+  roomRevenue: number;    // $
+  nonRoomRevenue: number; // $
+  operatingCost: number;  // $ (labour proxy — the cost we model per day)
+  payrollCost: number;    // $
+  profit: number;         // $ (revenue − operating cost), demo proxy
+  roomsOoo: number;
+  csat: number;           // avg
+  days: number;
+}
+
+/**
+ * Aggregate the deterministic per-day metrics for one hotel over [from, to].
+ * Because dayMetric is a pure function of (hotelId, date), shifting the window
+ * back a year gives a stable "same period last year" comparison for free.
+ */
+export function mockHistoryWindow(hotelId: string, from: string, to: string): HistoryWindow {
+  const days = enumerateDays(from, to);
+  const ds = days.map((d) => dayMetric(hotelId, d));
+  const roomsSold = ds.reduce((s, m) => s + m.roomsSold, 0);
+  const roomNights = ds.reduce((s, m) => s + m.roomsAvailable, 0);
+  const totalRevenue = ds.reduce((s, m) => s + m.totalRevenue, 0);
+  const roomRevenue = ds.reduce((s, m) => s + m.roomRevenue, 0);
+  const payrollCost = ds.reduce((s, m) => s + m.payrollCost, 0);
+  const roomsOoo = ds.reduce((s, m) => s + m.roomsOoo, 0);
+  const occupancyPct = roomNights > 0 ? Math.round((roomsSold / roomNights) * 1000) / 10 : 0;
+  const adr = roomsSold > 0 ? Math.round(roomRevenue / roomsSold) : 0;
+  const revPar = roomNights > 0 ? Math.round(roomRevenue / roomNights) : 0;
+  // Operating cost proxy: payroll + a modeled fixed/variable overhead (~32% of revenue).
+  const operatingCost = Math.round(payrollCost + totalRevenue * 0.32);
+  const csatWeighted = roomsSold > 0
+    ? ds.reduce((s, m) => s + m.csat * m.roomsSold, 0) / roomsSold
+    : (ds.reduce((s, m) => s + m.csat, 0) / Math.max(ds.length, 1));
+  return {
+    occupancyPct, adr, revPar, roomsSold, roomNights,
+    totalRevenue, roomRevenue, nonRoomRevenue: Math.max(0, totalRevenue - roomRevenue),
+    operatingCost, payrollCost, profit: totalRevenue - operatingCost,
+    roomsOoo, csat: Math.round(csatWeighted * 100) / 100, days: days.length,
+  };
+}
+
+/** Same window shifted back N years (keeps month/day, subtracts from year). */
+export function shiftYears(dateIso: string, years: number): string {
+  const [y, m, d] = dateIso.split('-').map(Number);
+  return `${y - years}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+/**
+ * Aggregate a history window across multiple hotels (portfolio / region scope).
+ * Sums the additive quantities and re-derives the rate metrics so occupancy,
+ * ADR, RevPAR and CSAT stay correctly weighted across the group.
+ */
+export function mockHistoryWindowMulti(hotelIds: string[], from: string, to: string): HistoryWindow {
+  if (hotelIds.length === 0) {
+    return { occupancyPct: 0, adr: 0, revPar: 0, roomsSold: 0, roomNights: 0, totalRevenue: 0, roomRevenue: 0, nonRoomRevenue: 0, operatingCost: 0, payrollCost: 0, profit: 0, roomsOoo: 0, csat: 0, days: enumerateDays(from, to).length };
+  }
+  const ws = hotelIds.map((id) => mockHistoryWindow(id, from, to));
+  const sum = (pick: (w: HistoryWindow) => number) => ws.reduce((s, w) => s + pick(w), 0);
+  const roomsSold = sum((w) => w.roomsSold);
+  const roomNights = sum((w) => w.roomNights);
+  const totalRevenue = sum((w) => w.totalRevenue);
+  const roomRevenue = sum((w) => w.roomRevenue);
+  const payrollCost = sum((w) => w.payrollCost);
+  const operatingCost = sum((w) => w.operatingCost);
+  const roomsOoo = sum((w) => w.roomsOoo);
+  // CSAT weighted by rooms sold across the group.
+  const csat = roomsSold > 0
+    ? Math.round((ws.reduce((s, w) => s + w.csat * w.roomsSold, 0) / roomsSold) * 100) / 100
+    : Math.round((ws.reduce((s, w) => s + w.csat, 0) / ws.length) * 100) / 100;
+  return {
+    occupancyPct: roomNights > 0 ? Math.round((roomsSold / roomNights) * 1000) / 10 : 0,
+    adr: roomsSold > 0 ? Math.round(roomRevenue / roomsSold) : 0,
+    revPar: roomNights > 0 ? Math.round(roomRevenue / roomNights) : 0,
+    roomsSold, roomNights, totalRevenue, roomRevenue,
+    nonRoomRevenue: Math.max(0, totalRevenue - roomRevenue),
+    operatingCost, payrollCost, profit: totalRevenue - operatingCost,
+    roomsOoo, csat, days: ws[0]?.days ?? enumerateDays(from, to).length,
+  };
+}
+
 /**
  * Revenue mix breakdown (the 4-level OnQ taxonomy: Type > SubtypeGroup >
  * Subtype lines) for the "Revenue Mix by Source" drill-down. Derived from the

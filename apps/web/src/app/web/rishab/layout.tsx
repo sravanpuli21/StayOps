@@ -13,7 +13,7 @@ export default function RishabLayout({ children }: { children: React.ReactNode }
           footerTitle="GM · Home2 Baton Rouge"
         />
         <div className="flex flex-col flex-1 overflow-hidden">
-          <TopBar initials="RP" firstName="Rishab" accentColor="#1e40af" />
+          <TopBar initials="RP" firstName="Rishab" accentColor="#1e40af" hideHotelSelector />
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
       </div>

@@ -27,12 +27,16 @@ import { useApi } from '@/lib/use-api';
 import { apiKeys } from '@/lib/swr-keys';
 import { useDateFilter } from '@/lib/date-filter-context';
 import { OPS_PILLS, ROOM_COLORS, TILE_CFG, statusFromType } from './_constants';
+import { KpiCard } from '@/components/common/KpiCard';
 
 interface Props {
   hotelId: string;
-  onBack: () => void;
+  /** Back to portfolio. Omit for single-property personas (no portfolio above). */
+  onBack?: () => void;
   onRoomClick: (room: Room) => void;
   onTicketClick: (ticket: MaintenanceTicket) => void;
+  /** Show the 4 summary KPI cards (Available/Occupied/Dirty/Assigned) on top. */
+  showSummaryKpis?: boolean;
 }
 
 const TYPE_FILTERS: { label: string; value: TicketType | 'all' }[] = [
@@ -63,7 +67,7 @@ function fmtDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Props) {
+export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick, showSummaryKpis }: Props) {
   const [ticketFilter, setTicketFilter] = useState<TicketType | 'all'>('all');
   const [ticketTab, setTicketTab] = useState<'current' | 'closed'>('current');
   const [showNewTicket, setShowNewTicket] = useState(false);
@@ -165,23 +169,49 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
     setReassignFor(null);
   };
 
+  // Summary KPI counts (single-property header). Prefer live opsStats; fall
+  // back to the room-grid status buckets so the cards never read all-zero.
+  const metricToday = (t: string) => opsStats?.metrics.find((x) => x.type === t)?.today ?? 0;
+  const totalRooms = rooms.length || hotel.rooms;
+  const occupiedCount = (metricToday('Room.Occupied') + metricToday('Room.Stayover')) || counts.occupied || 0;
+  const stayoverCount = metricToday('Room.Stayover');
+  const availableCount = metricToday('Room.Available') || counts.ready || 0;
+  const dirtyCount = metricToday('Room.Dirty') || counts.dirty || 0;
+  const assignedCount = metricToday('Room.Assigned') || counts.inspecting || 0;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 text-sm font-semibold mb-2 hover:underline"
-          style={{ color: '#ff385c' }}
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Portfolio
-        </button>
-        <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{hotel.name}</h1>
-        <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
-          {hotel.city}, {hotel.state} · {hotel.brand} · {hotel.rooms} rooms
-        </p>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 text-sm font-semibold mb-2 hover:underline"
+            style={{ color: '#ff385c' }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Portfolio
+          </button>
+        )}
+        {!showSummaryKpis && (
+          <>
+            <h1 className="text-xl font-bold" style={{ color: '#222222' }}>{hotel.name}</h1>
+            <p className="text-sm mt-0.5" style={{ color: '#929292' }}>
+              {hotel.city}, {hotel.state} · {hotel.brand} · {hotel.rooms} rooms
+            </p>
+          </>
+        )}
       </div>
+
+      {/* Summary KPI cards (single-property) */}
+      {showSummaryKpis && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard label="Available" value={`${availableCount} / ${totalRooms}`} subtext={totalRooms > 0 ? `${((availableCount / totalRooms) * 100).toFixed(1)}% ready to assign` : '—'} size="large" />
+          <KpiCard label="Occupied" value={occupiedCount.toString()} subtext={`incl. ${stayoverCount} stayover`} size="large" />
+          <KpiCard label="Dirty" value={dirtyCount.toString()} subtext="awaiting housekeeping" alert={totalRooms > 0 && dirtyCount / totalRooms > 0.15} size="large" />
+          <KpiCard label="Assigned" value={assignedCount.toString()} subtext="arriving today" size="large" />
+        </div>
+      )}
 
       {/* Status summary pills — sourced from night_audit_rows operational counts */}
       <div className="flex items-center gap-2 flex-wrap">

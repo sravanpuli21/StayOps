@@ -15,7 +15,7 @@ export default function Page() {
         </p>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <AuditsClient hotelIds={[HOTEL_ID]} />
+        <AuditsClient hotelIds={[HOTEL_ID]} lockedHotelId={HOTEL_ID} />
       </div>
     </div>
   );

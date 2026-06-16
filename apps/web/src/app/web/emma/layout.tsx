@@ -13,7 +13,7 @@ export default function EmmaLayout({ children }: { children: React.ReactNode }) 
           footerTitle="HK Supervisor · Home2 Baton Rouge"
         />
         <div className="flex flex-col flex-1 overflow-hidden">
-          <TopBar initials="EJ" firstName="Emma" accentColor="#428bff" />
+          <TopBar initials="EJ" firstName="Emma" accentColor="#428bff" hideHotelSelector />
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { GetLabourPropertyResponseSchema, PropertyQuerySchema, resolveDateRange } from '@hos/shared';
+import { GetLabourPropertyResponseSchema, PropertyQuerySchema, resolveDateRange, mockLabourRows } from '@hos/shared';
 import { queryLabourAggregates } from '@/lib/server/query-labour';
 import { frozenToday } from '@/lib/server/frozen-today';
 
@@ -15,6 +15,12 @@ export async function GET(req: NextRequest) {
   });
   const range = resolveDateRange('custom', today, { from: q.from, to: q.to });
   const rows = await queryLabourAggregates([q.hotelId], q.from, q.to);
-  const body = GetLabourPropertyResponseSchema.parse({ summary: rows[0] ?? null, range });
+  // Fall back to mock when the property has no labour rows (or only an empty
+  // zeroed summary) so single-property dashboards always populate.
+  const dbRow = rows[0];
+  const summary = dbRow && dbRow.scheduledHours > 0
+    ? dbRow
+    : mockLabourRows([q.hotelId], q.from, q.to)[0] ?? null;
+  const body = GetLabourPropertyResponseSchema.parse({ summary, range });
   return NextResponse.json(body);
 }

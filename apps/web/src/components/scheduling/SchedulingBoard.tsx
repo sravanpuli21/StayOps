@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Sparkles, Check, X, Plus, Minus, AlertTriangle, Lock, Send, Pin as PinIcon,
-  Star, RefreshCw, ChevronRight, UserPlus, Crown,
+  Star, RefreshCw, ChevronRight, UserPlus, Crown, Clock, CheckCircle2,
 } from 'lucide-react';
 import {
   getEmployeesForHotel, SHIFT_META,
@@ -86,6 +86,28 @@ function fmt12(hhmm: string): string {
   const mer = h >= 12 ? 'p' : 'a';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}${mer}`;
+}
+
+// ── Availability submission (who turned in their time for the week) ─────────
+// Deterministic per employee × week so the demo is stable. Most submit; a few
+// are still pending. Submitted ones get a day/time stamp.
+const SUBMIT_DAYS = ['Mon', 'Tue', 'Wed'];
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+interface SubmissionStatus { submitted: boolean; when: string | null }
+function availabilitySubmission(employeeId: string, weekId: WeekId): SubmissionStatus {
+  const h = hashStr(`${employeeId}-${weekId}-avail`);
+  // ~80% submitted.
+  const submitted = h % 100 >= 20;
+  if (!submitted) return { submitted: false, when: null };
+  const day = SUBMIT_DAYS[h % SUBMIT_DAYS.length];
+  const hour = 8 + (h % 9); // 8a–4p
+  const mer = hour >= 12 ? 'p' : 'a';
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return { submitted: true, when: `${day} ${h12}${mer}` };
 }
 
 function demand(team: EmployeeTeam, day: DayCode, shift: ShiftCode, dailyFd: Record<DayCode, FdDay>): number {
@@ -497,6 +519,76 @@ export function SchedulingBoard({ employeeHrefBase = '/web/rishab/employee' }: S
           )
         )}
       </div>
+
+      {/* Availability submissions — who turned in their time for this week */}
+      {(() => {
+        const roster = baseTeamEmployees.map((e) => ({ e, sub: availabilitySubmission(e.id, activeWeek) }));
+        const submitted = roster.filter((r) => r.sub.submitted);
+        const pending = roster.filter((r) => !r.sub.submitted);
+        const wk = WEEKS.find((w) => w.id === activeWeek)!;
+        return (
+          <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #dddddd' }}>
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>
+                  Availability submitted · {activeTeam}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#929292' }}>
+                  Who turned in their time for {wk.label} ({wk.range})
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: '#047857' }}>
+                  <CheckCircle2 className="w-4 h-4" /> {submitted.length} submitted
+                </span>
+                {pending.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: '#b45309' }}>
+                    <Clock className="w-4 h-4" /> {pending.length} pending
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-1.5 w-full rounded-full overflow-hidden mb-4" style={{ background: '#f0f0f0' }}>
+              <div className="h-full rounded-full" style={{ width: `${roster.length ? (submitted.length / roster.length) * 100 : 0}%`, background: '#16a34a' }} />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-2">
+              {[...submitted, ...pending].map(({ e, sub }) => (
+                <div
+                  key={e.id}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+                  style={{ background: sub.submitted ? '#f6fef9' : '#fffbeb', border: `1px solid ${sub.submitted ? '#bbf7d0' : '#fde68a'}` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                    style={{ background: sub.submitted ? '#dcfce7' : '#fef3c7', color: sub.submitted ? '#047857' : '#b45309' }}
+                  >
+                    {e.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: '#222' }}>{e.name}</p>
+                    <p className="text-[11px]" style={{ color: '#929292' }}>{e.role}</p>
+                  </div>
+                  {sub.submitted ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold flex-shrink-0" style={{ color: '#047857' }}>
+                      <Check className="w-3 h-3" /> {sub.when}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold flex-shrink-0" style={{ color: '#b45309' }}>
+                      <Clock className="w-3 h-3" /> Pending
+                    </span>
+                  )}
+                </div>
+              ))}
+              {roster.length === 0 && (
+                <p className="text-sm col-span-2 text-center py-4" style={{ color: '#929292' }}>No active staff on this team.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Staffing targets + Manual pins */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
