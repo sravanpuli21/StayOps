@@ -53,6 +53,9 @@ const ACTIVITY_ICON: Record<string, string> = {
   'Task generated': '📋',
   'Task due': '📅',
   'Completed': '✅',
+  'Closed': '✅',
+  'Reassigned': '🔀',
+  'Routed to manager': '🧑‍💼',
 };
 
 export function TicketDetailPanel({ ticket, onClose, backLabel, onBack }: Props) {
@@ -114,13 +117,27 @@ export function TicketDetailPanel({ ticket, onClose, backLabel, onBack }: Props)
             </div>
           </div>
           <div className="flex items-start gap-2">
-            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#929292' }} />
+            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: ticket.closedAt ? '#15803d' : '#929292' }} />
             <div>
-              <p className="text-xs" style={{ color: '#929292' }}>Last update</p>
-              <p className="text-sm font-medium" style={{ color: '#222222' }}>{fmtTime(ticket.updatedAt)}</p>
+              <p className="text-xs" style={{ color: '#929292' }}>{ticket.closedAt ? 'Closed' : 'Last update'}</p>
+              <p className="text-sm font-medium" style={{ color: ticket.closedAt ? '#15803d' : '#222222' }}>{fmtDateTime(ticket.closedAt ?? ticket.updatedAt)}</p>
             </div>
           </div>
         </div>
+
+        {/* Resolution summary for closed/resolved tickets */}
+        {ticket.closedAt && (() => {
+          const resolution = ticket.activity.find((a) => /closed|resolved|completed/i.test(a.action));
+          return (
+            <div className="rounded-xl p-4" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+              <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: '#15803d' }}>Resolution</p>
+              <p className="text-sm" style={{ color: '#166534' }}>
+                {resolution?.note ?? 'Work completed and verified.'}
+                {ticket.assignedTo ? ` — ${ticket.assignedTo}` : ''}
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Cost / Revenue impact */}
         {(ticket.estimatedCost || ticket.revenueLost) && (

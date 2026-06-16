@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getRoomByNumber, getActiveTicketsForRoom, getInventoryForRoom,
   getAuditHistoryForRoom, getInventoryItemById, MAINTENANCE_TICKETS,
@@ -21,11 +21,22 @@ type PanelFrame =
 
 interface OpsClientProps {
   hotelIds?: readonly string[];   // When provided, filters portfolio to this subset
+  initialHotelId?: string;        // When set (single-hotel scope), open that property directly
 }
 
-export function OpsClient({ hotelIds }: OpsClientProps = {}) {
-  const [view, setView] = useState<ViewLevel>({ level: 'portfolio' });
+export function OpsClient({ hotelIds, initialHotelId }: OpsClientProps = {}) {
+  const [view, setView] = useState<ViewLevel>(
+    initialHotelId ? { level: 'property', hotelId: initialHotelId } : { level: 'portfolio' },
+  );
   const [panelStack, setPanelStack] = useState<PanelFrame[]>([]);
+
+  // Follow the global hotel selection: switch directly into the property view
+  // when a single hotel is chosen, back to portfolio when it's cleared.
+  useEffect(() => {
+    if (initialHotelId) setView({ level: 'property', hotelId: initialHotelId });
+    else setView({ level: 'portfolio' });
+    setPanelStack([]);
+  }, [initialHotelId]);
 
   const activePanel = panelStack[panelStack.length - 1] ?? null;
   const prevPanel = panelStack[panelStack.length - 2] ?? null;

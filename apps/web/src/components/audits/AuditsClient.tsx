@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { HOTELS, getPortfolioAuditStats } from '@hos/shared';
 import type { AuditAreaId } from '@hos/shared';
 import { HotelAuditView } from './HotelAuditView';
@@ -188,11 +188,20 @@ type ViewLevel = { level: 'portfolio' } | { level: 'hotel'; hotelId: string };
 
 interface AuditsClientProps {
   hotelIds?: readonly string[];
+  initialHotelId?: string;   // single-hotel scope → open that hotel directly
 }
 
-export function AuditsClient({ hotelIds }: AuditsClientProps = {}) {
-  const [view, setView] = useState<ViewLevel>({ level: 'portfolio' });
+export function AuditsClient({ hotelIds, initialHotelId }: AuditsClientProps = {}) {
+  const [view, setView] = useState<ViewLevel>(
+    initialHotelId ? { level: 'hotel', hotelId: initialHotelId } : { level: 'portfolio' },
+  );
   const [panelStack, setPanelStack] = useState<PanelFrame[]>([]);
+
+  // Follow the global hotel selection.
+  useEffect(() => {
+    setView(initialHotelId ? { level: 'hotel', hotelId: initialHotelId } : { level: 'portfolio' });
+    setPanelStack([]);
+  }, [initialHotelId]);
 
   const push = (frame: PanelFrame) => setPanelStack((s) => [...s, frame]);
   const pop = () => setPanelStack((s) => s.slice(0, -1));

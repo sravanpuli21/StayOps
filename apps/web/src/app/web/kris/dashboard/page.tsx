@@ -139,7 +139,7 @@ export default function KrisDashboard() {
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={row.hotel.id} className="cursor-pointer hover:bg-[#fafafa] transition-colors" style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }} onClick={() => { window.location.href = `/web/harshal/hotel/${row.hotel.id}`; }}>
+                  <tr key={row.hotel.id} className="cursor-pointer hover:bg-[#fafafa] transition-colors" style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }} onClick={() => { window.location.href = `/web/kris/hotel/${row.hotel.id}`; }}>
                     <td className="py-3 px-4">
                       <p className="font-medium text-sm" style={{ color: '#222' }}>{row.hotel.shortName}</p>
                       {row.gm && <p className="text-xs mt-0.5" style={{ color: '#929292' }}>GM · {row.gm.name}</p>}
@@ -155,7 +155,7 @@ export default function KrisDashboard() {
                     <td className="py-3 px-4 text-right text-sm font-bold" style={{ color: row.score.composite < 65 ? '#b91c1c' : row.score.composite < 75 ? '#b45309' : '#15803d' }}>{row.score.composite}</td>
                     <td className="py-3 px-4"><MdHealth health={row.rev.health} /></td>
                     <td className="py-3 px-4 text-right">
-                      <Link href={`/web/harshal/hotel/${row.hotel.id}`} className="inline-flex items-center gap-0.5 text-xs font-semibold hover:underline" style={{ color: '#ff385c' }} onClick={(e) => e.stopPropagation()}>View <ChevronRight className="w-3 h-3" /></Link>
+                      <Link href={`/web/kris/hotel/${row.hotel.id}`} className="inline-flex items-center gap-0.5 text-xs font-semibold hover:underline" style={{ color: '#ff385c' }} onClick={(e) => e.stopPropagation()}>View <ChevronRight className="w-3 h-3" /></Link>
                     </td>
                   </tr>
                 ))}
@@ -164,6 +164,34 @@ export default function KrisDashboard() {
           </div>
         </div>
       )}
+
+      {/* Single-hotel scope: the ranked table collapses to KPI cards for that hotel. */}
+      {hotels.length === 1 && rows.length === 1 && (() => {
+        const r = rows[0];
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Hotel Performance — Ranked</h2>
+              <Link href={`/web/kris/hotel/${r.hotel.id}`} className="inline-flex items-center gap-0.5 text-xs font-semibold hover:underline" style={{ color: '#ff385c' }}>Open hotel <ChevronRight className="w-3 h-3" /></Link>
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <p className="text-base font-bold" style={{ color: '#222' }}>{r.hotel.shortName}</p>
+              {r.gm && <span className="text-xs" style={{ color: '#929292' }}>GM · {r.gm.name}</span>}
+              <MdHealth health={r.rev.health} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <MdKpi label="Composite Score" value={r.score.composite.toString()} subtext={`${r.score.trendDirection === 'up' ? '↗' : r.score.trendDirection === 'down' ? '↘' : '→'} ${formatVariance(r.score.trendDelta)} trend`} alert={r.score.composite < 65} />
+              <MdKpi label="Occupancy" value={formatPct(r.rev.occupancyPct, 0)} subtext={`${r.hotel.rooms} rooms`} />
+              <MdKpi label="ADR" value={formatCurrency(r.rev.adr)} subtext={`RevPAR ${formatCurrency(r.rev.revPar)}`} />
+              <MdKpi label="Revenue" value={formatCurrency(r.rev.totalRevenue, true)} subtext="this period" />
+              <MdKpi label="Payroll %" value={formatPct(r.hotelPayrollPct, 1)} subtext="of revenue" alert={r.hotelPayrollPct > 28} />
+              <MdKpi label="Hours Variance" value={formatVariance(r.lab.variance) + ' hrs'} subtext="sched vs clocked" alert={r.lab.variance > 20} />
+              <MdKpi label="OOO Rooms" value={r.ooo.toString()} subtext={`${formatPct((r.ooo / r.hotel.rooms) * 100, 1)} of inventory`} alert={r.ooo > 0} />
+              <MdKpi label="Health" value={r.rev.health === 'green' ? 'On track' : r.rev.health === 'amber' ? 'Watch' : 'At risk'} alert={r.rev.health === 'red'} />
+            </div>
+          </div>
+        );
+      })()}
 
       <MdDrawer open={openKpi !== null} onClose={() => setOpenKpi(null)} title={KPI_META[openKpi ?? 'revenue']?.title ?? ''} subtitle={`${scopeLabel} · ${period.label}`}>
         {openKpi === 'occupancy'     && <OccupancyDetail  {...scoped} />}

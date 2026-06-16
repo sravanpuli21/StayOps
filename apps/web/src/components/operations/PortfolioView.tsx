@@ -23,8 +23,15 @@ const TYPE_FILTERS: { label: string; value: TicketType | 'all' }[] = [
   { label: 'Audit', value: 'audit' },
 ];
 
+// Deterministic "now" so server and client render identical strings (no
+// hydration mismatch). Honors the frozen demo clock when set.
+const NOW_MS = (() => {
+  const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+  return frozen ? new Date(`${frozen}T12:00:00Z`).getTime() : Date.now();
+})();
+
 function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = NOW_MS - new Date(iso).getTime();
   const h = Math.floor(diff / 3600000);
   const d = Math.floor(h / 24);
   if (d > 1) return `${d}d ago`;

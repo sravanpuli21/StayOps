@@ -6,7 +6,9 @@ import { useScopedData } from '@/lib/use-scoped-data';
 import { useAnomalies } from '@/lib/ai-data';
 
 export default function OperationsPage() {
-  const { hotels, hotelIdSet, scopeSub } = useScopedData();
+  const { hotels, hotelIdSet, scopeSub, selection } = useScopedData();
+  const hotelIds = hotels.map((h) => h.id);
+  const initialHotelId = selection.kind === 'single' ? selection.hotelId : undefined;
   const opsAnomalies = useAnomalies().filter(
     (a) => a.module === 'operations' && hotelIdSet.has(a.hotelId),
   );
@@ -22,7 +24,7 @@ export default function OperationsPage() {
         <AIFlagsPanel findings={opsAnomalies} title="Operations AI Findings" />
       )}
 
-      <OpsClient hotelIds={hotels.map((h) => h.id)} />
+      <OpsClient hotelIds={hotelIds} initialHotelId={initialHotelId} />
     </div>
   );
 }

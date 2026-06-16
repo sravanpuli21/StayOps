@@ -2,12 +2,27 @@
 
 import { useMemo, useState } from 'react';
 import {
-  HOTELS, getRoomsForHotel, getActiveTicketsForHotel, getAuditTasksForHotel,
-  resolveDateRange, type DateRangeKind,
+  HOTELS, GM_ROSTER, getRoomsForHotel, getOpenTicketsForHotel, getClosedTicketsForHotel,
+  getAuditTasksForHotel, resolveDateRange, type DateRangeKind,
 } from '@hos/shared';
-import type { Room, MaintenanceTicket, TicketType } from '@hos/shared';
+import type { Room, MaintenanceTicket, TicketType, TicketPriority } from '@hos/shared';
 import { TicketTypeBadge, PriorityDot, TicketStatusBadge, AuditStatusBadge } from './OpsBadges';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Plus, X, CheckCircle2, Bell, Wrench, Sparkles, UserCog, ArrowRight } from 'lucide-react';
+
+// Assign-to teams/roles for a new ticket. "Manager" routes to the hotel GM,
+// who is notified and can reassign to the right team or person.
+type AssignTeam = 'Engineering' | 'Housekeeping' | 'Manager';
+const ASSIGN_LABEL: Record<AssignTeam, string> = {
+  Engineering: 'Engineering Team',
+  Housekeeping: 'Housekeeping Team',
+  Manager: 'Manager',
+};
+// Targets the manager can route a ticket to.
+const REASSIGN_TARGETS = [
+  { group: 'Engineering', people: ['Engineering Team', 'Amir Lopez', 'Marcus Chen', 'Tom Becker'] },
+  { group: 'Housekeeping', people: ['Housekeeping Team', 'Priya Nair', 'Sofia Reyes'] },
+  { group: 'Front Desk', people: ['Front Desk Team', 'Dwayne Ellis'] },
+];
 import { useApi } from '@/lib/use-api';
 import { apiKeys } from '@/lib/swr-keys';
 import { useDateFilter } from '@/lib/date-filter-context';
@@ -28,8 +43,15 @@ const TYPE_FILTERS: { label: string; value: TicketType | 'all' }[] = [
   { label: 'Escalation', value: 'escalation' },
 ];
 
+// Deterministic "now" so server and client render identical strings (no
+// hydration mismatch). Honors the frozen demo clock when set.
+const NOW_MS = (() => {
+  const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+  return frozen ? new Date(`${frozen}T12:00:00Z`).getTime() : Date.now();
+})();
+
 function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = NOW_MS - new Date(iso).getTime();
   const h = Math.floor(diff / 3600000);
   const d = Math.floor(h / 24);
   if (d > 1) return `${d}d ago`;
@@ -43,8 +65,17 @@ function fmtDate(dateStr: string): string {
 
 export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Props) {
   const [ticketFilter, setTicketFilter] = useState<TicketType | 'all'>('all');
+  const [ticketTab, setTicketTab] = useState<'current' | 'closed'>('current');
+  const [showNewTicket, setShowNewTicket] = useState(false);
+  // Locally-created tickets (demo): prepended to the current queue for this hotel.
+  const [createdTickets, setCreatedTickets] = useState<MaintenanceTicket[]>([]);
   const hotel = HOTELS.find((h) => h.id === hotelId)!;
-  const tickets = getActiveTicketsForHotel(hotelId);
+  const openTickets = useMemo(
+    () => [...createdTickets, ...getOpenTicketsForHotel(hotelId)],
+    [hotelId, createdTickets],
+  );
+  const closedTickets = useMemo(() => getClosedTicketsForHotel(hotelId), [hotelId]);
+  const tickets = ticketTab === 'current' ? openTickets : closedTickets;
   const auditTasks = getAuditTasksForHotel(hotelId);
 
   // ── Live operational counts (status pills) — driven by night_audit_rows ──
@@ -105,11 +136,34 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
     ticketFilter === 'all' || t.type === ticketFilter,
   );
 
-  // Per-room ticket counts so each tile can show a corner badge
+  // Per-room ticket counts so each tile can show a corner badge (open only).
   const ticketsByRoom: Record<string, number> = {};
-  for (const t of tickets) {
+  for (const t of openTickets) {
     if (t.roomNumber) ticketsByRoom[t.roomNumber] = (ticketsByRoom[t.roomNumber] ?? 0) + 1;
   }
+
+  const addTicket = (t: MaintenanceTicket) => {
+    setCreatedTickets((prev) => [t, ...prev]);
+    setTicketTab('current');
+    setShowNewTicket(false);
+  };
+
+  // Manager re-routes a ticket that was assigned to them → update it in place.
+  const [reassignFor, setReassignFor] = useState<MaintenanceTicket | null>(null);
+  const reassignTicket = (ticketId: string, target: string) => {
+    setCreatedTickets((prev) => prev.map((t) => t.id === ticketId ? {
+      ...t,
+      assignedTo: target,
+      status: 'assigned',
+      updatedAt: NEW_TICKET_NOW_ISO,
+      department: /housekeep/i.test(target) ? 'Housekeeping' : /engineer/i.test(target) ? 'Engineering' : t.department,
+      activity: [
+        { timestamp: NEW_TICKET_NOW_ISO, actor: 'Manager', action: 'Reassigned', note: `Routed to ${target}` },
+        ...t.activity,
+      ],
+    } : t));
+    setReassignFor(null);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -224,10 +278,36 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
 
       {/* Property ticket queue */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>
-            Ticket Queue ({tickets.length})
-          </h2>
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>
+              Tickets
+            </h2>
+            {/* Current / Closed tabs */}
+            <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: '#f0f0f0' }}>
+              <button
+                onClick={() => { setTicketTab('current'); setTicketFilter('all'); }}
+                className="px-3 py-1 rounded-md text-xs font-semibold transition-colors"
+                style={{ background: ticketTab === 'current' ? '#fff' : 'transparent', color: ticketTab === 'current' ? '#222' : '#6a6a6a' }}
+              >
+                Current ({openTickets.length})
+              </button>
+              <button
+                onClick={() => { setTicketTab('closed'); setTicketFilter('all'); }}
+                className="px-3 py-1 rounded-md text-xs font-semibold transition-colors"
+                style={{ background: ticketTab === 'closed' ? '#fff' : 'transparent', color: ticketTab === 'closed' ? '#222' : '#6a6a6a' }}
+              >
+                Closed ({closedTickets.length})
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowNewTicket(true)}
+            className="h-9 px-3.5 rounded-xl text-sm font-semibold inline-flex items-center gap-1.5"
+            style={{ background: '#ff385c', color: '#fff' }}
+          >
+            <Plus className="w-4 h-4" /> New Ticket
+          </button>
         </div>
 
         {/* Type filter */}
@@ -259,7 +339,7 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
             className="rounded-2xl px-6 py-8 text-center text-sm"
             style={{ border: '1px solid #dddddd', color: '#929292' }}
           >
-            No tickets found
+            {ticketTab === 'current' ? 'No open tickets' : 'No closed tickets'}
           </div>
         ) : (
           <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #dddddd' }}>
@@ -272,7 +352,8 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Issue</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Priority</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Age</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Assigned</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>{ticketTab === 'closed' ? 'Closed' : 'Age'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -293,7 +374,25 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
                       </td>
                       <td className="px-4 py-3"><PriorityDot priority={ticket.priority} /></td>
                       <td className="px-4 py-3"><TicketStatusBadge status={ticket.status} /></td>
-                      <td className="px-4 py-3 text-xs" style={{ color: '#929292' }}>{timeAgo(ticket.createdAt)}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: '#444' }}>
+                        {ticket.status === 'callback_pending' && ticket.assignedTo && GM_ROSTER.some((g) => g.name === ticket.assignedTo) ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="text-xs font-medium" style={{ color: '#b45309' }}>{ticket.assignedTo}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setReassignFor(ticket); }}
+                              className="text-[11px] font-semibold inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full"
+                              style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309' }}
+                            >
+                              <ArrowRight className="w-3 h-3" /> Reassign
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="text-xs" style={{ color: ticket.assignedTo ? '#444' : '#c1c1c1' }}>{ticket.assignedTo ?? 'Unassigned'}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: '#929292' }}>
+                        {ticketTab === 'closed' && ticket.closedAt ? fmtDate(ticket.closedAt) : timeAgo(ticket.createdAt)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -365,6 +464,185 @@ export function PropertyView({ hotelId, onBack, onRoomClick, onTicketClick }: Pr
             </table>
           </div>
         )}
+      </div>
+
+      {showNewTicket && (
+        <NewTicketModal hotelId={hotelId} onClose={() => setShowNewTicket(false)} onCreate={addTicket} />
+      )}
+      {reassignFor && (
+        <ReassignModal ticket={reassignFor} onClose={() => setReassignFor(null)} onReassign={(target) => reassignTicket(reassignFor.id, target)} />
+      )}
+    </div>
+  );
+}
+
+/* ── Manager reassign modal ───────────────────────────────────────────── */
+function ReassignModal({ ticket, onClose, onReassign }: { ticket: MaintenanceTicket; onClose: () => void; onReassign: (target: string) => void }) {
+  const [target, setTarget] = useState('');
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl flex flex-col max-h-[90vh]" style={{ background: '#fff' }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <h2 className="text-base font-bold inline-flex items-center gap-2" style={{ color: '#222' }}>
+            <UserCog className="w-4 h-4" style={{ color: '#ff385c' }} /> Reassign ticket
+          </h2>
+          <button onClick={onClose}><X className="w-5 h-5" style={{ color: '#6a6a6a' }} /></button>
+        </div>
+        <div className="px-5 py-4 overflow-y-auto flex flex-col gap-3">
+          <div className="rounded-lg px-3 py-2" style={{ background: '#f7f7f7' }}>
+            <p className="text-xs font-mono font-bold" style={{ color: '#6a6a6a' }}>{ticket.id}</p>
+            <p className="text-sm font-medium" style={{ color: '#222' }}>{ticket.title}</p>
+          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6a6a6a' }}>Route to</p>
+          {REASSIGN_TARGETS.map((grp) => (
+            <div key={grp.group} className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#929292' }}>{grp.group}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {grp.people.map((p) => (
+                  <button key={p} onClick={() => setTarget(p)} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ border: `1px solid ${target === p ? '#ff385c' : '#ddd'}`, background: target === p ? '#fff1f3' : '#fff', color: target === p ? '#ff385c' : '#444' }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-4 flex justify-end gap-2 flex-shrink-0" style={{ borderTop: '1px solid #f0f0f0' }}>
+          <button onClick={onClose} className="h-9 px-4 rounded-xl text-xs font-semibold" style={{ background: '#f7f7f7', border: '1px solid #ddd', color: '#6a6a6a' }}>Cancel</button>
+          <button onClick={() => target && onReassign(target)} disabled={!target} className="h-9 px-4 rounded-xl text-xs font-semibold" style={{ background: target ? '#ff385c' : '#f3c0cb', color: '#fff' }}>Reassign</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── New ticket modal ─────────────────────────────────────────────────── */
+const NEW_TICKET_NOW_ISO = (() => {
+  const frozen = process.env.NEXT_PUBLIC_STAYOPS_FROZEN_TODAY;
+  return frozen ? `${frozen}T12:00:00` : new Date(NOW_MS).toISOString().slice(0, 19);
+})();
+
+function NewTicketModal({ hotelId, onClose, onCreate }: { hotelId: string; onClose: () => void; onCreate: (t: MaintenanceTicket) => void }) {
+  const [title, setTitle] = useState('');
+  const [roomNumber, setRoomNumber] = useState('');
+  const [type, setType] = useState<TicketType>('reactive');
+  const [priority, setPriority] = useState<TicketPriority>('normal');
+  const [description, setDescription] = useState('');
+  const [team, setTeam] = useState<AssignTeam>('Engineering');
+  const [error, setError] = useState('');
+
+  const TYPES: TicketType[] = ['reactive', 'preventive', 'audit', 'escalation'];
+  const PRIORITIES: TicketPriority[] = ['urgent', 'high', 'normal', 'low'];
+  const gm = GM_ROSTER.find((g) => g.hotelId === hotelId);
+  const gmName = gm?.name ?? 'Hotel Manager';
+
+  const TEAM_OPTIONS: { key: AssignTeam; icon: React.ReactNode; desc: string }[] = [
+    { key: 'Engineering', icon: <Wrench className="w-4 h-4" />, desc: 'Maintenance & repairs' },
+    { key: 'Housekeeping', icon: <Sparkles className="w-4 h-4" />, desc: 'Cleaning & room prep' },
+    { key: 'Manager', icon: <UserCog className="w-4 h-4" />, desc: `${gmName} decides routing` },
+  ];
+
+  const submit = () => {
+    if (!title.trim()) return setError('A short title is required.');
+    const id = `NEW-${hotelId}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const toManager = team === 'Manager';
+    const assignedTo = toManager ? gmName : ASSIGN_LABEL[team];
+    onCreate({
+      id,
+      hotelId,
+      roomNumber: roomNumber.trim() || undefined,
+      area: roomNumber.trim() ? undefined : 'Hotel-wide',
+      type,
+      priority,
+      // Manager route → waits on the GM to triage (callback_pending used as the
+      // "awaiting manager routing" state). Team route → assigned straight away.
+      status: toManager ? 'callback_pending' : 'assigned',
+      title: title.trim(),
+      description: description.trim() || title.trim(),
+      reportedBy: 'Operations',
+      assignedTo,
+      department: team === 'Housekeeping' ? 'Housekeeping' : team === 'Engineering' ? 'Engineering' : undefined,
+      createdAt: NEW_TICKET_NOW_ISO,
+      updatedAt: NEW_TICKET_NOW_ISO,
+      estimatedCost: undefined,
+      revenueLost: 0,
+      activity: [
+        { timestamp: NEW_TICKET_NOW_ISO, actor: 'Operations', action: 'Ticket created', note: title.trim() },
+        toManager
+          ? { timestamp: NEW_TICKET_NOW_ISO, actor: 'Operations', action: 'Routed to manager', note: `${gmName} notified to review and assign` }
+          : { timestamp: NEW_TICKET_NOW_ISO, actor: 'Operations', action: 'Assigned', note: `Assigned to ${assignedTo}` },
+      ],
+    });
+  };
+
+  const field = 'h-9 px-2.5 rounded-lg text-sm w-full border border-[#dddddd] bg-white text-[#222] outline-none focus:ring-2 focus:ring-[#ff385c]';
+  const lbl = 'text-[11px] font-semibold uppercase tracking-wide';
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl flex flex-col max-h-[90vh]" style={{ background: '#fff' }} onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <h2 className="text-base font-bold inline-flex items-center gap-2" style={{ color: '#222' }}>
+            <CheckCircle2 className="w-4 h-4" style={{ color: '#ff385c' }} /> New Ticket
+          </h2>
+          <button onClick={onClose}><X className="w-5 h-5" style={{ color: '#6a6a6a' }} /></button>
+        </div>
+        <div className="px-5 py-4 overflow-y-auto flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className={lbl} style={{ color: '#6a6a6a' }}>Title</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. AC not cooling – room at 78°F" className={field} />
+          </div>
+
+          {/* Assign to — team / role */}
+          <div className="flex flex-col gap-1.5">
+            <label className={lbl} style={{ color: '#6a6a6a' }}>Assign to</label>
+            <div className="grid grid-cols-3 gap-2">
+              {TEAM_OPTIONS.map((o) => (
+                <button key={o.key} onClick={() => setTeam(o.key)} className="p-2.5 rounded-xl text-left flex flex-col gap-1" style={{ border: `1px solid ${team === o.key ? '#ff385c' : '#eee'}`, background: team === o.key ? '#fff1f3' : '#fff' }}>
+                  <span style={{ color: team === o.key ? '#ff385c' : '#6a6a6a' }}>{o.icon}</span>
+                  <span className="text-sm font-semibold" style={{ color: '#222' }}>{o.key}</span>
+                  <span className="text-[10px] leading-tight" style={{ color: '#929292' }}>{o.desc}</span>
+                </button>
+              ))}
+            </div>
+            {team === 'Manager' && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg mt-0.5" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                <Bell className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#b45309' }} />
+                <p className="text-[11px]" style={{ color: '#92400e' }}>
+                  <span className="font-semibold">{gmName}</span> will be notified and can route this to the right team or person.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className={lbl} style={{ color: '#6a6a6a' }}>Room</label>
+              <input value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} placeholder="312" className={field} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={lbl} style={{ color: '#6a6a6a' }}>Type</label>
+              <select value={type} onChange={(e) => setType(e.target.value as TicketType)} className={field}>
+                {TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={lbl} style={{ color: '#6a6a6a' }}>Priority</label>
+              <select value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority)} className={field}>
+                {PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={lbl} style={{ color: '#6a6a6a' }}>Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's the issue? Add any detail the team needs." rows={3} className="px-2.5 py-2 rounded-lg text-sm w-full border border-[#dddddd] bg-white text-[#222] outline-none focus:ring-2 focus:ring-[#ff385c] resize-none" />
+          </div>
+          {error && <p className="text-xs font-medium" style={{ color: '#b91c1c' }}>{error}</p>}
+        </div>
+        <div className="px-5 py-4 flex justify-end gap-2 flex-shrink-0" style={{ borderTop: '1px solid #f0f0f0' }}>
+          <button onClick={onClose} className="h-9 px-4 rounded-xl text-xs font-semibold" style={{ background: '#f7f7f7', border: '1px solid #ddd', color: '#6a6a6a' }}>Cancel</button>
+          <button onClick={submit} className="h-9 px-4 rounded-xl text-xs font-semibold" style={{ background: '#ff385c', color: '#fff' }}>Create Ticket</button>
+        </div>
       </div>
     </div>
   );

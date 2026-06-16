@@ -4,7 +4,10 @@ import { LeadersClient } from '@/components/leaders/LeadersClient';
 import { useScopedData } from '@/lib/use-scoped-data';
 
 export default function Page() {
-  const { scopeSub } = useScopedData();
+  const { scopeSub, hotels, isPortfolio } = useScopedData();
+  // Portfolio scope → whole roster (no filter). Otherwise scope to selected hotels,
+  // so a single hotel shows just its regional director + that hotel's GM.
+  const hotelIds = isPortfolio ? undefined : hotels.map((h) => h.id);
   return (
     <div className="flex flex-col h-full">
       <div className="px-8 py-6 flex-shrink-0" style={{ borderBottom: '1px solid #dddddd' }}>
@@ -12,7 +15,7 @@ export default function Page() {
         <p className="text-sm mt-0.5" style={{ color: '#929292' }}>{scopeSub} · GM & Regional performance</p>
       </div>
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        <LeadersClient />
+        <LeadersClient hotelIds={hotelIds} />
       </div>
     </div>
   );

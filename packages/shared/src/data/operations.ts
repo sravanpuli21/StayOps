@@ -2,6 +2,7 @@ import type {
   Room, RoomStatus, HkStatus, RoomType,
   MaintenanceTicket, AuditTask, RoomInventoryItem,
   AssetStatus, AssetAttachment, SensorReading,
+  TicketStatus, TicketType, TicketPriority,
 } from '../types/operations';
 import { HOTELS } from './hotels';
 
@@ -1340,6 +1341,81 @@ export function getActiveTicketsForHotel(hotelId: string): MaintenanceTicket[] {
   return MAINTENANCE_TICKETS.filter(
     (t) => t.hotelId === hotelId && t.status !== 'resolved',
   );
+}
+
+// ── Open vs Closed split (hotel-level ticket views) ─────────────────────────
+const CLOSED_TICKET_STATUSES: TicketStatus[] = ['closed', 'resolved', 'completed'];
+const isClosedStatus = (s: TicketStatus) => CLOSED_TICKET_STATUSES.includes(s);
+
+/** Currently-open work orders for a hotel (everything not in a closed state). */
+export function getOpenTicketsForHotel(hotelId: string): MaintenanceTicket[] {
+  return MAINTENANCE_TICKETS.filter((t) => t.hotelId === hotelId && !isClosedStatus(t.status));
+}
+
+const CLOSED_TICKET_TEMPLATES: Array<{ title: string; type: TicketType; priority: TicketPriority; cost: number }> = [
+  { title: 'AC not cooling – refrigerant recharge', type: 'reactive', priority: 'high', cost: 180 },
+  { title: 'Leaking faucet – cartridge replaced', type: 'reactive', priority: 'normal', cost: 60 },
+  { title: 'TV no signal – HDMI board swapped', type: 'reactive', priority: 'normal', cost: 140 },
+  { title: 'Door lock battery + reader replaced', type: 'reactive', priority: 'high', cost: 95 },
+  { title: 'Toilet running – flapper & fill valve', type: 'reactive', priority: 'normal', cost: 45 },
+  { title: 'Quarterly HVAC filter replacement', type: 'preventive', priority: 'normal', cost: 30 },
+  { title: 'Smoke detector test & battery', type: 'preventive', priority: 'normal', cost: 20 },
+  { title: 'Shower drain cleared – slow drain', type: 'reactive', priority: 'normal', cost: 70 },
+  { title: 'Mini-fridge replaced – not cooling', type: 'reactive', priority: 'normal', cost: 210 },
+  { title: 'Light fixture flickering – ballast', type: 'reactive', priority: 'low', cost: 55 },
+  { title: 'Annual mattress rotation', type: 'preventive', priority: 'low', cost: 0 },
+  { title: 'Brand standards audit – passed', type: 'audit', priority: 'normal', cost: 0 },
+];
+
+/**
+ * Closed/resolved work-order history for a hotel. Combines any seed tickets in a
+ * closed state with a deterministic synthesized history so the Closed view
+ * reflects a realistic maintenance log. Sorted most-recently-closed first.
+ */
+export function getClosedTicketsForHotel(hotelId: string): MaintenanceTicket[] {
+  const seedClosed = MAINTENANCE_TICKETS.filter((t) => t.hotelId === hotelId && isClosedStatus(t.status));
+
+  const base = hash(`closed-count-${hotelId}`);
+  const count = 8 + (base % 8); // 8–15 closed tickets per hotel
+  const synth: MaintenanceTicket[] = [];
+  for (let i = 0; i < count; i++) {
+    const s = hash(`closed-${hotelId}-${i}`);
+    const tpl = CLOSED_TICKET_TEMPLATES[s % CLOSED_TICKET_TEMPLATES.length];
+    const floor = 1 + (s % 5);
+    const roomNumber = `${floor}${String(1 + (hash(`closed-room-${hotelId}-${i}`) % 18)).padStart(2, '0')}`;
+    const daysAgoClosed = 1 + (s % 45);
+    const ageDays = 1 + (hash(`closed-age-${hotelId}-${i}`) % 5);
+    const closedMonth = daysAgoClosed > 26 ? '03' : '04';
+    const closedDay = daysAgoClosed > 26 ? Math.max(1, 56 - daysAgoClosed) : Math.max(1, 26 - daysAgoClosed);
+    const createdDay = Math.max(1, closedDay - ageDays);
+    const closedAt = `2026-${closedMonth}-${String(closedDay).padStart(2, '0')}T${String(9 + (s % 8)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}:00`;
+    const createdAt = `2026-${closedMonth}-${String(createdDay).padStart(2, '0')}T${String(8 + (s % 6)).padStart(2, '0')}:00:00`;
+    const tech = OOO_TECHS[s % OOO_TECHS.length];
+    synth.push({
+      id: `CL-${hotelId}-${String(i + 1).padStart(2, '0')}`,
+      hotelId,
+      roomNumber: tpl.type === 'audit' ? undefined : roomNumber,
+      area: tpl.type === 'audit' ? 'Hotel-wide' : undefined,
+      type: tpl.type,
+      priority: tpl.priority,
+      status: tpl.type === 'audit' ? 'closed' : 'resolved',
+      title: tpl.title,
+      description: `${tpl.title}. Work completed and verified by ${tech}.`,
+      reportedBy: tpl.type === 'preventive' ? 'Maintenance' : 'Front Desk',
+      assignedTo: tech,
+      createdAt,
+      updatedAt: closedAt,
+      closedAt,
+      estimatedCost: tpl.cost,
+      revenueLost: 0,
+      activity: [
+        { timestamp: closedAt, actor: tech, action: 'Closed', note: 'Work completed and verified.' },
+        { timestamp: createdAt, actor: 'Front Desk', action: 'Ticket created', note: tpl.title },
+      ],
+    });
+  }
+
+  return [...seedClosed, ...synth].sort((a, b) => (b.closedAt ?? b.updatedAt).localeCompare(a.closedAt ?? a.updatedAt));
 }
 
 export function getActiveTicketsForRoom(hotelId: string, roomNumber: string): MaintenanceTicket[] {

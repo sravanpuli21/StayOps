@@ -160,11 +160,14 @@ const METRIC_COLS: { key: MetricKey; label: string; short: string }[] = [
   { key: 'trend',       label: 'Trend',        short: 'Trend' },
 ];
 
-function GMTable() {
+function GMTable({ hotelIds }: { hotelIds?: readonly string[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('rank');
   const [sortAsc, setSortAsc] = useState(false);
 
-  const gmScores = useMemo(() => getAllGMScores(), []);
+  const gmScores = useMemo(
+    () => getAllGMScores().filter((g) => !hotelIds || hotelIds.includes(g.hotelId)),
+    [hotelIds],
+  );
 
   const sorted = useMemo(() => {
     return [...gmScores].sort((a, b) => {
@@ -337,8 +340,11 @@ function heatCell(v: number) {
   return { bg: 'rgba(239,68,68,0.15)', color: '#b91c1c', label: v };
 }
 
-function AccountabilityHeatmap() {
-  const gmScores = useMemo(() => getAllGMScores(), []);
+function AccountabilityHeatmap({ hotelIds }: { hotelIds?: readonly string[] }) {
+  const gmScores = useMemo(
+    () => getAllGMScores().filter((g) => !hotelIds || hotelIds.includes(g.hotelId)),
+    [hotelIds],
+  );
 
   return (
     <div
@@ -420,8 +426,11 @@ function AccountabilityHeatmap() {
 
 // ── Summary KPI bar ───────────────────────────────────────────────────────────
 
-function SummaryKPIs() {
-  const gmScores = useMemo(() => getAllGMScores(), []);
+function SummaryKPIs({ hotelIds }: { hotelIds?: readonly string[] }) {
+  const gmScores = useMemo(
+    () => getAllGMScores().filter((g) => !hotelIds || hotelIds.includes(g.hotelId)),
+    [hotelIds],
+  );
   const scores = gmScores.map((g) => g.score.composite);
   const avg = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length);
   const above85 = scores.filter((v) => v >= 85).length;
@@ -454,7 +463,7 @@ function SummaryKPIs() {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export function LeadersClient() {
+export function LeadersClient({ hotelIds }: { hotelIds?: readonly string[] } = {}) {
   const [tab, setTab] = useState<Tab>('scoreboard');
 
   const TABS = [
@@ -462,18 +471,25 @@ export function LeadersClient() {
     { id: 'heatmap' as Tab, label: 'Accountability Heatmap', icon: Grid3x3 },
   ];
 
+  // Regional directors who oversee any of the scoped hotels. With no scope (or
+  // full portfolio) this is the whole roster; with one hotel selected it's just
+  // that hotel's regional manager(s).
+  const regionals = hotelIds
+    ? REGIONAL_ROSTER.filter((r) => r.hotelIds.some((id) => hotelIds.includes(id)))
+    : REGIONAL_ROSTER;
+
   return (
     <div className="flex flex-col gap-6">
       {/* KPI summary */}
-      <SummaryKPIs />
+      <SummaryKPIs hotelIds={hotelIds} />
 
       {/* Regional scorecards */}
       <div>
         <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#929292' }}>
-          Regional Directors
+          {regionals.length === 1 ? 'Regional Director' : 'Regional Directors'}
         </p>
-        <div className="flex gap-4">
-          {REGIONAL_ROSTER.map((r) => (
+        <div className="flex gap-4 flex-wrap">
+          {regionals.map((r) => (
             <RegionalCard key={r.id} regional={r} />
           ))}
         </div>
@@ -504,8 +520,8 @@ export function LeadersClient() {
           })}
         </div>
 
-        {tab === 'scoreboard' && <GMTable />}
-        {tab === 'heatmap' && <AccountabilityHeatmap />}
+        {tab === 'scoreboard' && <GMTable hotelIds={hotelIds} />}
+        {tab === 'heatmap' && <AccountabilityHeatmap hotelIds={hotelIds} />}
       </div>
     </div>
   );
