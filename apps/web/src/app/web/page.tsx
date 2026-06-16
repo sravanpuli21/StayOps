@@ -2,18 +2,12 @@ import Link from 'next/link';
 import { Monitor } from 'lucide-react';
 import { PERSONAS } from '@hos/shared';
 
-const scopeLabel: Record<string, string> = {
-  portfolio: 'All 16 Hotels',
-  regional: '8 Hotels',
-  property: 'Single Property',
-};
-
 export default function PersonaPickerPage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#f7f7f7' }}>
       {/* Top bar */}
       <div className="bg-white border-b flex-shrink-0" style={{ borderColor: '#dddddd' }}>
-        <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto w-full px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#ff385c' }} />
             <span className="font-bold text-base" style={{ color: '#222222' }}>HOS Management</span>
@@ -25,7 +19,7 @@ export default function PersonaPickerPage() {
       </div>
 
       {/* Content — fills remaining height, no scroll */}
-      <div className="flex-1 min-h-0 max-w-5xl mx-auto w-full px-6 py-5 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 max-w-7xl mx-auto w-full px-4 py-5 flex flex-col gap-4">
         <div className="flex-shrink-0">
           <h1 className="text-xl font-bold" style={{ color: '#222222' }}>
             Select your persona
@@ -68,8 +62,8 @@ export default function PersonaPickerPage() {
           </Link>
         </div>
 
-        {/* Persona grid — flexes to fill remaining space */}
-        <div className="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 content-start">
+        {/* Persona grid — rows stretch to fill remaining height so all cards fit */}
+        <div className="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 auto-rows-fr">
           {PERSONAS.map((persona) => {
             const isHighlight = persona.id === 'kris';
             const isBuilt = persona.id === 'kris' || persona.id === 'harshal' || persona.id === 'rishab' || persona.id === 'sravan' || persona.id === 'emma' || persona.id === 'sydney' || persona.id === 'sanjay' || persona.id === 'kwanisha';
@@ -106,25 +100,13 @@ export default function PersonaPickerPage() {
 
                 {/* Info */}
                 <div className="text-center">
-                  <p className="font-semibold text-xs leading-tight" style={{ color: '#222222' }}>
+                  <p className="font-bold text-base leading-tight" style={{ color: '#222222' }}>
                     {persona.name}
                   </p>
                   <p className="text-[11px] mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>
                     {persona.title}
                   </p>
                 </div>
-
-                {/* Scope badge */}
-                <span
-                  className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    background: '#f7f7f7',
-                    color: '#6a6a6a',
-                    border: '1px solid #dddddd',
-                  }}
-                >
-                  {scopeLabel[persona.scope]}
-                </span>
 
                 {/* "Live" / "Soon" pill */}
                 {isBuilt ? (
